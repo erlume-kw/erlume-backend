@@ -16,8 +16,8 @@ New-Item .env -ItemType File
 # MONGODB_URI=your-mongodb-uri --> in discord channel 
 # PORT=5000
 
-# Start the server
-node server.js
+# Start the server (customer command to build and run)
+npm run build-and-run
 
 
 # test
