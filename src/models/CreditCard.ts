@@ -1,0 +1,17 @@
+// src/models/CreditCard.ts
+
+import mongoose, { Schema } from 'mongoose';
+import { ICreditCard } from '../interfaces/ICreditCard'; // Import the ICreditCard interface
+
+// Create the CreditCard schema
+const CreditCardSchema: Schema = new Schema({
+    _id: { type: Schema.Types.ObjectId, required: true }, // Card's unique ID
+    cardNumber: { type: String, required: true }, // Card number
+    expiryDate: { type: String, required: true }, // Expiry date of the card
+    holderName: { type: String, required: true } // Name of the cardholder
+}, { timestamps: true }); // Automatically manage createdAt and updatedAt
+
+// Create the CreditCard model
+const CreditCard = mongoose.model<ICreditCard>('CreditCard', CreditCardSchema);
+
+export default CreditCard;
