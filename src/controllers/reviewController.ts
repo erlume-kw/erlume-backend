@@ -9,9 +9,10 @@ const getReviewsByProductId = (req: Request, res: Response) => {
   res.send(`Retrieving reviews for product ID: ${productId}`);
 };
 
+// review to add role check user is a seller
 const getReviewsBySellerId = (req: Request, res: Response) => {
-  const sellerId = req.params.sellerId;
-  res.send(`Retrieving reviews for seller ID: ${sellerId}`);
+  const userId = req.params.userId;
+  res.send(`Retrieving reviews for seller ID: ${userId}`);
 };
 
 const getReviewById = (req: Request, res: Response) => {

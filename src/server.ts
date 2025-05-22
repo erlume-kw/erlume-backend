@@ -1,12 +1,11 @@
 // src/server.ts
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import cors from "cors";
 
 // Import routes
 import userRoutes from "./routes/userRoutes";
-import sellerRoutes from "./routes/sellerRoutes";
 import itemRoutes from "./routes/itemRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import subCategoryRoutes from "./routes/subCategoryRoutes";
@@ -19,15 +18,29 @@ import outfitRoutes from "./routes/outfitRoutes";
 import outfitItemRoutes from "./routes/outfitItemRoutes";
 import demandRoutes from "./routes/demandRoutes";
 import discountCodeRoutes from "./routes/discountCodeRoutes";
-import imageRoutes from "./routes/imageRoutes";
 
 dotenv.config();
 connectDB();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Debug middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+	console.log(`${req.method} ${req.path}`);
+	console.log('Headers:', req.headers);
+	next();
+});
+
+// CORS configuration
+const corsOptions = {
+	origin: true, // Allow all origins
+	methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+	credentials: true,
+	optionsSuccessStatus: 204,
+	allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Base route
@@ -37,7 +50,6 @@ app.get("/", (req: Request, res: Response) => {
 
 // Routes
 app.use("/api/users", userRoutes);
-app.use("/api/sellers", sellerRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/subcategories", subCategoryRoutes);
@@ -50,9 +62,8 @@ app.use("/api/outfits", outfitRoutes);
 app.use("/api/outfititems", outfitItemRoutes);
 app.use("/api/demands", demandRoutes);
 app.use("/api/discountcodes", discountCodeRoutes);
-app.use("/api/images", imageRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
 	console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

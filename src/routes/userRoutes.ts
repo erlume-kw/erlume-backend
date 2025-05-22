@@ -3,8 +3,8 @@ const router = express.Router();
 import userController from '../controllers/userController';
 
 // Define routes and map to controller methods
-router.get('/users', userController.getUsers);            
-router.get('/users/:id', userController.getUserById);     
-router.post('/users', userController.createUser);        
+router.get('/', userController.getUsers);            
+router.get('/:id', userController.getUserById);     
+router.post('/', userController.createUser);        
 
 export default router;

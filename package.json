@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node dist/server.js",
-    "start:dev": "nodemon src/server.ts",
+    "start:dev": "npx nodemon src/server.ts",
     "build-and-run": "npm run build && npm start"
   },
   "repository": {
@@ -27,7 +27,7 @@
     "mongoose": "^8.15.0"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.18",
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.2",
     "@types/node": "^22.15.18",
     "nodemon": "^3.1.10",
