@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IDiscountCode } from "../interfaces/IDiscountCode";
+import { DiscountCodeInterface } from "../interfaces/DiscountCode";
 
 const DiscountCodeSchema: Schema = new Schema(
 	{
@@ -9,7 +9,7 @@ const DiscountCodeSchema: Schema = new Schema(
 	{ timestamps: true },
 );
 
-const DiscountCode = mongoose.model<IDiscountCode>(
+const DiscountCode = mongoose.model<DiscountCodeInterface>(
 	"DiscountCode",
 	DiscountCodeSchema,
 );

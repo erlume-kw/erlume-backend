@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { ISubCategory } from "../interfaces/ISubCategory";
+import { SubCategoryInterface } from "../interfaces/SubCategory";
 
 const SubCategorySchema: Schema = new Schema(
 	{
@@ -21,7 +21,7 @@ const SubCategorySchema: Schema = new Schema(
 	{ timestamps: true },
 );
 
-const SubCategory = mongoose.model<ISubCategory>(
+const SubCategory = mongoose.model<SubCategoryInterface>(
 	"SubCategory",
 	SubCategorySchema,
 );

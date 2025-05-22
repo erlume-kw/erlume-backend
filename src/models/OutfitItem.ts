@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IOutfitItem } from "../interfaces/IOutfitItem";
+import { OutfitItemInterface } from "../interfaces/OutfitItem";
 
 const OutfitItemSchema: Schema = new Schema(
 	{
@@ -20,6 +20,6 @@ const OutfitItemSchema: Schema = new Schema(
 	{ timestamps: true },
 );
 
-const OutfitItem = mongoose.model<IOutfitItem>("OutfitItem", OutfitItemSchema);
+const OutfitItem = mongoose.model<OutfitItemInterface>("OutfitItem", OutfitItemSchema);
 
 export default OutfitItem;

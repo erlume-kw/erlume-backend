@@ -1,6 +1,6 @@
 // src/models/Seller.ts
 import mongoose, { Schema } from "mongoose";
-import { ISeller } from "../interfaces/ISeller"; // Import the ISeller interface
+import { SellerInterface } from "../interfaces/Seller"; // Import the SellerInterface
 
 // Create the Seller schema
 const SellerSchema: Schema = new Schema(
@@ -21,6 +21,6 @@ const SellerSchema: Schema = new Schema(
 ); // Automatically manage createdAt and updatedAt
 
 // Create the Seller model
-const Seller = mongoose.model<ISeller>("Seller", SellerSchema);
+const Seller = mongoose.model<SellerInterface>("Seller", SellerSchema);
 
 export default Seller;

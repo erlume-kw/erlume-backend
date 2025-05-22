@@ -1,7 +1,7 @@
 import { Document, Types } from "mongoose";
 // _id = category._id // This is the category_id --> auto generated in mongodb
 
-export interface ICategory extends Document {
+export interface CategoryInterface extends Document {
 	name: string;
 	base_rate: string;
 	op_rate: string;
