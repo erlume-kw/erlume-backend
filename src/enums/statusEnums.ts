@@ -4,4 +4,6 @@ export enum ItemStatus {
 	OutOfStock = "out_of_stock",
 	Pending = "pending",
 	Approved = "approved",
+	Rejected = "rejected",
+
 }

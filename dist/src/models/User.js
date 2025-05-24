@@ -48,6 +48,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const Seller_1 = __importDefault(require("./Seller"));
+const Address_1 = require("./Address");
 // _id = user._id // This is the user_id --> auto generated in mongodb
 // Create the User schema
 const UserSchema = new mongoose_1.Schema({
@@ -64,7 +65,7 @@ const UserSchema = new mongoose_1.Schema({
         required: true,
         match: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/
     },
-    address: { type: Object, required: true }, // Assuming IAddress is an object
+    address: { type: Address_1.AddressSchema, required: true }, // Assuming IAddress is an object
     roles: [{ type: String, required: true }], // Array of roles
     cardIds: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "CreditCard" }],
     isDeleted: { type: Boolean, default: false },

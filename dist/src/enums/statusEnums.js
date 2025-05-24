@@ -8,4 +8,5 @@ var ItemStatus;
     ItemStatus["OutOfStock"] = "out_of_stock";
     ItemStatus["Pending"] = "pending";
     ItemStatus["Approved"] = "approved";
+    ItemStatus["Rejected"] = "rejected";
 })(ItemStatus || (exports.ItemStatus = ItemStatus = {}));
