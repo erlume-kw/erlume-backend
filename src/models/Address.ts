@@ -12,11 +12,11 @@ const AddressSchema: Schema = new Schema({
     },
     block: {
         type: String,
-        required: false
+        required: true
     },
     governorate: {
         type: String,
-        required: false
+        required: true
     },
     house: {
         type: String,

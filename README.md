@@ -14,14 +14,14 @@ New-Item .env -ItemType File
 
 # Then edit .env manually to add:
 # MONGODB_URI=your-mongodb-uri --> in discord channel (updated)
-# PORT=5000
+# PORT=3000
 
 # Start the server (customer command to build and run)
 npm run build-and-run
 
 
 # test
-Visit http://localhost:5000 to test. 
+Visit http://localhost:3000 to test. 
 
 
 ## 🗄️ Database
