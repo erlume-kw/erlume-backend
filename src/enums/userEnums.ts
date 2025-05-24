@@ -1,7 +1,7 @@
 export enum UserRole {
-	Buyer = "buyer",
-	Seller = "seller",
-	Admin = "admin",
+	USER = 'user',
+	SELLER = 'seller',
+	ADMIN = 'admin'
 }
 
 export enum Stars {

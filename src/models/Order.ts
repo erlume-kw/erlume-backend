@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IOrder } from "../interfaces/IOrder";
+import { OrderInterface } from "../interfaces/Order";
 import { OrderStatus } from "../enums/orderEnums";
 import OrderItem from "./OrderItem";
 
@@ -32,6 +32,6 @@ OrderSchema.pre("findOneAndDelete", async function (next) {
 	next();
 });
 
-const Order = mongoose.model<IOrder>("Order", OrderSchema);
+const Order = mongoose.model<OrderInterface>("Order", OrderSchema);
 
 export default Order;

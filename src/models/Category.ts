@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { ICategory } from "../interfaces/ICategory";
+import { CategoryInterface } from "../interfaces/Category";
 import SubCategory from "./SubCategory";
 
 const CategorySchema: Schema = new Schema(
@@ -22,6 +22,6 @@ CategorySchema.pre("findOneAndDelete", async function (next) {
 	next();
 });
 
-const Category = mongoose.model<ICategory>("Category", CategorySchema);
+const Category = mongoose.model<CategoryInterface>("Category", CategorySchema);
 
 export default Category;

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IOrderItem } from "../interfaces/IOrderItem";
+import { OrderItemInterface } from "../interfaces/OrderItem";
 
 const OrderItemSchema: Schema = new Schema(
 	{
@@ -20,6 +20,6 @@ const OrderItemSchema: Schema = new Schema(
 	{ timestamps: true },
 );
 
-const OrderItem = mongoose.model<IOrderItem>("OrderItem", OrderItemSchema);
+const OrderItem = mongoose.model<OrderItemInterface>("OrderItem", OrderItemSchema);
 
 export default OrderItem;

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IDemand } from "../interfaces/IDemand";
+import { DemandInterface } from "../interfaces/Demand";
 
 const DemandSchema: Schema = new Schema(
 	{
@@ -9,6 +9,6 @@ const DemandSchema: Schema = new Schema(
 	{ timestamps: true },
 );
 
-const Demand = mongoose.model<IDemand>("Demand", DemandSchema);
+const Demand = mongoose.model<DemandInterface>("Demand", DemandSchema);
 
 export default Demand;

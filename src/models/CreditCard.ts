@@ -1,7 +1,7 @@
 // src/models/CreditCard.ts
 
 import mongoose, { Schema } from 'mongoose';
-import { ICreditCard } from '../interfaces/ICreditCard'; // Import the ICreditCard interface
+import { CreditCardInterface } from '../interfaces/CreditCard';
 
 // Create the CreditCard schema
 const CreditCardSchema: Schema = new Schema({
@@ -12,6 +12,6 @@ const CreditCardSchema: Schema = new Schema({
 }, { timestamps: true }); // Automatically manage createdAt and updatedAt
 
 // Create the CreditCard model
-const CreditCard = mongoose.model<ICreditCard>('CreditCard', CreditCardSchema);
+const CreditCard = mongoose.model<CreditCardInterface>('CreditCard', CreditCardSchema);
 
 export default CreditCard;

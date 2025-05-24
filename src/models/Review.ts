@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IReview } from "../interfaces/IReview";
+import { ReviewInterface } from "../interfaces/Review";
 import { Stars } from "../enums/reviewEnums";
 const ReviewSchema: Schema = new Schema(
 	{
@@ -25,6 +25,6 @@ const ReviewSchema: Schema = new Schema(
 	{ timestamps: true },
 );
 
-const Review = mongoose.model<IReview>("Review", ReviewSchema);
+const Review = mongoose.model<ReviewInterface>("Review", ReviewSchema);
 
 export default Review;

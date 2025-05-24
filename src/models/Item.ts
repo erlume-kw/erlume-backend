@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
-import { IItem } from "../interfaces/IItem"; // Import the IItem interface
+import { ItemInterface } from "../interfaces/Item"; // Import the ItemInterface
 import { ItemCondition } from "../enums/itemEnums"; // Import the ItemCondition enum
 import { ItemStatus } from "../enums/statusEnums"; // Import the ItemStatus enum
 import OutfitItem from "./OutfitItem";
@@ -55,6 +55,6 @@ ItemSchema.pre("findOneAndDelete", async function (next) {
 });
 
 // Create the Item model
-const Item = mongoose.model<IItem>("Item", ItemSchema);
+const Item = mongoose.model<ItemInterface>("Item", ItemSchema);
 
 export default Item;
