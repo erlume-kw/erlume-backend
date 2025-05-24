@@ -21,7 +21,7 @@ const UserSchema: Schema = new Schema(
 			required: true,
 			match: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/
 		},
-		address: { type: Object, required: true }, // Assuming IAddress is an object
+		address: { type: AddressSchema, required: true }, // Assuming IAddress is an object
 		roles: [{ type: String, required: true }], // Array of roles
 		cardIds: [{ type: Schema.Types.ObjectId, ref: "CreditCard" }],
 		isDeleted: { type: Boolean, default: false },
