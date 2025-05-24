@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IOutfit } from "../interfaces/IOutfit";
+import { OutfitInterface } from "../interfaces/Outfit";
 import OutfitItem from "./OutfitItem";
 
 const OutfitSchema: Schema = new Schema(
@@ -22,6 +22,6 @@ OutfitSchema.pre("findOneAndDelete", async function (next) {
 	next();
 });
 
-const Outfit = mongoose.model<IOutfit>("Outfit", OutfitSchema);
+const Outfit = mongoose.model<OutfitInterface>("Outfit", OutfitSchema);
 
 export default Outfit;

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { ITransaction } from "../interfaces/ITransaction";
+import { TransactionInterface } from "../interfaces/Transaction";
 
 const TransactionSchema: Schema = new Schema(
 	{
@@ -16,7 +16,7 @@ const TransactionSchema: Schema = new Schema(
 	{ timestamps: true },
 );
 
-const Transaction = mongoose.model<ITransaction>(
+const Transaction = mongoose.model<TransactionInterface>(
 	"Transaction",
 	TransactionSchema,
 );

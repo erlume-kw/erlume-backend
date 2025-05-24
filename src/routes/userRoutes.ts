@@ -1,10 +1,15 @@
-import express from 'express';
-const router = express.Router();
+import express, { Router, RequestHandler } from 'express';
+const router: Router = express.Router();
 import userController from '../controllers/userController';
 
-// Define routes and map to controller methods
-router.get('/', userController.getUsers);            
-router.get('/:id', userController.getUserById);     
-router.post('/', userController.createUser);        
+// User routes
+router.get('/', userController.getUsers as RequestHandler);
+router.get('/:id', userController.getUserById as RequestHandler);
+router.post('/', userController.createUser as RequestHandler);
+router.put('/:id', userController.updateUser as RequestHandler);
+router.delete('/:id', userController.deleteUser as RequestHandler);
+
+// Seller-specific routes
+router.put('/:id/seller', userController.updateSellerInfo as RequestHandler);
 
 export default router;

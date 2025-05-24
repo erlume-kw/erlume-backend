@@ -4,10 +4,8 @@ import { Document, Types } from "mongoose";
 import { ItemCondition } from "../enums/itemEnums";
 import { ItemStatus } from "../enums/statusEnums";
 
-export interface IItem extends Document {
-	_id: Types.ObjectId; // Item's unique ID (MongoDB ObjectId)
+export interface ItemInterface extends Document {
 	basePrice: string; // Base price of the item
-	imageId: Types.ObjectId; // Foreign key reference to the image document
 	condition: ItemCondition; // Condition of the item (enum)
 	uploadedAt: Date; // Date when the item was uploaded
 	saleRate: string; // Sale rate or discount percentage
@@ -19,5 +17,7 @@ export interface IItem extends Document {
 	brandName: string; // Brand name of the item
 	imageUrls: string[]; // List of URLs of the item's images
 	category_id: Types.ObjectId; // Reference to Category
-	sub_category_id: Types.ObjectId; // Reference to SubCategory
+	sub_category_id?: Types.ObjectId; // Reference to SubCategory
+	createdAt: Date;
+	updatedAt: Date;
 }
