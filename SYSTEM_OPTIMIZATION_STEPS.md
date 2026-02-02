@@ -811,6 +811,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 ## KEY METRICS TO TRACK IN ADMINJS
 
 1. **Seller Metrics:**
+
    - Onboarding completion rate
    - Average onboarding time
    - Google Form to database entry time (how long between form submission and manual entry)
@@ -819,12 +820,14 @@ This document outlines step-by-step instructions to elevate your backend system 
    - Escalation rate
 
 2. **Item Metrics:**
+
    - Pickup to listing time
    - Authentication pass rate
    - Time to sale
    - Return rate
 
 3. **Order Metrics:**
+
    - Conversion rate
    - Average order value
    - Payment success rate
