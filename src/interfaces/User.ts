@@ -3,7 +3,7 @@ import { UserRole } from '../enums/userEnums';
 import { AddressInterface } from './Address';
 
 export interface UserInterface extends Document {
-	username: string;
+	// username?: string; // Deprecated: emailAddress is primary
 	password: string;
 	emailAddress: string;
 	phoneNumber: string;

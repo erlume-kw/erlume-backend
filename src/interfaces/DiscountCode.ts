@@ -1,6 +1,10 @@
 import { Document } from "mongoose";
-// _id = discount._id // This is the discount_id --> auto generated in mongodb  
+
 export interface DiscountCodeInterface extends Document {
-	discount_rate: string;
-	discount_code: string;
+	code: string; // Discount code string
+	discount_percentage: string; // Discount percentage (e.g., "20" for 20%)
+	expiry_date: Date; // When the discount code expires
+	is_active: boolean; // Whether the code is currently active
+	createdAt: Date;
+	updatedAt: Date;
 }

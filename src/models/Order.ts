@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { OrderInterface } from "../interfaces/Order";
 import { OrderStatus } from "../enums/orderEnums";
+import { DeliveryStatus } from "../enums/flowEnums";
 import OrderItem from "./OrderItem";
 
 const OrderSchema: Schema = new Schema(
@@ -19,6 +20,13 @@ const OrderSchema: Schema = new Schema(
 			enum: Object.values(OrderStatus),
 			required: true,
 		},
+		deliveryDate: { type: Date, required: false },
+		deliveryStatus: {
+			type: String,
+			enum: Object.values(DeliveryStatus),
+			required: false,
+		},
+		trackingReference: { type: String, required: false },
 	},
 	{ timestamps: true },
 );

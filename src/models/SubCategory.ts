@@ -13,10 +13,10 @@ const SubCategorySchema: Schema = new Schema(
 		demand_id: {
 			type: Schema.Types.ObjectId,
 			ref: "Demand",
-			required: true,
+			required: false,
 			index: true,
 		},
-		sub_clean_rate: { type: String, required: true },
+		sub_clean_rate: { type: String, required: false },
 	},
 	{ timestamps: true },
 );

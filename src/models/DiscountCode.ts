@@ -3,8 +3,10 @@ import { DiscountCodeInterface } from "../interfaces/DiscountCode";
 
 const DiscountCodeSchema: Schema = new Schema(
 	{
-		discount_rate: { type: String, required: true },
-		discount_code: { type: String, required: true },
+		code: { type: String, required: true, unique: true },
+		discount_percentage: { type: String, required: true },
+		expiry_date: { type: Date, required: true },
+		is_active: { type: Boolean, required: true, default: true },
 	},
 	{ timestamps: true },
 );

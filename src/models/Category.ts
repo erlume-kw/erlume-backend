@@ -6,8 +6,8 @@ const CategorySchema: Schema = new Schema(
 	{
 		name: { type: String, required: true },
 		base_rate: { type: String, required: true },
-		op_rate: { type: String, required: true },
-		clean_rate: { type: String, required: true },
+		op_rate: { type: String, required: false },
+		clean_rate: { type: String, required: false },
 		sub_category_id: { type: Schema.Types.ObjectId, ref: "SubCategory" }, // Optional
 	},
 	{ timestamps: true },

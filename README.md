@@ -13,8 +13,8 @@ touch .env
 New-Item .env -ItemType File
 
 # Then edit .env manually to add:
-# MONGODB_URI=your-mongodb-uri --> in discord channel (updated)
-# PORT=3000
+ MONGODB_URI=your-mongodb-uri --> in discord channel (updated)
+ PORT=3000
 
 # Start the server (customer command to build and run)
 npm run build-and-run
@@ -22,6 +22,14 @@ npm run build-and-run
 
 # test
 Visit http://localhost:3000 to test. 
+
+
+## 📚 API docs (Swagger)
+| URL | Description |
+|-----|-------------|
+| `/api-docs` | Full API (all paths) |
+| `/api-docs/backoffice` | Only paths with `x-usedBy` including "backoffice" (admin dashboard) |
+| `/api-docs/frontend` | Only paths with `x-usedBy` including "frontend" (customer-facing site) |
 
 
 ## 🗄️ Database

@@ -4,6 +4,6 @@ import { Document, Types } from "mongoose";
 export interface SubCategoryInterface extends Document {
 	sub_cat_name: string;
 	category_id: Types.ObjectId; // Reference to Category
-	demand_id: Types.ObjectId; // Reference to Demand
+	demand_id?: Types.ObjectId; // Reference to Demand (optional)
 	sub_clean_rate: string;
 }

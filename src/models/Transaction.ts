@@ -1,5 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { TransactionInterface } from "../interfaces/Transaction";
+import { TransactionStatus } from "../enums/transactionEnums";
+import { PaymentMethod } from "../enums/paymentEnums";
 
 const TransactionSchema: Schema = new Schema(
 	{
@@ -12,6 +14,19 @@ const TransactionSchema: Schema = new Schema(
 		discount_rate: { type: String, required: true },
 		amount: { type: String, required: true },
 		discount_id: { type: Schema.Types.ObjectId, ref: "DiscountCode" }, // Optional
+		status: {
+			type: String,
+			enum: Object.values(TransactionStatus),
+			default: TransactionStatus.Pending,
+			required: true,
+			index: true,
+		},
+		paymentMethod: {
+			type: String,
+			enum: Object.values(PaymentMethod),
+			required: false,
+			index: true,
+		},
 	},
 	{ timestamps: true },
 );
