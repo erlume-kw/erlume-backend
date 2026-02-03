@@ -40,6 +40,8 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use((0, cors_1.default)(corsOptions));
+// Ensure preflight requests always get a CORS response
+app.options(/.*/, (0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 // Base route
 app.get("/", (req, res) => {

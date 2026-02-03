@@ -41,6 +41,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+// Ensure preflight requests always get a CORS response
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 
 // Base route

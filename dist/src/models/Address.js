@@ -46,11 +46,11 @@ const AddressSchema = new mongoose_1.Schema({
     },
     block: {
         type: String,
-        required: false
+        required: true
     },
     governorate: {
         type: String,
-        required: false
+        required: true
     },
     house: {
         type: String,
