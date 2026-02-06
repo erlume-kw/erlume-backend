@@ -20,6 +20,7 @@ const kuwaitEnums_1 = require("../enums/kuwaitEnums");
 const transactionEnums_1 = require("../enums/transactionEnums");
 const paymentEnums_1 = require("../enums/paymentEnums");
 const expenseEnums_1 = require("../enums/expenseEnums");
+const bagBrandEnums_1 = require("../enums/bagBrandEnums");
 const flowEnums_1 = require("../enums/flowEnums");
 /**
  * Get all enums used in the system
@@ -141,6 +142,13 @@ const getEnums = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 values: Object.values(flowEnums_1.EscalationStatus),
                 options: Object.entries(flowEnums_1.EscalationStatus).map(([key, value]) => ({
                     label: key,
+                    value: value,
+                })),
+            },
+            bagBrand: {
+                values: Object.values(bagBrandEnums_1.BagBrand),
+                options: Object.entries(bagBrandEnums_1.BagBrand).map(([key, value]) => ({
+                    label: value,
                     value: value,
                 })),
             },
@@ -315,6 +323,15 @@ const getEnumCategory = (req, res) => __awaiter(void 0, void 0, void 0, function
                     })),
                 };
                 break;
+            case "bagBrand":
+                enumData = {
+                    values: Object.values(bagBrandEnums_1.BagBrand),
+                    options: Object.entries(bagBrandEnums_1.BagBrand).map(([key, value]) => ({
+                        label: value,
+                        value: value,
+                    })),
+                };
+                break;
             default:
                 res.status(404).json({
                     success: false,
@@ -336,6 +353,7 @@ const getEnumCategory = (req, res) => __awaiter(void 0, void 0, void 0, function
                         "returnStatus",
                         "deliveryStatus",
                         "escalationStatus",
+                        "bagBrand",
                     ],
                 });
                 return;

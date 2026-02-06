@@ -14,50 +14,174 @@
     }
   },
   "servers": [
-    { "url": "http://localhost:3000", "description": "Local development" },
-    { "url": "/", "description": "Relative (use your Backoffice base URL)" }
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    },
+    {
+      "url": "/",
+      "description": "Relative (use your Backoffice base URL)"
+    }
   ],
   "tags": [
-    { "name": "Users", "description": "User accounts only (login, roles, soft-delete). For seller profile (bank, policy, escalation) use Sellers." },
-    { "name": "Sellers", "description": "Seller profiles only. Use PUT/PATCH /api/sellers/{id} for all seller updates — do not use /api/users for seller data." },
-    { "name": "Items", "description": "Product/catalog items" },
-    { "name": "Categories", "description": "Product categories" },
-    { "name": "SubCategories", "description": "Product subcategories" },
-    { "name": "Orders", "description": "Customer orders" },
-    { "name": "OrderItems", "description": "Order line items" },
-    { "name": "Transactions", "description": "Payments and transactions" },
-    { "name": "Sales", "description": "Sales records (invoice, evidence)" },
-    { "name": "Incomes", "description": "Income records: Erlume commission, income (sale amount), seller payout per sale/item. Single source for commission breakdown and payout tracking." },
-    { "name": "Expenses", "description": "Expense records" },
-    { "name": "CreditCards", "description": "Saved credit cards" },
-    { "name": "Reviews", "description": "Seller reviews" },
-    { "name": "Drops", "description": "Product drops" },
-    { "name": "Demands", "description": "Demand rates" },
-    { "name": "DiscountCodes", "description": "Discount codes" },
-    { "name": "Outfits", "description": "Outfit curations" },
-    { "name": "OutfitItems", "description": "Items in outfits" },
-    { "name": "Enums", "description": "Enum values by category" }
+    {
+      "name": "Users",
+      "description": "User accounts only (login, roles, soft-delete). For seller profile (bank, policy, escalation) use Sellers."
+    },
+    {
+      "name": "Sellers",
+      "description": "Seller profiles only. Use PUT/PATCH /api/sellers/{id} for all seller updates — do not use /api/users for seller data."
+    },
+    {
+      "name": "Items",
+      "description": "Product/catalog items"
+    },
+    {
+      "name": "Categories",
+      "description": "Product categories"
+    },
+    {
+      "name": "SubCategories",
+      "description": "Product subcategories"
+    },
+    {
+      "name": "Orders",
+      "description": "Customer orders"
+    },
+    {
+      "name": "OrderItems",
+      "description": "Order line items"
+    },
+    {
+      "name": "Transactions",
+      "description": "Payments and transactions"
+    },
+    {
+      "name": "Sales",
+      "description": "Sales records (invoice, evidence)"
+    },
+    {
+      "name": "Incomes",
+      "description": "Income records: Erlume commission, income (sale amount), seller payout per sale/item. Single source for commission breakdown and payout tracking."
+    },
+    {
+      "name": "Expenses",
+      "description": "Expense records"
+    },
+    {
+      "name": "CreditCards",
+      "description": "Saved credit cards"
+    },
+    {
+      "name": "Reviews",
+      "description": "Seller reviews"
+    },
+    {
+      "name": "Drops",
+      "description": "Product drops"
+    },
+    {
+      "name": "Demands",
+      "description": "Demand rates"
+    },
+    {
+      "name": "DiscountCodes",
+      "description": "Discount codes"
+    },
+    {
+      "name": "Outfits",
+      "description": "Outfit curations"
+    },
+    {
+      "name": "OutfitItems",
+      "description": "Items in outfits"
+    },
+    {
+      "name": "Enums",
+      "description": "Enum values by category"
+    }
   ],
   "paths": {
     "/api/users": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "List users",
         "parameters": [
-          { "name": "includeDeleted", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] }, "description": "Include soft-deleted users" },
-          { "name": "role", "in": "query", "schema": { "type": "string" }, "description": "Filter by role (e.g. seller)" }
+          {
+            "name": "includeDeleted",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Include soft-deleted users"
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by role (e.g. seller)"
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
-      "post": { "tags": ["Users"], "summary": "Create user", "responses": { "201": { "description": "Created" } } }
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create user",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/users/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Users"], "summary": "Get user by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Users"], "summary": "Update user (full) — user account only, not seller profile", "description": "Updates user fields only. For seller profile use PATCH /api/sellers/{id}.", "responses": { "200": { "description": "OK" } } },
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update user (full) — user account only, not seller profile",
+        "description": "Updates user fields only. For seller profile use PATCH /api/sellers/{id}.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
       "patch": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Update user (partial) — user account only; e.g. soft delete",
         "description": "User account only. Use for isDeleted, etc. For seller profile use PATCH /api/sellers/{id}.",
         "requestBody": {
@@ -66,106 +190,534 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "isDeleted": { "type": "boolean", "description": "Set true to soft-delete user. Backoffice uses this for Delete button." }
+                  "isDeleted": {
+                    "type": "boolean",
+                    "description": "Set true to soft-delete user. Backoffice uses this for Delete button."
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
-      "delete": { "tags": ["Users"], "summary": "Delete user (hard). Backoffice uses PATCH with isDeleted for soft delete.", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete user (hard). Backoffice uses PATCH with isDeleted for soft delete.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/users/{id}/roles": {
-      "x-usedBy": ["backoffice"],
-      "put": { "tags": ["Users"], "summary": "Update user roles", "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "roles": { "type": "array", "items": { "type": "string" } } } } } } }, "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update user roles",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/sellers": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Sellers"],
+        "tags": [
+          "Sellers"
+        ],
         "summary": "List sellers",
         "parameters": [
-          { "name": "includeDeactivated", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] }, "description": "Include deactivated sellers (default: false)" }
+          {
+            "name": "includeDeactivated",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Include deactivated sellers (default: false)"
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
-      },
-      "post": { "tags": ["Sellers"], "summary": "Create seller (user + seller)", "responses": { "201": { "description": "Created" } } }
-    },
-    "/api/sellers/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Sellers"], "summary": "Get seller by id (seller _id or user ID)", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Sellers"], "summary": "Update seller info (full)", "description": "Single endpoint for seller profile. Id = seller _id or user ID. Use this, not /api/users, for seller updates.", "responses": { "200": { "description": "OK" } } },
-      "patch": { "tags": ["Sellers"], "summary": "Update seller info (partial)", "description": "Single endpoint for seller profile updates. Id = seller _id or user ID.", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Sellers"], "summary": "Delete seller (soft-delete user, deactivate seller)", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Seller document _id or User ID" }]
-    },
-    "/api/items": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": {
-        "tags": ["Items"],
-        "summary": "List items",
-        "parameters": [
-          { "name": "dropId", "in": "query", "schema": { "type": "string" } },
-          { "name": "itemStatus", "in": "query", "schema": { "type": "string" }, "description": "e.g. available, sold, pending" },
-          { "name": "categoryId", "in": "query", "schema": { "type": "string" } },
-          { "name": "sellerId", "in": "query", "schema": { "type": "string" }, "description": "User ID of seller" },
-          { "name": "authenticationStatus", "in": "query", "schema": { "type": "string", "enum": ["pending", "authentic", "not_authentic"] } },
-          { "name": "returnStatus", "in": "query", "schema": { "type": "string" } },
-          { "name": "year", "in": "query", "schema": { "type": "integer" }, "description": "Filter by uploadedAt" },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
-        ],
-        "responses": { "200": { "description": "OK" } }
-      },
-      "post": { "tags": ["Items"], "summary": "Create item", "responses": { "201": { "description": "Created" } } }
-    },
-    "/api/items/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Items"], "summary": "Get item by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Items"], "summary": "Update item", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Items"], "summary": "Delete item", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
-    },
-    "/api/categories": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Categories"], "summary": "List categories", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["Categories"], "summary": "Create category", "responses": { "201": { "description": "Created" } } }
-    },
-    "/api/categories/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Categories"], "summary": "Get category by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Categories"], "summary": "Update category", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Categories"], "summary": "Delete category", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
-    },
-    "/api/subcategories": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["SubCategories"], "summary": "List subcategories", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["SubCategories"], "summary": "Create subcategory", "responses": { "201": { "description": "Created" } } }
-    },
-    "/api/subcategories/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["SubCategories"], "summary": "Get subcategory by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["SubCategories"], "summary": "Update subcategory", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["SubCategories"], "summary": "Delete subcategory", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
-    },
-    "/api/orders": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": {
-        "tags": ["Orders"],
-        "summary": "List orders",
-        "parameters": [
-          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Order status filter" },
-          { "name": "year", "in": "query", "schema": { "type": "integer" } },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
-        ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
       "post": {
-        "tags": ["Orders"],
+        "tags": [
+          "Sellers"
+        ],
+        "summary": "Create seller (user + seller)",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/sellers/{id}": {
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Sellers"
+        ],
+        "summary": "Get seller by id (seller _id or user ID)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Sellers"
+        ],
+        "summary": "Update seller info (full)",
+        "description": "Single endpoint for seller profile. Id = seller _id or user ID. Use this, not /api/users, for seller updates.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Sellers"
+        ],
+        "summary": "Update seller info (partial)",
+        "description": "Single endpoint for seller profile updates. Id = seller _id or user ID.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Sellers"
+        ],
+        "summary": "Delete seller (soft-delete user, deactivate seller)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Seller document _id or User ID"
+        }
+      ]
+    },
+    "/api/items": {
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "List items",
+        "parameters": [
+          {
+            "name": "dropId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemStatus",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "e.g. available, sold, pending"
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sellerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "User ID of seller"
+          },
+          {
+            "name": "authenticationStatus",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "authentic",
+                "not_authentic"
+              ]
+            }
+          },
+          {
+            "name": "returnStatus",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by uploadedAt"
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Create item",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/items/{id}": {
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Update item",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Delete item",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/categories": {
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "List categories",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Create category",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/categories/{id}": {
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Get category by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Update category",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Delete category",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/subcategories": {
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "SubCategories"
+        ],
+        "summary": "List subcategories",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SubCategories"
+        ],
+        "summary": "Create subcategory",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/subcategories/{id}": {
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "SubCategories"
+        ],
+        "summary": "Get subcategory by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SubCategories"
+        ],
+        "summary": "Update subcategory",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SubCategories"
+        ],
+        "summary": "Delete subcategory",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/orders": {
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "List orders",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Order status filter"
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Orders"
+        ],
         "summary": "Create order",
         "requestBody": {
           "required": true,
@@ -173,20 +725,36 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["user_id", "orderItems"],
+                "required": [
+                  "user_id",
+                  "orderItems"
+                ],
                 "properties": {
-                  "user_id": { "type": "string" },
-                  "order_status": { "type": "string" },
+                  "user_id": {
+                    "type": "string"
+                  },
+                  "order_status": {
+                    "type": "string"
+                  },
                   "orderItems": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                       "type": "object",
-                      "required": ["item_id"],
+                      "required": [
+                        "item_id"
+                      ],
                       "properties": {
-                        "item_id": { "type": "string" },
-                        "quantity": { "type": "number", "minimum": 1 },
-                        "is_returned": { "type": "boolean" }
+                        "item_id": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "number",
+                          "minimum": 1
+                        },
+                        "is_returned": {
+                          "type": "boolean"
+                        }
                       }
                     }
                   }
@@ -196,34 +764,89 @@
                 "user_id": "USER_OBJECT_ID",
                 "order_status": "Pending",
                 "orderItems": [
-                  { "item_id": "ITEM_OBJECT_ID_1", "quantity": 1 },
-                  { "item_id": "ITEM_OBJECT_ID_2", "quantity": 2 }
+                  {
+                    "item_id": "ITEM_OBJECT_ID_1",
+                    "quantity": 1
+                  },
+                  {
+                    "item_id": "ITEM_OBJECT_ID_2",
+                    "quantity": 2
+                  }
                 ]
               }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/api/orders/user/{userId}": {
-      "x-usedBy": ["backoffice", "frontend"],
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
       "get": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "List orders by user id",
         "parameters": [
-          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "year", "in": "query", "schema": { "type": "integer" } },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/api/orders/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Orders"], "summary": "Get order by id", "responses": { "200": { "description": "OK" } } },
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Get order by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
       "patch": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "Update order (partial: order_status, deliveryDate, deliveryStatus, trackingReference)",
         "requestBody": {
           "content": {
@@ -231,30 +854,103 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "order_status": { "type": "string" },
-                  "deliveryDate": { "type": "string", "format": "date-time" },
-                  "deliveryStatus": { "type": "string", "enum": ["pending", "shipped", "delivered", "failed"] },
-                  "trackingReference": { "type": "string" }
+                  "order_status": {
+                    "type": "string"
+                  },
+                  "deliveryDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "deliveryStatus": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "shipped",
+                      "delivered",
+                      "failed"
+                    ]
+                  },
+                  "trackingReference": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
-      "delete": { "tags": ["Orders"], "summary": "Delete order", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "delete": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Delete order",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/orders/{id}/status": {
-      "x-usedBy": ["backoffice"],
-      "patch": { "tags": ["Orders"], "summary": "Update order status", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "patch": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Update order status",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/orderitems": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["OrderItems"], "summary": "List order items", "responses": { "200": { "description": "OK" } } },
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "OrderItems"
+        ],
+        "summary": "List order items",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
       "post": {
-        "tags": ["OrderItems"],
+        "tags": [
+          "OrderItems"
+        ],
         "summary": "Create order item",
         "requestBody": {
           "required": true,
@@ -262,12 +958,24 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["order_id", "item_id"],
+                "required": [
+                  "order_id",
+                  "item_id"
+                ],
                 "properties": {
-                  "order_id": { "type": "string" },
-                  "item_id": { "type": "string" },
-                  "quantity": { "type": "number", "minimum": 1 },
-                  "is_returned": { "type": "boolean" }
+                  "order_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "minimum": 1
+                  },
+                  "is_returned": {
+                    "type": "boolean"
+                  }
                 }
               },
               "example": {
@@ -279,282 +987,1349 @@
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/api/orderitems/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["OrderItems"], "summary": "Get order item by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["OrderItems"], "summary": "Update order item", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["OrderItems"], "summary": "Delete order item", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "OrderItems"
+        ],
+        "summary": "Get order item by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "OrderItems"
+        ],
+        "summary": "Update order item",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OrderItems"
+        ],
+        "summary": "Delete order item",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/transactions": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "List transactions",
         "parameters": [
-          { "name": "year", "in": "query", "schema": { "type": "integer" } },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
-      "post": { "tags": ["Transactions"], "summary": "Create transaction", "responses": { "201": { "description": "Created" } } }
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Create transaction",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/transactions/order/{orderId}": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "List transactions by order id",
         "parameters": [
-          { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "year", "in": "query", "schema": { "type": "integer" } },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/api/transactions/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Transactions"], "summary": "Get transaction by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Transactions"], "summary": "Update transaction", "responses": { "200": { "description": "OK" } } },
-      "patch": { "tags": ["Transactions"], "summary": "Update transaction or status", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Transactions"], "summary": "Delete transaction", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Get transaction by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Update transaction",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Update transaction or status",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Delete transaction",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/expenses": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Expenses"],
+        "tags": [
+          "Expenses"
+        ],
         "summary": "List expenses",
         "parameters": [
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } },
-          { "name": "year", "in": "query", "schema": { "type": "integer" } }
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
       "post": {
-        "tags": ["Expenses"],
+        "tags": [
+          "Expenses"
+        ],
         "summary": "Create expense",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "cost", "month"],
+                "required": [
+                  "name",
+                  "cost",
+                  "month"
+                ],
                 "properties": {
-                  "name": { "type": "string", "description": "Required (e.g. September 2026 — Supplies)" },
-                  "cost": { "type": "string", "description": "Required (e.g. 6)" },
-                  "currency": { "type": "string", "description": "Optional, default KWD" },
-                  "employee_id": { "type": "string", "description": "Optional, ref User" },
-                  "notes": { "type": "string", "description": "Optional (e.g. 36 Packaging Bags)" },
-                  "type": { "type": "array", "items": { "type": "string" }, "description": "e.g. supplies, subscriptions, services" },
-                  "month": { "type": "string", "format": "date-time", "description": "Required (e.g. September 2026)" },
-                  "paidBy": { "type": "string", "description": "Optional" },
-                  "isRecurring": { "type": "boolean", "description": "Optional, default false" },
-                  "phase": { "type": "string", "description": "Optional (e.g. Pre-launch)" }
+                  "name": {
+                    "type": "string",
+                    "description": "Required (e.g. September 2026 — Supplies)"
+                  },
+                  "cost": {
+                    "type": "string",
+                    "description": "Required (e.g. 6)"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "Optional, default KWD"
+                  },
+                  "employee_id": {
+                    "type": "string",
+                    "description": "Optional, ref User"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Optional (e.g. 36 Packaging Bags)"
+                  },
+                  "type": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "e.g. supplies, subscriptions, services"
+                  },
+                  "month": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Required (e.g. September 2026)"
+                  },
+                  "paidBy": {
+                    "type": "string",
+                    "description": "Optional"
+                  },
+                  "isRecurring": {
+                    "type": "boolean",
+                    "description": "Optional, default false"
+                  },
+                  "phase": {
+                    "type": "string",
+                    "description": "Optional (e.g. Pre-launch)"
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/api/expenses/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Expenses"], "summary": "Get expense by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Expenses"], "summary": "Update expense (name, cost, currency, employee_id, notes, type, month, paidBy, isRecurring, phase)", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Expenses"], "summary": "Delete expense", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "Get expense by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "Update expense (name, cost, currency, employee_id, notes, type, month, paidBy, isRecurring, phase)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "Delete expense",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/incomes": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Incomes"],
+        "tags": [
+          "Incomes"
+        ],
         "summary": "List incomes (commission breakdown: Erlume commission, income amount, seller payout). Filter by orderId, itemId, sellerId, year, month.",
         "parameters": [
-          { "name": "orderId", "in": "query", "schema": { "type": "string" } },
-          { "name": "itemId", "in": "query", "schema": { "type": "string" } },
-          { "name": "sellerId", "in": "query", "schema": { "type": "string" }, "description": "User ID of seller" },
-          { "name": "year", "in": "query", "schema": { "type": "integer" } },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
+          {
+            "name": "orderId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sellerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "User ID of seller"
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
       "post": {
-        "tags": ["Incomes"],
+        "tags": [
+          "Incomes"
+        ],
         "summary": "Create income (supports amount, erlumeCommissionAmount, sellerPayoutAmount, links to order/item/seller)",
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/api/incomes/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Incomes"], "summary": "Get income by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Incomes"], "summary": "Update income (commission, payout, links)", "responses": { "200": { "description": "OK" } } },
-      "patch": { "tags": ["Incomes"], "summary": "Update income (patch: amount, erlumeCommissionAmount, sellerPayoutAmount, etc.)", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Incomes"], "summary": "Delete income", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Incomes"
+        ],
+        "summary": "Get income by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Incomes"
+        ],
+        "summary": "Update income (commission, payout, links)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Incomes"
+        ],
+        "summary": "Update income (patch: amount, erlumeCommissionAmount, sellerPayoutAmount, etc.)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Incomes"
+        ],
+        "summary": "Delete income",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/creditcards": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["CreditCards"], "summary": "List credit cards", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["CreditCards"], "summary": "Create credit card", "responses": { "201": { "description": "Created" } } }
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "CreditCards"
+        ],
+        "summary": "List credit cards",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "CreditCards"
+        ],
+        "summary": "Create credit card",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/creditcards/user/{userId}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["CreditCards"], "summary": "List credit cards by user id", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "CreditCards"
+        ],
+        "summary": "List credit cards by user id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "userId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/creditcards/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["CreditCards"], "summary": "Get credit card by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["CreditCards"], "summary": "Update credit card", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["CreditCards"], "summary": "Delete credit card", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "CreditCards"
+        ],
+        "summary": "Get credit card by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "CreditCards"
+        ],
+        "summary": "Update credit card",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "CreditCards"
+        ],
+        "summary": "Delete credit card",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/reviews": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Reviews"], "summary": "List reviews", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["Reviews"], "summary": "Create review", "responses": { "201": { "description": "Created" } } }
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "List reviews",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Create review",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/reviews/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Reviews"], "summary": "Get review by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Reviews"], "summary": "Update review", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Reviews"], "summary": "Delete review", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get review by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Update review",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Delete review",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/drops": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Drops"], "summary": "List drops", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["Drops"], "summary": "Create drop", "responses": { "201": { "description": "Created" } } }
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "List drops",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "Create drop",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/drops/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Drops"], "summary": "Get drop by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Drops"], "summary": "Update drop", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Drops"], "summary": "Delete drop", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "Get drop by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "Update drop",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "Delete drop",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/drops/{id}/items": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Drops"], "summary": "Get items in drop", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["Drops"], "summary": "Add items to drop", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "Get items in drop",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "Add items to drop",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/drops/{id}/items/{itemId}": {
-      "x-usedBy": ["backoffice"],
-      "delete": { "tags": ["Drops"], "summary": "Remove item from drop", "responses": { "200": { "description": "OK" } } },
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "delete": {
+        "tags": [
+          "Drops"
+        ],
+        "summary": "Remove item from drop",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-        { "name": "itemId", "in": "path", "required": true, "schema": { "type": "string" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "itemId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
       ]
     },
     "/api/demands": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Demands"], "summary": "List demands", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["Demands"], "summary": "Create demand", "responses": { "201": { "description": "Created" } } }
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Demands"
+        ],
+        "summary": "List demands",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Demands"
+        ],
+        "summary": "Create demand",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/demands/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Demands"], "summary": "Get demand by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Demands"], "summary": "Update demand", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Demands"], "summary": "Delete demand", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Demands"
+        ],
+        "summary": "Get demand by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Demands"
+        ],
+        "summary": "Update demand",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Demands"
+        ],
+        "summary": "Delete demand",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/discountcodes": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["DiscountCodes"], "summary": "List discount codes", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["DiscountCodes"], "summary": "Create discount code", "responses": { "201": { "description": "Created" } } }
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "DiscountCodes"
+        ],
+        "summary": "List discount codes",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DiscountCodes"
+        ],
+        "summary": "Create discount code",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/discountcodes/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["DiscountCodes"], "summary": "Get discount code by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["DiscountCodes"], "summary": "Update discount code", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["DiscountCodes"], "summary": "Delete discount code", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "DiscountCodes"
+        ],
+        "summary": "Get discount code by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DiscountCodes"
+        ],
+        "summary": "Update discount code",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DiscountCodes"
+        ],
+        "summary": "Delete discount code",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/discountcodes/code/{code}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["DiscountCodes"], "summary": "Get discount code by code", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "code", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "DiscountCodes"
+        ],
+        "summary": "Get discount code by code",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "code",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/discountcodes/validate": {
-      "x-usedBy": ["frontend"],
-      "post": { "tags": ["DiscountCodes"], "summary": "Validate discount code", "responses": { "200": { "description": "OK" } } }
+      "x-usedBy": [
+        "frontend"
+      ],
+      "post": {
+        "tags": [
+          "DiscountCodes"
+        ],
+        "summary": "Validate discount code",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
     "/api/outfits": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Outfits"], "summary": "List outfits", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["Outfits"], "summary": "Create outfit", "responses": { "201": { "description": "Created" } } }
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Outfits"
+        ],
+        "summary": "List outfits",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Outfits"
+        ],
+        "summary": "Create outfit",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/outfits/{id}": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Outfits"], "summary": "Get outfit by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Outfits"], "summary": "Update outfit", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Outfits"], "summary": "Delete outfit", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Outfits"
+        ],
+        "summary": "Get outfit by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Outfits"
+        ],
+        "summary": "Update outfit",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Outfits"
+        ],
+        "summary": "Delete outfit",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/outfititems": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["OutfitItems"], "summary": "List outfit items", "responses": { "200": { "description": "OK" } } },
-      "post": { "tags": ["OutfitItems"], "summary": "Create outfit item", "responses": { "201": { "description": "Created" } } }
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "OutfitItems"
+        ],
+        "summary": "List outfit items",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OutfitItems"
+        ],
+        "summary": "Create outfit item",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/outfititems/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["OutfitItems"], "summary": "Get outfit item by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["OutfitItems"], "summary": "Update outfit item", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["OutfitItems"], "summary": "Delete outfit item", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "OutfitItems"
+        ],
+        "summary": "Get outfit item by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "OutfitItems"
+        ],
+        "summary": "Update outfit item",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OutfitItems"
+        ],
+        "summary": "Delete outfit item",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/sales": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Sales"],
+        "tags": [
+          "Sales"
+        ],
         "summary": "List sales",
         "parameters": [
-          { "name": "year", "in": "query", "schema": { "type": "integer" } },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
-      "post": { "tags": ["Sales"], "summary": "Create sale", "responses": { "201": { "description": "Created" } } }
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Create sale",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/api/sales/{id}": {
-      "x-usedBy": ["backoffice"],
-      "get": { "tags": ["Sales"], "summary": "Get sale by id", "responses": { "200": { "description": "OK" } } },
-      "put": { "tags": ["Sales"], "summary": "Update sale", "responses": { "200": { "description": "OK" } } },
-      "patch": { "tags": ["Sales"], "summary": "Update sale (patch)", "responses": { "200": { "description": "OK" } } },
-      "delete": { "tags": ["Sales"], "summary": "Delete sale", "responses": { "200": { "description": "OK" } } },
-      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Get sale by id",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Update sale",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Update sale (patch)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Delete sale",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     },
     "/api/sales/order/{orderId}": {
-      "x-usedBy": ["backoffice"],
+      "x-usedBy": [
+        "backoffice"
+      ],
       "get": {
-        "tags": ["Sales"],
+        "tags": [
+          "Sales"
+        ],
         "summary": "Get sales by order id",
         "parameters": [
-          { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "year", "in": "query", "schema": { "type": "integer" } },
-          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } }
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/api/enums": {
-      "x-usedBy": ["backoffice", "frontend"],
-      "get": { "tags": ["Enums"], "summary": "Get all enums", "responses": { "200": { "description": "OK" } } }
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
+      "get": {
+        "tags": [
+          "Enums"
+        ],
+        "summary": "Get all enums",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
     "/api/enums/{category}": {
-      "x-usedBy": ["backoffice", "frontend"],
+      "x-usedBy": [
+        "backoffice",
+        "frontend"
+      ],
       "get": {
-        "tags": ["Enums"],
-        "summary": "Get enum by category (orderStatus, itemStatus, authenticationStatus, returnStatus, deliveryStatus, escalationStatus, etc.)",
-        "responses": { "200": { "description": "OK" } }
+        "tags": [
+          "Enums"
+        ],
+        "summary": "Get enum by category (orderStatus, itemStatus, authenticationStatus, returnStatus, deliveryStatus, escalationStatus, bagBrand, etc.)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
-      "parameters": [{ "name": "category", "in": "path", "required": true, "schema": { "type": "string" } }]
+      "parameters": [
+        {
+          "name": "category",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     }
   }
 }

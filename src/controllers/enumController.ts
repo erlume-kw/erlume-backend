@@ -13,6 +13,7 @@ import {
 import { TransactionStatus } from "../enums/transactionEnums";
 import { PaymentMethod } from "../enums/paymentEnums";
 import { ExpenseType } from "../enums/expenseEnums";
+import { BagBrand } from "../enums/bagBrandEnums";
 import {
 	AuthenticationStatus,
 	ReturnStatus,
@@ -145,6 +146,13 @@ const getEnums = async (req: Request, res: Response) => {
 				values: Object.values(EscalationStatus),
 				options: Object.entries(EscalationStatus).map(([key, value]) => ({
 					label: key,
+					value: value,
+				})),
+			},
+			bagBrand: {
+				values: Object.values(BagBrand),
+				options: Object.entries(BagBrand).map(([key, value]) => ({
+					label: value,
 					value: value,
 				})),
 			},
@@ -341,6 +349,16 @@ const getEnumCategory = async (req: Request, res: Response) => {
 				};
 				break;
 
+			case "bagBrand":
+				enumData = {
+					values: Object.values(BagBrand),
+					options: Object.entries(BagBrand).map(([key, value]) => ({
+						label: value,
+						value: value,
+					})),
+				};
+				break;
+
 			default:
 				res.status(404).json({
 					success: false,
@@ -362,6 +380,7 @@ const getEnumCategory = async (req: Request, res: Response) => {
 						"returnStatus",
 						"deliveryStatus",
 						"escalationStatus",
+						"bagBrand",
 					],
 				});
 				return;
