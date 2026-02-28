@@ -11,7 +11,8 @@
     "build-and-run": "npm run build && npm start",
     "sync-db": "npx ts-node src/scripts/syncDb.ts",
     "bulk-import-sellers": "npx ts-node src/scripts/bulk-import-sellers.ts",
-    "bulk-import-items": "npx ts-node src/scripts/bulk-import-items.ts"
+    "bulk-import-items": "ts-node src/scripts/bulk-import-items.ts",
+    "add-seller": "npx ts-node src/scripts/add-seller.ts"
   },
   "repository": {
     "type": "git",

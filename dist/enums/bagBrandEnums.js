@@ -56,4 +56,5 @@ var BagBrand;
     BagBrand["Furla"] = "Furla";
     BagBrand["AspinalOfLondon"] = "Aspinal of London";
     BagBrand["Lanvin"] = "Lanvin";
+    BagBrand["Pedro"] = "Pedro";
 })(BagBrand || (exports.BagBrand = BagBrand = {}));

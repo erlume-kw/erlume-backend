@@ -172,7 +172,6 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			brandName,
 			imageUrls,
 			bag,
-			brand,
 			photoUrls,
 			receiptPhotoUrls,
 			priceEstimatorUrls,
@@ -195,7 +194,6 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 		} = req.body;
 
 		const resolvedItemName = itemName ?? bag;
-		const resolvedBrandName = brandName ?? brand;
 		const imageUrlsArray = Array.isArray(imageUrls) ? imageUrls : undefined;
 		const photoUrlsArray = Array.isArray(photoUrls) ? photoUrls : undefined;
 		const resolvedImageUrls = [
@@ -229,7 +227,7 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			!size ||
 			!resolvedItemName ||
 			!quantity ||
-			!resolvedBrandName ||
+			!brandName ||
 			resolvedImageUrls.length === 0 ||
 			!category_id ||
 			listingPrice === undefined ||
@@ -239,7 +237,7 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			res.status(400).json({
 				success: false,
 				error:
-					"Missing required fields: basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName (or bag), quantity, brandName (or brand), imageUrls (or photoUrls), category_id, listingPrice",
+					"Missing required fields: basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName (or bag), quantity, brandName, imageUrls (or photoUrls), category_id, listingPrice",
 			});
 			return;
 		}
@@ -382,7 +380,7 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			itemModel,
 			year,
 			quantity,
-			brandName: resolvedBrandName,
+			brandName,
 			imageUrls: resolvedImageUrls,
 			receiptPhotoUrls,
 			priceEstimatorUrls,
@@ -459,7 +457,8 @@ const updateItem = async (req: Request, res: Response): Promise<void> => {
 		// listingPrice is required; reject empty if provided
 		if (
 			"listingPrice" in updateData &&
-			(updateData.listingPrice == null || String(updateData.listingPrice).trim() === "")
+			(updateData.listingPrice == null ||
+				String(updateData.listingPrice).trim() === "")
 		) {
 			res.status(400).json({
 				success: false,
@@ -551,9 +550,6 @@ const updateItem = async (req: Request, res: Response): Promise<void> => {
 		if (updateData.bag !== undefined && updateData.itemName === undefined) {
 			updateData.itemName = updateData.bag;
 		}
-		if (updateData.brand !== undefined && updateData.brandName === undefined) {
-			updateData.brandName = updateData.brand;
-		}
 		if (
 			updateData.photoUrls !== undefined ||
 			updateData.imageUrls !== undefined
@@ -579,7 +575,7 @@ const updateItem = async (req: Request, res: Response): Promise<void> => {
 			updateData.imageUrls = mergedImageUrls;
 		}
 		delete updateData.bag;
-		delete updateData.brand;
+		delete updateData.brand; // model uses brandName only
 		delete updateData.photoUrls;
 
 		// Validate category_id if provided
@@ -655,28 +651,33 @@ const updateItem = async (req: Request, res: Response): Promise<void> => {
 			}
 		}
 
-		// Validate sellerId if provided
+		// Validate sellerId / seller_id if provided (accept either; support Seller doc _id or User id)
 		let sellerId: string | null | undefined;
-		if ("sellerId" in updateData) {
-			sellerId = updateData.sellerId;
-
-			if (sellerId === null || sellerId === "") {
+		const sellerIdRaw =
+			updateData.sellerId ?? updateData.seller_id ?? undefined;
+		if (sellerIdRaw !== undefined) {
+			if (sellerIdRaw === null || sellerIdRaw === "") {
+				sellerId = null;
 				updateData.seller_id = null;
 			} else {
-				if (typeof sellerId !== "string") {
-					res.status(400).json({ success: false, error: "Invalid sellerId" });
+				const idStr = String(sellerIdRaw).trim();
+				if (!mongoose.Types.ObjectId.isValid(idStr)) {
+					res.status(400).json({ success: false, error: "Invalid sellerId/seller_id" });
 					return;
 				}
 
-				if (!mongoose.Types.ObjectId.isValid(sellerId)) {
-					res.status(400).json({ success: false, error: "Invalid sellerId" });
-					return;
-				}
-
-				const seller = await Seller.findOne({ userId: sellerId });
-				if (!seller) {
-					res.status(404).json({ success: false, error: "Seller not found" });
-					return;
+				// Resolve: accept either Seller doc _id or User id (userId)
+				let seller = await Seller.findById(idStr);
+				if (seller) {
+					sellerId = String(seller.userId);
+				} else {
+					seller = await Seller.findOne({ userId: idStr });
+					if (seller) {
+						sellerId = idStr;
+					} else {
+						res.status(404).json({ success: false, error: "Seller not found" });
+						return;
+					}
 				}
 
 				updateData.seller_id = sellerId;
@@ -713,8 +714,8 @@ const updateItem = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
-		// Sync seller itemIds if sellerId was provided
-		if ("sellerId" in req.body) {
+		// Sync seller itemIds if sellerId or seller_id was provided
+		if ("sellerId" in req.body || "seller_id" in req.body) {
 			const previousSellerId = existingItem.seller_id
 				? String(existingItem.seller_id)
 				: null;

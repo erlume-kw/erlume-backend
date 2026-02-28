@@ -143,9 +143,8 @@ const getItemById = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName, itemModel, year, quantity, brandName, imageUrls, bag, brand, photoUrls, receiptPhotoUrls, priceEstimatorUrls, quoteUrls, approved, approvedNextDrop, orderId, authNeeded, cleaningNeeded, listingPrice, photographed, category_id, sub_category_id, drop_id, sellerId, authenticationStatus, authenticatedAt, returnDate, returnStatus, } = req.body;
+        const { basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName, itemModel, year, quantity, brandName, imageUrls, bag, photoUrls, receiptPhotoUrls, priceEstimatorUrls, quoteUrls, approved, approvedNextDrop, orderId, authNeeded, cleaningNeeded, listingPrice, photographed, category_id, sub_category_id, drop_id, sellerId, authenticationStatus, authenticatedAt, returnDate, returnStatus, } = req.body;
         const resolvedItemName = itemName !== null && itemName !== void 0 ? itemName : bag;
-        const resolvedBrandName = brandName !== null && brandName !== void 0 ? brandName : brand;
         const imageUrlsArray = Array.isArray(imageUrls) ? imageUrls : undefined;
         const photoUrlsArray = Array.isArray(photoUrls) ? photoUrls : undefined;
         const resolvedImageUrls = [
@@ -175,7 +174,7 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             !size ||
             !resolvedItemName ||
             !quantity ||
-            !resolvedBrandName ||
+            !brandName ||
             resolvedImageUrls.length === 0 ||
             !category_id ||
             listingPrice === undefined ||
@@ -183,7 +182,7 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             String(listingPrice).trim() === "") {
             res.status(400).json({
                 success: false,
-                error: "Missing required fields: basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName (or bag), quantity, brandName (or brand), imageUrls (or photoUrls), category_id, listingPrice",
+                error: "Missing required fields: basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName (or bag), quantity, brandName, imageUrls (or photoUrls), category_id, listingPrice",
             });
             return;
         }
@@ -299,7 +298,7 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             itemModel,
             year,
             quantity,
-            brandName: resolvedBrandName,
+            brandName,
             imageUrls: resolvedImageUrls,
             receiptPhotoUrls,
             priceEstimatorUrls,
@@ -347,6 +346,7 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     try {
         const itemId = req.params.id;
         const updateData = Object.assign({}, req.body);
@@ -363,7 +363,8 @@ const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
         // listingPrice is required; reject empty if provided
         if ("listingPrice" in updateData &&
-            (updateData.listingPrice == null || String(updateData.listingPrice).trim() === "")) {
+            (updateData.listingPrice == null ||
+                String(updateData.listingPrice).trim() === "")) {
             res.status(400).json({
                 success: false,
                 error: "listingPrice is required and cannot be empty",
@@ -430,9 +431,6 @@ const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         if (updateData.bag !== undefined && updateData.itemName === undefined) {
             updateData.itemName = updateData.bag;
         }
-        if (updateData.brand !== undefined && updateData.brandName === undefined) {
-            updateData.brandName = updateData.brand;
-        }
         if (updateData.photoUrls !== undefined ||
             updateData.imageUrls !== undefined) {
             const imageUrlsArray = Array.isArray(updateData.imageUrls)
@@ -454,7 +452,7 @@ const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             updateData.imageUrls = mergedImageUrls;
         }
         delete updateData.bag;
-        delete updateData.brand;
+        delete updateData.brand; // model uses brandName only
         delete updateData.photoUrls;
         // Validate category_id if provided
         if (updateData.category_id) {
@@ -520,26 +518,34 @@ const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 }
             }
         }
-        // Validate sellerId if provided
+        // Validate sellerId / seller_id if provided (accept either; support Seller doc _id or User id)
         let sellerId;
-        if ("sellerId" in updateData) {
-            sellerId = updateData.sellerId;
-            if (sellerId === null || sellerId === "") {
+        const sellerIdRaw = (_b = (_a = updateData.sellerId) !== null && _a !== void 0 ? _a : updateData.seller_id) !== null && _b !== void 0 ? _b : undefined;
+        if (sellerIdRaw !== undefined) {
+            if (sellerIdRaw === null || sellerIdRaw === "") {
+                sellerId = null;
                 updateData.seller_id = null;
             }
             else {
-                if (typeof sellerId !== "string") {
-                    res.status(400).json({ success: false, error: "Invalid sellerId" });
+                const idStr = String(sellerIdRaw).trim();
+                if (!mongoose_1.default.Types.ObjectId.isValid(idStr)) {
+                    res.status(400).json({ success: false, error: "Invalid sellerId/seller_id" });
                     return;
                 }
-                if (!mongoose_1.default.Types.ObjectId.isValid(sellerId)) {
-                    res.status(400).json({ success: false, error: "Invalid sellerId" });
-                    return;
+                // Resolve: accept either Seller doc _id or User id (userId)
+                let seller = yield Seller_1.default.findById(idStr);
+                if (seller) {
+                    sellerId = String(seller.userId);
                 }
-                const seller = yield Seller_1.default.findOne({ userId: sellerId });
-                if (!seller) {
-                    res.status(404).json({ success: false, error: "Seller not found" });
-                    return;
+                else {
+                    seller = yield Seller_1.default.findOne({ userId: idStr });
+                    if (seller) {
+                        sellerId = idStr;
+                    }
+                    else {
+                        res.status(404).json({ success: false, error: "Seller not found" });
+                        return;
+                    }
                 }
                 updateData.seller_id = sellerId;
             }
@@ -570,8 +576,8 @@ const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             res.status(404).json({ success: false, error: "Item not found" });
             return;
         }
-        // Sync seller itemIds if sellerId was provided
-        if ("sellerId" in req.body) {
+        // Sync seller itemIds if sellerId or seller_id was provided
+        if ("sellerId" in req.body || "seller_id" in req.body) {
             const previousSellerId = existingItem.seller_id
                 ? String(existingItem.seller_id)
                 : null;

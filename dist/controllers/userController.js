@@ -124,24 +124,37 @@ const getUserById = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
    CREATE USER
 ========================= */
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e, _f;
     const session = yield mongoose_1.default.startSession();
     session.startTransaction();
     try {
-        const { username, password, emailAddress, phoneNumber, address, roles, consentGiven, preferredPickupDate, } = req.body;
+        const { password, emailAddress, phoneNumber, address, roles, consentGiven, preferredPickupDate, } = req.body;
+        if (!password || !emailAddress || !phoneNumber || !address) {
+            res.status(400).json({
+                success: false,
+                error: "Missing required fields: password, emailAddress, phoneNumber, address",
+            });
+            return;
+        }
+        // Normalize roles to lowercase so "SELLER" / "seller" both work
+        const normalizedRoles = Array.isArray(roles)
+            ? roles.map((r) => (typeof r === "string" ? r.toLowerCase() : r))
+            : [userEnums_1.UserRole.USER];
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
         const user = yield User_1.default.create([
             {
-                username,
                 password: hashedPassword,
-                emailAddress,
-                phoneNumber,
+                emailAddress: emailAddress.trim(),
+                phoneNumber: String(phoneNumber)
+                    .trim()
+                    .replace(/[\s\-]/g, ""),
                 address,
-                roles: roles !== null && roles !== void 0 ? roles : [userEnums_1.UserRole.USER],
+                roles: normalizedRoles,
                 isDeleted: false,
             },
         ], { session });
         let seller = null;
-        if (roles === null || roles === void 0 ? void 0 : roles.includes(userEnums_1.UserRole.SELLER)) {
+        if (normalizedRoles.includes(userEnums_1.UserRole.SELLER)) {
             // Handle consentGiven properly - only true if explicitly true or "true"
             let consentBool = false;
             if (consentGiven !== undefined && consentGiven !== null) {
@@ -172,8 +185,14 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
     catch (err) {
         yield session.abortTransaction();
-        console.error(err);
-        res.status(500).json({ error: "Internal server error" });
+        console.error("createUser error:", err);
+        const message = (err === null || err === void 0 ? void 0 : err.message) ||
+            ((_b = (_a = err === null || err === void 0 ? void 0 : err.errors) === null || _a === void 0 ? void 0 : _a.phoneNumber) === null || _b === void 0 ? void 0 : _b.message) ||
+            ((_d = (_c = err === null || err === void 0 ? void 0 : err.errors) === null || _c === void 0 ? void 0 : _c.emailAddress) === null || _d === void 0 ? void 0 : _d.message) ||
+            ((_f = (_e = err === null || err === void 0 ? void 0 : err.errors) === null || _e === void 0 ? void 0 : _e.address) === null || _f === void 0 ? void 0 : _f.message) ||
+            "Internal server error";
+        const status = (err === null || err === void 0 ? void 0 : err.name) === "ValidationError" || (err === null || err === void 0 ? void 0 : err.code) === 11000 ? 400 : 500;
+        res.status(status).json(Object.assign({ success: false, error: message }, ((err === null || err === void 0 ? void 0 : err.errors) && { details: err.errors })));
     }
     finally {
         session.endSession();

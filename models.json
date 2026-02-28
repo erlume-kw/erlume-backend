@@ -89,7 +89,7 @@
     "itemModel": "string",
     "year": "string",
     "quantity": "string",
-    "brandName": "string",
+    "brandName": "string (only brand field; do not use brand)",
     "imageUrls": ["string"],
     "receiptPhotoUrls": ["string"],
     "priceEstimatorUrls": ["string"],

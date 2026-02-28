@@ -52,4 +52,5 @@ export enum BagBrand {
 	Furla = "Furla",
 	AspinalOfLondon = "Aspinal of London",
 	Lanvin = "Lanvin",
+	Pedro = "Pedro",
 }

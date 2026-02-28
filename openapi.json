@@ -462,6 +462,61 @@
           "Items"
         ],
         "summary": "Create item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "basePrice",
+                  "condition",
+                  "uploadedAt",
+                  "saleRate",
+                  "itemStatus",
+                  "color",
+                  "size",
+                  "itemName",
+                  "quantity",
+                  "brandName",
+                  "imageUrls",
+                  "category_id",
+                  "listingPrice"
+                ],
+                "properties": {
+                  "basePrice": { "type": "string", "description": "Base price" },
+                  "condition": { "type": "string", "enum": ["Like New", "Gently Used", "Worn"], "description": "Item condition" },
+                  "uploadedAt": { "type": "string", "format": "date-time" },
+                  "saleRate": { "type": "string", "description": "Sale/discount rate" },
+                  "itemStatus": { "type": "string", "enum": ["pending", "approved", "available", "sold", "rejected"], "description": "Item status" },
+                  "color": { "type": "string" },
+                  "size": { "type": "string" },
+                  "itemName": { "type": "string", "description": "Item name (or use bag)" },
+                  "bag": { "type": "string", "description": "Alias for itemName" },
+                  "itemModel": { "type": "string" },
+                  "year": { "type": "string" },
+                  "quantity": { "type": "string" },
+                  "brandName": { "type": "string", "description": "Brand name (single field; do not send brand)" },
+                  "imageUrls": { "type": "array", "items": { "type": "string" }, "description": "Image URLs" },
+                  "photoUrls": { "type": "array", "items": { "type": "string" }, "description": "Alias for imageUrls" },
+                  "receiptPhotoUrls": { "type": "array", "items": { "type": "string" } },
+                  "priceEstimatorUrls": { "type": "array", "items": { "type": "string" } },
+                  "quoteUrls": { "type": "array", "items": { "type": "string" } },
+                  "approved": { "type": "boolean" },
+                  "approvedNextDrop": { "type": "boolean" },
+                  "authNeeded": { "type": "boolean" },
+                  "cleaningNeeded": { "type": "boolean" },
+                  "listingPrice": { "type": "string", "description": "Listing price (required); basePrice can differ" },
+                  "photographed": { "type": "boolean" },
+                  "category_id": { "type": "string", "description": "Category ObjectId" },
+                  "sub_category_id": { "type": "string" },
+                  "drop_id": { "type": "string" },
+                  "sellerId": { "type": "string", "description": "Seller user ID" }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Created"
@@ -490,6 +545,73 @@
           "Items"
         ],
         "summary": "Update item",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basePrice": { "type": "string" },
+                  "condition": { "type": "string", "enum": ["Like New", "Gently Used", "Worn"] },
+                  "saleRate": { "type": "string" },
+                  "itemStatus": { "type": "string", "enum": ["pending", "approved", "available", "sold", "rejected"] },
+                  "color": { "type": "string" },
+                  "size": { "type": "string" },
+                  "itemName": { "type": "string" },
+                  "itemModel": { "type": "string" },
+                  "year": { "type": "string" },
+                  "quantity": { "type": "string" },
+                  "brandName": { "type": "string", "description": "Brand name only (do not send brand)" },
+                  "imageUrls": { "type": "array", "items": { "type": "string" } },
+                  "receiptPhotoUrls": { "type": "array", "items": { "type": "string" } },
+                  "priceEstimatorUrls": { "type": "array", "items": { "type": "string" } },
+                  "quoteUrls": { "type": "array", "items": { "type": "string" } },
+                  "approved": { "type": "boolean" },
+                  "authNeeded": { "type": "boolean" },
+                  "cleaningNeeded": { "type": "boolean" },
+                  "listingPrice": { "type": "string" },
+                  "photographed": { "type": "boolean" },
+                  "category_id": { "type": "string" },
+                  "sub_category_id": { "type": "string" },
+                  "drop_id": { "type": "string" },
+                  "sellerId": { "type": "string", "description": "Seller user ID or Seller doc _id" },
+                  "seller_id": { "type": "string", "description": "Alias for sellerId" },
+                  "authenticationStatus": { "type": "string", "enum": ["pending", "authentic", "not_authentic"] },
+                  "returnDate": { "type": "string", "format": "date-time" },
+                  "returnStatus": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Update item (partial)",
+        "description": "Partial update. Send only fields to change. Use sellerId or seller_id for assignment; use null to unassign.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basePrice": { "type": "string" },
+                  "condition": { "type": "string", "enum": ["Like New", "Gently Used", "Worn"] },
+                  "itemStatus": { "type": "string", "enum": ["pending", "approved", "available", "sold", "rejected"] },
+                  "sellerId": { "type": "string", "nullable": true, "description": "Seller user ID or Seller doc _id; null to unassign" },
+                  "seller_id": { "type": "string", "nullable": true, "description": "Alias for sellerId" }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"

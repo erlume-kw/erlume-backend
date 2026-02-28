@@ -155,7 +155,6 @@ const createUser = async (req: Request, res: Response) => {
 
 	try {
 		const {
-			username,
 			password,
 			emailAddress,
 			phoneNumber,
@@ -165,17 +164,32 @@ const createUser = async (req: Request, res: Response) => {
 			preferredPickupDate,
 		} = req.body;
 
+		if (!password || !emailAddress || !phoneNumber || !address) {
+			res.status(400).json({
+				success: false,
+				error:
+					"Missing required fields: password, emailAddress, phoneNumber, address",
+			});
+			return;
+		}
+
+		// Normalize roles to lowercase so "SELLER" / "seller" both work
+		const normalizedRoles = Array.isArray(roles)
+			? roles.map((r: string) => (typeof r === "string" ? r.toLowerCase() : r))
+			: [UserRole.USER];
+
 		const hashedPassword = await bcrypt.hash(password, 10);
 
 		const user = await User.create(
 			[
 				{
-					username,
 					password: hashedPassword,
-					emailAddress,
-					phoneNumber,
+					emailAddress: emailAddress.trim(),
+					phoneNumber: String(phoneNumber)
+						.trim()
+						.replace(/[\s\-]/g, ""),
 					address,
-					roles: roles ?? [UserRole.USER],
+					roles: normalizedRoles,
 					isDeleted: false,
 				},
 			],
@@ -183,7 +197,7 @@ const createUser = async (req: Request, res: Response) => {
 		);
 
 		let seller = null;
-		if (roles?.includes(UserRole.SELLER)) {
+		if (normalizedRoles.includes(UserRole.SELLER)) {
 			// Handle consentGiven properly - only true if explicitly true or "true"
 			let consentBool = false;
 			if (consentGiven !== undefined && consentGiven !== null) {
@@ -216,10 +230,22 @@ const createUser = async (req: Request, res: Response) => {
 				seller,
 			},
 		});
-	} catch (err) {
+	} catch (err: any) {
 		await session.abortTransaction();
-		console.error(err);
-		res.status(500).json({ error: "Internal server error" });
+		console.error("createUser error:", err);
+		const message =
+			err?.message ||
+			err?.errors?.phoneNumber?.message ||
+			err?.errors?.emailAddress?.message ||
+			err?.errors?.address?.message ||
+			"Internal server error";
+		const status =
+			err?.name === "ValidationError" || err?.code === 11000 ? 400 : 500;
+		res.status(status).json({
+			success: false,
+			error: message,
+			...(err?.errors && { details: err.errors }),
+		});
 	} finally {
 		session.endSession();
 	}

@@ -62,7 +62,8 @@ const UserSchema = new mongoose_1.Schema({
     phoneNumber: {
         type: String,
         required: true,
-        match: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
+        // Allow 7–15 digits, optional + prefix and spaces/dashes (e.g. Kuwait 98821155, +965 98821155)
+        match: /^[+]?[\s\-]?[0-9]{7,15}$/,
     },
     address: { type: Address_1.AddressSchema, required: true }, // Assuming IAddress is an object
     roles: [{ type: String, required: true }], // Array of roles

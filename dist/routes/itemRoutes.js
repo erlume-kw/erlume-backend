@@ -11,5 +11,6 @@ router.get('/', itemController_1.default.getItems);
 router.get('/:id', itemController_1.default.getItemById);
 router.post('/', itemController_1.default.createItem);
 router.put('/:id', itemController_1.default.updateItem);
+router.patch('/:id', itemController_1.default.updateItem);
 router.delete('/:id', itemController_1.default.deleteItem);
 exports.default = router;
