@@ -12,6 +12,18 @@ import { TransactionStatus } from "../enums/transactionEnums";
 import { DeliveryStatus } from "../enums/flowEnums";
 import { getMonthYearDateRange } from "../utils/dateRange";
 
+const normalizeSaleRate = (value: unknown): number => {
+	const numeric = Number(value);
+	if (Number.isNaN(numeric)) {
+		return 0;
+	}
+	const normalized = numeric > 1 ? numeric / 100 : numeric;
+	if (normalized < 0 || normalized > 1) {
+		return 0;
+	}
+	return normalized;
+};
+
 const getOrders = async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { status, year, month } = req.query;
@@ -273,9 +285,19 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 				received_at: new Date(),
 			});
 
+			const saleRateValue = normalizeSaleRate(saleRate);
+			const erlumeCommission = (Number(lineTotal) * saleRateValue).toFixed(2);
+			const sellerPayout = (
+				Number(lineTotal) * (1 - saleRateValue)
+			).toFixed(2);
+
 			saleDocs.push({
 				order_id: savedOrder._id,
 				order_item_id: createdOrderItem[0]._id,
+				item_id,
+				amount: lineTotal,
+				erlumeCommission,
+				sellerPayout,
 			});
 		}
 

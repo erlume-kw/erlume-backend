@@ -18,6 +18,7 @@ const Order_1 = __importDefault(require("../models/Order"));
 const OrderItem_1 = __importDefault(require("../models/OrderItem"));
 const Item_1 = __importDefault(require("../models/Item"));
 const User_1 = __importDefault(require("../models/User"));
+const Seller_1 = __importDefault(require("../models/Seller"));
 const dateRange_1 = require("../utils/dateRange");
 const getIncomes = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -94,7 +95,7 @@ const getIncomeById = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 });
 const createIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { order_id, order_item_id, item_id, seller_id, amount, erlumeCommissionAmount, sellerPayoutAmount, currency, platform, income_type, received_at, notes, } = req.body;
+        const { order_id, order_item_id, item_id, seller_id, amount, erlumeCommissionAmount, sellerPayoutAmount, currency, platform, income_type, received_at, month, prelaunch_bag, notes, } = req.body;
         if (!amount) {
             res.status(400).json({
                 success: false,
@@ -141,22 +142,42 @@ const createIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 return;
             }
         }
+        let resolvedSellerId;
         if (seller_id) {
-            if (!mongoose_1.default.Types.ObjectId.isValid(seller_id)) {
+            const sid = String(seller_id).trim();
+            if (!mongoose_1.default.Types.ObjectId.isValid(sid)) {
                 res.status(400).json({ success: false, error: "Invalid seller_id" });
                 return;
             }
-            const seller = yield User_1.default.findById(seller_id);
-            if (!seller) {
-                res.status(404).json({ success: false, error: "Seller not found" });
-                return;
+            // Accept Seller _id or User id. Income.seller_id stores User id (ref: User).
+            const sellerByDoc = yield Seller_1.default.findById(sid).lean();
+            if (sellerByDoc === null || sellerByDoc === void 0 ? void 0 : sellerByDoc.userId) {
+                resolvedSellerId = String(sellerByDoc.userId);
+            }
+            else {
+                const sellerByUser = yield Seller_1.default.findOne({ userId: sid }).lean();
+                if (sellerByUser) {
+                    resolvedSellerId = sid;
+                }
+                else {
+                    const user = yield User_1.default.findById(sid);
+                    if (!user) {
+                        res.status(404).json({
+                            success: false,
+                            error: "Seller not found",
+                            details: "seller_id must be a Seller _id or User id that exists",
+                        });
+                        return;
+                    }
+                    resolvedSellerId = sid;
+                }
             }
         }
         const newIncome = new Income_1.default({
             order_id,
             order_item_id,
             item_id,
-            seller_id,
+            seller_id: resolvedSellerId || seller_id,
             amount,
             erlumeCommissionAmount,
             sellerPayoutAmount,
@@ -164,6 +185,8 @@ const createIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             platform,
             income_type,
             received_at: received_at ? new Date(received_at) : undefined,
+            month: month ? new Date(month) : undefined,
+            prelaunch_bag,
             notes,
         });
         const savedIncome = yield newIncome.save();
@@ -263,10 +286,20 @@ const updateIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 return;
             }
             else {
-                const seller = yield User_1.default.findById(update.seller_id);
-                if (!seller) {
-                    res.status(404).json({ success: false, error: "Seller not found" });
-                    return;
+                // Accept either Seller _id or User id
+                let seller = yield Seller_1.default.findById(update.seller_id).lean();
+                if (seller) {
+                    update.seller_id = seller.userId;
+                }
+                else {
+                    seller = yield Seller_1.default.findOne({ userId: update.seller_id }).lean();
+                    if (!seller) {
+                        const user = yield User_1.default.findById(update.seller_id);
+                        if (!user) {
+                            res.status(404).json({ success: false, error: "Seller not found" });
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -274,6 +307,12 @@ const updateIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             update.received_at = update.received_at
                 ? new Date(update.received_at)
                 : undefined;
+        }
+        if (update.month !== undefined) {
+            update.month =
+                update.month == null || update.month === ""
+                    ? undefined
+                    : new Date(update.month);
         }
         const updatedIncome = yield Income_1.default.findByIdAndUpdate(incomeId, { $set: update }, { new: true, runValidators: true });
         res.status(200).json({

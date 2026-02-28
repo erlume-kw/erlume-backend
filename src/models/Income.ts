@@ -27,13 +27,15 @@ const IncomeSchema: Schema = new Schema(
 			required: false,
 			index: true,
 		},
-		amount: { type: String, required: true },
-		erlumeCommissionAmount: { type: String, required: false },
+		amount: { type: String, required: true }, // Erlume commission — what got to Erlume's bank (excludes seller payout)
+		erlumeCommissionAmount: { type: String, required: false }, // Deprecated: use amount
 		sellerPayoutAmount: { type: String, required: false },
 		currency: { type: String, default: "KWD" },
 		platform: { type: String, required: false },
 		income_type: { type: String, default: "sale" },
 		received_at: { type: Date, default: Date.now, index: true },
+		month: { type: Date, required: false, index: true },
+		prelaunch_bag: { type: String, required: false }, // Item ref text (any product type) when item_id not linked. Format: Name-Brand-Year
 		notes: { type: String, required: false },
 	},
 	{ timestamps: true },

@@ -31,6 +31,7 @@ import "../models/CreditCard";
 import "../models/Outfit";
 import "../models/OutfitItem";
 import "../models/Review";
+import "../models/Employee";
 
 async function main(): Promise<void> {
 	await connectDB();

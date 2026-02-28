@@ -9,6 +9,7 @@ const saleController_1 = __importDefault(require("../controllers/saleController"
 // Define routes and map to controller methods
 router.get("/", saleController_1.default.getSales);
 router.get("/order/:orderId", saleController_1.default.getSalesByOrderId);
+router.post("/recalculate-commissions", saleController_1.default.recalculateSaleCommissions);
 router.get("/:id", saleController_1.default.getSaleById);
 router.post("/", saleController_1.default.createSale);
 router.put("/:id", saleController_1.default.updateSale);

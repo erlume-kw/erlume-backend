@@ -58,11 +58,11 @@
     },
     {
       "name": "Sales",
-      "description": "Sales records (invoice, evidence)"
+      "description": "Sale = full transaction breakdown. amount = total listing price (gross), erlumeCommission = Erlume's cut, sellerPayout = seller's cut. Use for invoice/evidence."
     },
     {
       "name": "Incomes",
-      "description": "Income records: Erlume commission, income (sale amount), seller payout per sale/item. Single source for commission breakdown and payout tracking."
+      "description": "Income = Erlume bank receipt only. amount = Erlume commission (what actually got to Erlume's bank, excludes seller payout). Single source for Erlume revenue."
     },
     {
       "name": "Expenses",
@@ -99,6 +99,10 @@
     {
       "name": "Enums",
       "description": "Enum values by category"
+    },
+    {
+      "name": "Employees",
+      "description": "Employee/salary records"
     }
   ],
   "paths": {
@@ -1384,7 +1388,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "e.g. supplies, subscriptions, services"
+                    "description": "ExpenseType values: supplies, subscriptions, services, subscriptions,services (compound). Use GET /api/enums/expenseType for full list."
                   },
                   "month": {
                     "type": "string",
@@ -1463,6 +1467,71 @@
         }
       ]
     },
+    "/api/employees": {
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "get": {
+        "tags": ["Employees"],
+        "summary": "List employees",
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Employees"],
+        "summary": "Create employee",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "photo": { "type": "string" },
+                  "role": { "type": "string" },
+                  "type": { "type": "string", "description": "e.g. full-time" },
+                  "salaryActual": { "type": "string" },
+                  "salaryProjected": { "type": "string" },
+                  "user_id": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/employees/{id}": {
+      "x-usedBy": ["backoffice"],
+      "get": {
+        "tags": ["Employees"],
+        "summary": "Get employee by id",
+        "responses": { "200": { "description": "OK" } }
+      },
+      "put": {
+        "tags": ["Employees"],
+        "summary": "Update employee",
+        "responses": { "200": { "description": "OK" } }
+      },
+      "patch": {
+        "tags": ["Employees"],
+        "summary": "Update employee (patch)",
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["Employees"],
+        "summary": "Delete employee",
+        "responses": { "200": { "description": "OK" } }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ]
+    },
     "/api/incomes": {
       "x-usedBy": [
         "backoffice"
@@ -1471,7 +1540,7 @@
         "tags": [
           "Incomes"
         ],
-        "summary": "List incomes (commission breakdown: Erlume commission, income amount, seller payout). Filter by orderId, itemId, sellerId, year, month.",
+        "summary": "List incomes. amount = Erlume commission (bank receipt). Filter by orderId, itemId, sellerId, year, month.",
         "parameters": [
           {
             "name": "orderId",
@@ -1522,7 +1591,30 @@
         "tags": [
           "Incomes"
         ],
-        "summary": "Create income (supports amount, erlumeCommissionAmount, sellerPayoutAmount, links to order/item/seller)",
+        "summary": "Create income. amount = Erlume commission (what got to Erlume's bank, excludes seller payout). Supports month, prelaunch_bag, order/item/seller links.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "amount": { "type": "string", "description": "Erlume commission — what actually got to Erlume's bank account (excludes seller payout)" },
+                  "month": { "type": "string", "format": "date-time", "description": "Month for reporting" },
+                  "prelaunch_bag": { "type": "string", "description": "Item reference text (any product type) when item_id not linked. Format: Name-Brand-Year" },
+                  "order_id": { "type": "string" },
+                  "order_item_id": { "type": "string" },
+                  "item_id": { "type": "string" },
+                  "seller_id": { "type": "string", "description": "Seller doc _id or User id (both accepted)" },
+                  "platform": { "type": "string" },
+                  "income_type": { "type": "string", "default": "sale" },
+                  "received_at": { "type": "string", "format": "date-time" },
+                  "notes": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Created"
@@ -2300,10 +2392,52 @@
         "tags": [
           "Sales"
         ],
-        "summary": "Create sale",
+        "summary": "Create sale. amount = total listing price; erlumeCommission and sellerPayout are auto-calculated from Item.saleRate. Order flow: order_id+order_item_id. Prelaunch: amount/buyer/bag_record.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order_id": { "type": "string" },
+                  "order_item_id": { "type": "string" },
+                  "item_id": { "type": "string" },
+                  "transaction_id": { "type": "string" },
+                  "amount": { "type": "string", "description": "Total listing price (gross)" },
+                  "listingPrice": { "type": "string" },
+                  "erlumeCommission": { "type": "string", "description": "Auto-calculated: amount * item.saleRate" },
+                  "sellerPayout": { "type": "string", "description": "Auto-calculated: amount * (1 - item.saleRate)" },
+                  "buyer": { "type": "string" },
+                  "status": { "type": "string" },
+                  "sale_date": { "type": "string", "format": "date-time" },
+                  "bag_record": { "type": "string" },
+                  "invoice_number": { "type": "string" },
+                  "invoice_url": { "type": "string" },
+                  "payment_evidence_url": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/sales/recalculate-commissions": {
+      "x-usedBy": [
+        "backoffice"
+      ],
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Recalculate sale commissions from Item.saleRate",
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -2327,7 +2461,7 @@
         "tags": [
           "Sales"
         ],
-        "summary": "Update sale",
+        "summary": "Update sale (recalculates erlumeCommission/sellerPayout from Item.saleRate when amount changes)",
         "responses": {
           "200": {
             "description": "OK"
@@ -2338,7 +2472,7 @@
         "tags": [
           "Sales"
         ],
-        "summary": "Update sale (patch)",
+        "summary": "Update sale (patch; recalculates erlumeCommission/sellerPayout from Item.saleRate when amount changes)",
         "responses": {
           "200": {
             "description": "OK"
@@ -2435,7 +2569,7 @@
         "tags": [
           "Enums"
         ],
-        "summary": "Get enum by category (orderStatus, itemStatus, authenticationStatus, returnStatus, deliveryStatus, escalationStatus, bagBrand, etc.)",
+        "summary": "Get enum by category (orderStatus, itemStatus, expenseType, authenticationStatus, returnStatus, deliveryStatus, escalationStatus, bagBrand, userRole, dropStatus, itemCondition, reviewStars, kuwaitGovernorate, kuwaitCity, transactionStatus, paymentMethod, etc.)",
         "responses": {
           "200": {
             "description": "OK"

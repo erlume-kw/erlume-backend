@@ -24,6 +24,17 @@ const orderEnums_1 = require("../enums/orderEnums");
 const transactionEnums_1 = require("../enums/transactionEnums");
 const flowEnums_1 = require("../enums/flowEnums");
 const dateRange_1 = require("../utils/dateRange");
+const normalizeSaleRate = (value) => {
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) {
+        return 0;
+    }
+    const normalized = numeric > 1 ? numeric / 100 : numeric;
+    if (normalized < 0 || normalized > 1) {
+        return 0;
+    }
+    return normalized;
+};
 const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { status, year, month } = req.query;
@@ -239,9 +250,16 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 amount: lineTotal,
                 received_at: new Date(),
             });
+            const saleRateValue = normalizeSaleRate(saleRate);
+            const erlumeCommission = (Number(lineTotal) * saleRateValue).toFixed(2);
+            const sellerPayout = (Number(lineTotal) * (1 - saleRateValue)).toFixed(2);
             saleDocs.push({
                 order_id: savedOrder._id,
                 order_item_id: createdOrderItem[0]._id,
+                item_id,
+                amount: lineTotal,
+                erlumeCommission,
+                sellerPayout,
             });
         }
         savedOrder.orderitem_ids = createdOrderItemIds;

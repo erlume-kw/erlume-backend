@@ -12,6 +12,8 @@
     "sync-db": "npx ts-node src/scripts/syncDb.ts",
     "bulk-import-sellers": "npx ts-node src/scripts/bulk-import-sellers.ts",
     "bulk-import-items": "ts-node src/scripts/bulk-import-items.ts",
+    "bulk-import-csv-data": "npx ts-node src/scripts/bulk-import-csv-data.ts",
+    "bulk-import-csv-data:clear": "npx ts-node src/scripts/bulk-import-csv-data.ts --clear",
     "add-seller": "npx ts-node src/scripts/add-seller.ts"
   },
   "repository": {

@@ -5,6 +5,7 @@ import Order from "../models/Order";
 import OrderItem from "../models/OrderItem";
 import Item from "../models/Item";
 import User from "../models/User";
+import Seller from "../models/Seller";
 import { getMonthYearDateRange } from "../utils/dateRange";
 
 const getIncomes = async (req: Request, res: Response): Promise<void> => {
@@ -103,6 +104,8 @@ const createIncome = async (req: Request, res: Response): Promise<void> => {
 			platform,
 			income_type,
 			received_at,
+			month,
+			prelaunch_bag,
 			notes,
 		} = req.body;
 
@@ -156,15 +159,33 @@ const createIncome = async (req: Request, res: Response): Promise<void> => {
 			}
 		}
 
+		let resolvedSellerId: string | undefined;
 		if (seller_id) {
-			if (!mongoose.Types.ObjectId.isValid(seller_id)) {
+			const sid = String(seller_id).trim();
+			if (!mongoose.Types.ObjectId.isValid(sid)) {
 				res.status(400).json({ success: false, error: "Invalid seller_id" });
 				return;
 			}
-			const seller = await User.findById(seller_id);
-			if (!seller) {
-				res.status(404).json({ success: false, error: "Seller not found" });
-				return;
+			// Accept Seller _id or User id. Income.seller_id stores User id (ref: User).
+			const sellerByDoc = await Seller.findById(sid).lean();
+			if (sellerByDoc?.userId) {
+				resolvedSellerId = String(sellerByDoc.userId);
+			} else {
+				const sellerByUser = await Seller.findOne({ userId: sid }).lean();
+				if (sellerByUser) {
+					resolvedSellerId = sid;
+				} else {
+					const user = await User.findById(sid);
+					if (!user) {
+						res.status(404).json({
+							success: false,
+							error: "Seller not found",
+							details: "seller_id must be a Seller _id or User id that exists",
+						});
+						return;
+					}
+					resolvedSellerId = sid;
+				}
 			}
 		}
 
@@ -172,7 +193,7 @@ const createIncome = async (req: Request, res: Response): Promise<void> => {
 			order_id,
 			order_item_id,
 			item_id,
-			seller_id,
+			seller_id: resolvedSellerId || seller_id,
 			amount,
 			erlumeCommissionAmount,
 			sellerPayoutAmount,
@@ -180,6 +201,8 @@ const createIncome = async (req: Request, res: Response): Promise<void> => {
 			platform,
 			income_type,
 			received_at: received_at ? new Date(received_at) : undefined,
+			month: month ? new Date(month) : undefined,
+			prelaunch_bag,
 			notes,
 		});
 
@@ -281,10 +304,19 @@ const updateIncome = async (req: Request, res: Response): Promise<void> => {
 				res.status(400).json({ success: false, error: "Invalid seller_id" });
 				return;
 			} else {
-				const seller = await User.findById(update.seller_id);
-				if (!seller) {
-					res.status(404).json({ success: false, error: "Seller not found" });
-					return;
+				// Accept either Seller _id or User id
+				let seller = await Seller.findById(update.seller_id).lean();
+				if (seller) {
+					update.seller_id = seller.userId as any;
+				} else {
+					seller = await Seller.findOne({ userId: update.seller_id }).lean();
+					if (!seller) {
+						const user = await User.findById(update.seller_id);
+						if (!user) {
+							res.status(404).json({ success: false, error: "Seller not found" });
+							return;
+						}
+					}
 				}
 			}
 		}
@@ -293,6 +325,12 @@ const updateIncome = async (req: Request, res: Response): Promise<void> => {
 			update.received_at = update.received_at
 				? new Date(update.received_at)
 				: undefined;
+		}
+		if (update.month !== undefined) {
+			update.month =
+				update.month == null || update.month === ""
+					? undefined
+					: new Date(update.month);
 		}
 
 		const updatedIncome = await Income.findByIdAndUpdate(

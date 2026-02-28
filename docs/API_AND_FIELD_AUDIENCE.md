@@ -34,7 +34,9 @@ Which endpoints and conventions each client (backoffice vs customer-facing front
 | `/api/transactions/{id}` | |
 | `/api/expenses` | Expenses |
 | `/api/expenses/{id}` | |
-| `/api/incomes` | Income records |
+| `/api/employees` | Employee/salary records |
+| `/api/employees/{id}` | |
+| `/api/incomes` | Income records (amount = Erlume commission). seller_id accepts Seller _id or User id. |
 | `/api/incomes/{id}` | |
 | `/api/creditcards` | All credit cards |
 | `/api/demands` | Demand rates |
@@ -99,18 +101,19 @@ PUT  /api/sellers/{id}
 
 ## Sale vs Income
 
-| Entity | Purpose |
-|--------|---------|
-| **Income** | Single source of truth for money. Commission breakdown, payout, reporting. |
-| **Sale** | Invoice/evidence. order_id, order_item_id, transaction_id, invoice_number, invoice_url, payment_evidence_url. |
+| Entity | Purpose | Key fields |
+|--------|---------|------------|
+| **Sale** | Full transaction breakdown + invoice/evidence | `amount` = total listing price (gross), `erlumeCommission`, `sellerPayout`, invoice_url, payment_evidence_url |
+| **Income** | Erlume bank receipt only — what actually got to Erlume's account | `amount` = Erlume commission (excludes seller payout) |
 
-Use **Income** for reports and payouts. Use **Sale** when you need invoice or payment evidence.
+- **Sale** = total + commission + payout breakdown; use for sales records, invoice/evidence.
+- **Income** = Erlume revenue only; use for Erlume financial reports, bank reconciliation.
 
 ---
 
 ## Enums
 
-Load dropdown/options from `GET /api/enums` or `GET /api/enums/{category}`. Do not hardcode enum values in frontend or backoffice. Categories include: `orderStatus`, `itemStatus`, `itemCondition`, `paymentMethod`, `transactionStatus`, etc.
+Load dropdown/options from `GET /api/enums` or `GET /api/enums/{category}`. Do not hardcode enum values in frontend or backoffice. Categories include: `orderStatus`, `itemStatus`, `expenseType`, `itemCondition`, `paymentMethod`, `transactionStatus`, `bagBrand`, etc.
 
 ---
 

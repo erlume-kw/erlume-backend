@@ -73,6 +73,7 @@ const enumRoutes_1 = __importDefault(require("./routes/enumRoutes"));
 const sellerRoutes_1 = __importDefault(require("./routes/sellerRoutes"));
 const incomeRoutes_1 = __importDefault(require("./routes/incomeRoutes"));
 const expenseRoutes_1 = __importDefault(require("./routes/expenseRoutes"));
+const employeeRoutes_1 = __importDefault(require("./routes/employeeRoutes"));
 dotenv_1.default.config();
 // Add unhandled error handlers
 process.on("unhandledRejection", (reason, promise) => {
@@ -185,6 +186,7 @@ app.use("/api/enums", enumRoutes_1.default);
 app.use("/api/sellers", sellerRoutes_1.default);
 app.use("/api/incomes", incomeRoutes_1.default);
 app.use("/api/expenses", expenseRoutes_1.default);
+app.use("/api/employees", employeeRoutes_1.default);
 const PORT = process.env.PORT || 3000;
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, db_1.default)();

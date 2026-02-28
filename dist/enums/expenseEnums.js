@@ -10,4 +10,5 @@ var ExpenseType;
     ExpenseType["Supplies"] = "supplies";
     ExpenseType["Subscriptions"] = "subscriptions";
     ExpenseType["Services"] = "services";
+    ExpenseType["SubscriptionsServices"] = "subscriptions,services";
 })(ExpenseType || (exports.ExpenseType = ExpenseType = {}));

@@ -73,6 +73,7 @@ require("../models/CreditCard");
 require("../models/Outfit");
 require("../models/OutfitItem");
 require("../models/Review");
+require("../models/Employee");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         yield (0, db_1.default)();

@@ -520,6 +520,7 @@ const updateItem = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
+
 		// Validate imageUrls if provided
 		if (updateData.imageUrls !== undefined) {
 			if (
