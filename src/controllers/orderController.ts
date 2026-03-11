@@ -8,6 +8,7 @@ import Transaction from "../models/Transaction";
 import Sale from "../models/Sale";
 import mongoose from "mongoose";
 import { OrderStatus } from "../enums/orderEnums";
+import { ItemStatus } from "../enums/statusEnums";
 import { TransactionStatus } from "../enums/transactionEnums";
 import { DeliveryStatus } from "../enums/flowEnums";
 import { getMonthYearDateRange } from "../utils/dateRange";
@@ -36,6 +37,21 @@ const getConditionDeductionRate = (condition?: ItemCondition | string): number =
 		case ItemCondition.LikeNew:
 		default:
 			return 0;
+	}
+};
+
+const markOrderItemsSold = async (orderId: mongoose.Types.ObjectId | string) => {
+	const orderItems = await OrderItem.find({ order_id: orderId })
+		.select("item_id")
+		.lean();
+	const itemIds = orderItems
+		.map((item) => item.item_id)
+		.filter(Boolean);
+	if (itemIds.length > 0) {
+		await Item.updateMany(
+			{ _id: { $in: itemIds } },
+			{ itemStatus: ItemStatus.Sold },
+		);
 	}
 };
 
@@ -428,6 +444,10 @@ const updateOrderStatus = async (
 			{ new: true, runValidators: true },
 		);
 
+		if (status === OrderStatus.Delivered) {
+			await markOrderItemsSold(orderId);
+		}
+
 		res.status(200).json({
 			success: true,
 			message: "Order status updated successfully",
@@ -528,6 +548,10 @@ const updateOrder = async (req: Request, res: Response): Promise<void> => {
 			{ $set: update },
 			{ new: true, runValidators: true },
 		);
+
+		if (update.order_status === OrderStatus.Delivered) {
+			await markOrderItemsSold(orderId);
+		}
 
 		res.status(200).json({
 			success: true,

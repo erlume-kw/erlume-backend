@@ -21,6 +21,7 @@ const Transaction_1 = __importDefault(require("../models/Transaction"));
 const Sale_1 = __importDefault(require("../models/Sale"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const orderEnums_1 = require("../enums/orderEnums");
+const statusEnums_1 = require("../enums/statusEnums");
 const transactionEnums_1 = require("../enums/transactionEnums");
 const flowEnums_1 = require("../enums/flowEnums");
 const dateRange_1 = require("../utils/dateRange");
@@ -49,6 +50,17 @@ const getConditionDeductionRate = (condition) => {
             return 0;
     }
 };
+const markOrderItemsSold = (orderId) => __awaiter(void 0, void 0, void 0, function* () {
+    const orderItems = yield OrderItem_1.default.find({ order_id: orderId })
+        .select("item_id")
+        .lean();
+    const itemIds = orderItems
+        .map((item) => item.item_id)
+        .filter(Boolean);
+    if (itemIds.length > 0) {
+        yield Item_1.default.updateMany({ _id: { $in: itemIds } }, { itemStatus: statusEnums_1.ItemStatus.Sold });
+    }
+});
 const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { status, year, month } = req.query;
@@ -357,6 +369,9 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
             return;
         }
         const updatedOrder = yield Order_1.default.findByIdAndUpdate(orderId, { order_status: status }, { new: true, runValidators: true });
+        if (status === orderEnums_1.OrderStatus.Delivered) {
+            yield markOrderItemsSold(orderId);
+        }
         res.status(200).json({
             success: true,
             message: "Order status updated successfully",
@@ -436,6 +451,9 @@ const updateOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         const updatedOrder = yield Order_1.default.findByIdAndUpdate(orderId, { $set: update }, { new: true, runValidators: true });
+        if (update.order_status === orderEnums_1.OrderStatus.Delivered) {
+            yield markOrderItemsSold(orderId);
+        }
         res.status(200).json({
             success: true,
             message: "Order updated successfully",
