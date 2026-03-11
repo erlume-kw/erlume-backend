@@ -6,6 +6,7 @@ import OrderItem from "../models/OrderItem";
 import Transaction from "../models/Transaction";
 import Item from "../models/Item";
 import { getMonthYearDateRange } from "../utils/dateRange";
+import { ItemCondition } from "../enums/itemEnums";
 
 const normalizeSaleRate = (value: unknown): number => {
 	const numeric = Number(value);
@@ -17,6 +18,51 @@ const normalizeSaleRate = (value: unknown): number => {
 		return 0;
 	}
 	return normalized;
+};
+
+const getConditionDeductionRate = (condition?: ItemCondition | string): number => {
+	switch (condition) {
+		case ItemCondition.GentlyUsed:
+			return 0.05;
+		case ItemCondition.Fair:
+		case ItemCondition.Worn:
+			return 0.1;
+		case ItemCondition.New:
+		case ItemCondition.LikeNew:
+		default:
+			return 0;
+	}
+};
+
+const escapeRegex = (value: string): string =>
+	value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const parseBagRecord = (
+	bagRecord: unknown,
+): { itemName: string; brandName: string; year?: string } | null => {
+	if (typeof bagRecord !== "string") return null;
+	const parts = bagRecord.split("-").map((part) => part.trim());
+	if (parts.length < 2) return null;
+	const brandName = parts[parts.length - 2];
+	const year = parts[parts.length - 1] || undefined;
+	const itemName = parts.slice(0, -2).join("-").trim();
+	if (!itemName || !brandName) return null;
+	return { itemName, brandName, year };
+};
+
+const findItemByBagRecord = async (
+	bagRecord: unknown,
+): Promise<{ saleRate?: string; condition?: string } | null> => {
+	const parsed = parseBagRecord(bagRecord);
+	if (!parsed) return null;
+	const query: Record<string, unknown> = {
+		itemName: new RegExp(`^${escapeRegex(parsed.itemName)}$`, "i"),
+		brandName: new RegExp(`^${escapeRegex(parsed.brandName)}$`, "i"),
+	};
+	if (parsed.year) {
+		query.year = parsed.year;
+	}
+	return await Item.findOne(query).select("saleRate condition").lean();
 };
 
 const getSales = async (req: Request, res: Response): Promise<void> => {
@@ -56,11 +102,14 @@ const recalculateSaleCommissions = async (
 ): Promise<void> => {
 	try {
 		const sales = await Sale.find({})
-			.select("_id amount item_id order_item_id")
+			.select("_id amount item_id order_item_id bag_record")
 			.lean();
 
 		const orderItemCache = new Map<string, string | null>();
-		const itemCache = new Map<string, string | null>();
+		const itemCache = new Map<
+			string,
+			{ saleRate?: string | null; condition?: string | null }
+		>();
 
 		const bulkOps: Array<any> = [];
 		let updatedCount = 0;
@@ -89,29 +138,41 @@ const recalculateSaleCommissions = async (
 				}
 			}
 
-			if (!itemId) {
+			let saleRateValue: string | null | undefined;
+			let conditionValue: string | undefined;
+			if (itemId) {
+				if (itemCache.has(itemId)) {
+					const cached = itemCache.get(itemId);
+					saleRateValue = cached?.saleRate ?? undefined;
+					conditionValue = cached?.condition ?? undefined;
+				} else {
+					const item = await Item.findById(itemId)
+						.select("saleRate condition")
+						.lean();
+					saleRateValue = item?.saleRate ?? null;
+					conditionValue = item?.condition ?? undefined;
+					itemCache.set(itemId, { saleRate: saleRateValue, condition: conditionValue });
+				}
+			} else if (sale.bag_record) {
+				const item = await findItemByBagRecord(sale.bag_record);
+				saleRateValue = item?.saleRate ?? null;
+				conditionValue = item?.condition ?? undefined;
+			} else {
 				skippedCount += 1;
 				continue;
 			}
 
-			let saleRateValue: string | null | undefined;
-			if (itemCache.has(itemId)) {
-				saleRateValue = itemCache.get(itemId) ?? undefined;
-			} else {
-				const item = await Item.findById(itemId).select("saleRate").lean();
-				saleRateValue = item?.saleRate ?? null;
-				itemCache.set(itemId, saleRateValue);
-			}
-
 			const rate = normalizeSaleRate(saleRateValue);
+			const conditionDeduction = getConditionDeductionRate(conditionValue);
 			const amountValue = Number(sale.amount);
 			if (Number.isNaN(amountValue)) {
 				skippedCount += 1;
 				continue;
 			}
 
-			const erlumeCommission = (amountValue * rate).toFixed(2);
-			const sellerPayout = (amountValue * (1 - rate)).toFixed(2);
+			const adjustedAmount = amountValue * (1 - conditionDeduction);
+			const sellerPayout = (adjustedAmount * rate).toFixed(2);
+			const erlumeCommission = (adjustedAmount * (1 - rate)).toFixed(2);
 
 			bulkOps.push({
 				updateOne: {
@@ -272,6 +333,8 @@ const createSale = async (req: Request, res: Response): Promise<void> => {
 		}
 
 		let itemIdToUse = item_id;
+		let resolvedSaleRateSource: unknown;
+		let resolvedConditionSource: string | undefined;
 		if (!itemIdToUse && orderItem) {
 			itemIdToUse = String(orderItem.item_id);
 		}
@@ -285,7 +348,12 @@ const createSale = async (req: Request, res: Response): Promise<void> => {
 				res.status(404).json({ success: false, error: "Item not found" });
 				return;
 			}
-			req.body._resolvedSaleRate = item.saleRate;
+			resolvedSaleRateSource = item.saleRate;
+			resolvedConditionSource = item.condition as string | undefined;
+		} else if (bag_record) {
+			const item = await findItemByBagRecord(bag_record);
+			resolvedSaleRateSource = item?.saleRate;
+			resolvedConditionSource = item?.condition;
 		}
 
 		if (transaction_id) {
@@ -305,14 +373,19 @@ const createSale = async (req: Request, res: Response): Promise<void> => {
 
 		const resolvedAmount =
 			amount != null && amount !== "" ? Number(amount) : null;
-		const safeSaleRate = normalizeSaleRate(req.body._resolvedSaleRate);
-		const computedErlumeCommission =
+		const safeSaleRate = normalizeSaleRate(resolvedSaleRateSource);
+		const conditionDeduction = getConditionDeductionRate(resolvedConditionSource);
+		const adjustedAmount =
 			resolvedAmount != null
-				? (resolvedAmount * safeSaleRate).toFixed(2)
-				: undefined;
+				? resolvedAmount * (1 - conditionDeduction)
+				: null;
 		const computedSellerPayout =
-			resolvedAmount != null
-				? (resolvedAmount * (1 - safeSaleRate)).toFixed(2)
+			adjustedAmount != null
+				? (adjustedAmount * safeSaleRate).toFixed(2)
+				: undefined;
+		const computedErlumeCommission =
+			adjustedAmount != null
+				? (adjustedAmount * (1 - safeSaleRate)).toFixed(2)
 				: undefined;
 
 		const newSale = new Sale({
@@ -427,10 +500,18 @@ const updateSale = async (req: Request, res: Response): Promise<void> => {
 		let computedErlumeCommission: string | undefined;
 		let computedSellerPayout: string | undefined;
 		let saleRateForCalc: number | undefined;
+		let conditionForCalc: string | undefined;
 		if (sale.item_id) {
 			const item = await Item.findById(sale.item_id);
 			if (item) {
 				saleRateForCalc = normalizeSaleRate(item.saleRate);
+				conditionForCalc = item.condition as string | undefined;
+			}
+		} else if (sale.bag_record) {
+			const item = await findItemByBagRecord(sale.bag_record);
+			if (item?.saleRate) {
+				saleRateForCalc = normalizeSaleRate(item.saleRate);
+				conditionForCalc = item.condition;
 			}
 		}
 		if (amount !== undefined) {
@@ -439,8 +520,12 @@ const updateSale = async (req: Request, res: Response): Promise<void> => {
 				const numericAmount = Number(amount);
 				if (!Number.isNaN(numericAmount)) {
 					const rate = saleRateForCalc ?? 0;
-					computedErlumeCommission = (numericAmount * rate).toFixed(2);
-					computedSellerPayout = (numericAmount * (1 - rate)).toFixed(2);
+					const conditionDeduction =
+						getConditionDeductionRate(conditionForCalc);
+					const adjustedAmount =
+						numericAmount * (1 - conditionDeduction);
+					computedSellerPayout = (adjustedAmount * rate).toFixed(2);
+					computedErlumeCommission = (adjustedAmount * (1 - rate)).toFixed(2);
 				}
 			}
 		}

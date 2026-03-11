@@ -24,6 +24,7 @@ const orderEnums_1 = require("../enums/orderEnums");
 const transactionEnums_1 = require("../enums/transactionEnums");
 const flowEnums_1 = require("../enums/flowEnums");
 const dateRange_1 = require("../utils/dateRange");
+const itemEnums_1 = require("../enums/itemEnums");
 const normalizeSaleRate = (value) => {
     const numeric = Number(value);
     if (Number.isNaN(numeric)) {
@@ -34,6 +35,19 @@ const normalizeSaleRate = (value) => {
         return 0;
     }
     return normalized;
+};
+const getConditionDeductionRate = (condition) => {
+    switch (condition) {
+        case itemEnums_1.ItemCondition.GentlyUsed:
+            return 0.05;
+        case itemEnums_1.ItemCondition.Fair:
+        case itemEnums_1.ItemCondition.Worn:
+            return 0.1;
+        case itemEnums_1.ItemCondition.New:
+        case itemEnums_1.ItemCondition.LikeNew:
+        default:
+            return 0;
+    }
 };
 const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -224,10 +238,16 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 yield session.abortTransaction();
                 return;
             }
-            const basePrice = parseFloat(item.basePrice);
-            const saleRate = parseFloat(item.saleRate);
-            const discountAmount = basePrice * saleRate;
-            const finalPrice = (basePrice - discountAmount).toFixed(2);
+            const listingPrice = parseFloat(item.listingPrice);
+            if (Number.isNaN(listingPrice)) {
+                res.status(400).json({
+                    success: false,
+                    error: `Invalid listingPrice for item: ${item_id}`,
+                });
+                yield session.abortTransaction();
+                return;
+            }
+            const finalPrice = listingPrice.toFixed(2);
             const orderQuantity = quantity || 1;
             const createdOrderItem = yield OrderItem_1.default.create([
                 {
@@ -240,19 +260,21 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             ], { session });
             createdOrderItemIds.push(createdOrderItem[0]._id);
             itemIds.push(item._id);
-            const lineTotal = (parseFloat(finalPrice) * Number(orderQuantity)).toFixed(2);
+            const lineTotal = (listingPrice * Number(orderQuantity)).toFixed(2);
             totalAmount += Number(lineTotal);
+            const saleRateValue = normalizeSaleRate(item.saleRate);
+            const conditionDeduction = getConditionDeductionRate(item.condition);
+            const adjustedAmount = Number(lineTotal) * (1 - conditionDeduction);
+            const sellerPayout = (adjustedAmount * saleRateValue).toFixed(2);
+            const erlumeCommission = (adjustedAmount * (1 - saleRateValue)).toFixed(2);
             incomeDocs.push({
                 order_id: savedOrder._id,
                 order_item_id: createdOrderItem[0]._id,
                 item_id,
                 seller_id: (_a = item.seller_id) !== null && _a !== void 0 ? _a : undefined,
-                amount: lineTotal,
+                amount: erlumeCommission,
                 received_at: new Date(),
             });
-            const saleRateValue = normalizeSaleRate(saleRate);
-            const erlumeCommission = (Number(lineTotal) * saleRateValue).toFixed(2);
-            const sellerPayout = (Number(lineTotal) * (1 - saleRateValue)).toFixed(2);
             saleDocs.push({
                 order_id: savedOrder._id,
                 order_item_id: createdOrderItem[0]._id,
