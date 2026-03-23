@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { getEnums, getEnumCategory } from "../controllers/enumController";
+import { validateParams } from "../middleware/validation";
+import { categoryParamSchema } from "../validations/schemas";
 
 const router = Router();
 
@@ -24,6 +26,6 @@ router.get("/", getEnums);
  * - kuwaitCity
  * - kuwaitGovernorateCities
  */
-router.get("/:category", getEnumCategory);
+router.get("/:category", validateParams(categoryParamSchema), getEnumCategory);
 
 export default router;

@@ -14,8 +14,12 @@
     "emailAddress": "string",
     "phoneNumber": "string",
     "address": "Address",
-    "roles": ["string"],
-    "cardIds": ["OBJECT_ID"],
+    "roles": [
+      "string"
+    ],
+    "cardIds": [
+      "OBJECT_ID"
+    ],
     "isDeleted": "boolean",
     "createdAt": "date",
     "updatedAt": "date"
@@ -23,18 +27,20 @@
   "Seller": {
     "_id": "OBJECT_ID",
     "userId": "OBJECT_ID (ref User)",
-    "fullName": "string",
-    "emailAddress": "string",
-    "phoneNumber": "string",
-    "addressText": "string",
+    "fullName": "string (optional, default: empty string)",
+    "emailAddress": "string (optional)",
+    "phoneNumber": "string (optional)",
+    "addressText": "string (optional, default: empty string)",
     "balance": "string",
-    "itemIds": ["OBJECT_ID (ref Item)"],
-    "IBAN": "string",
-    "qrCode": "string",
-    "isDeactivated": "boolean",
-    "consentGiven": "boolean",
-    "preferredPickupDate": "string",
-    "intakeTimestamp": "string",
+    "itemIds": [
+      "OBJECT_ID (ref Item)"
+    ],
+    "IBAN": "string (optional)",
+    "qrCode": "string (optional)",
+    "isDeactivated": "boolean (default: false)",
+    "consentGiven": "boolean (optional, default: false)",
+    "preferredPickupDate": "string (optional, default: empty string)",
+    "intakeTimestamp": "string (optional)",
     "sellerPolicyAcceptedAt": "date (optional)",
     "escalationStatus": "string (optional, enum: none, seller_no_response, escalated, resolved)",
     "escalationNotes": "string (optional)",
@@ -45,8 +51,8 @@
     "_id": "OBJECT_ID",
     "name": "string",
     "base_rate": "string",
-    "op_rate": "string",
-    "clean_rate": "string",
+    "op_rate": "string (optional)",
+    "clean_rate": "string (optional)",
     "sub_category_id": "OBJECT_ID (optional)",
     "createdAt": "date",
     "updatedAt": "date"
@@ -56,14 +62,14 @@
     "sub_cat_name": "string",
     "category_id": "OBJECT_ID (ref Category)",
     "demand_id": "OBJECT_ID (optional, ref Demand)",
-    "sub_clean_rate": "string",
+    "sub_clean_rate": "string (optional)",
     "createdAt": "date",
     "updatedAt": "date"
   },
   "Demand": {
     "_id": "OBJECT_ID",
     "demand_name": "string",
-    "demand_rate": "string",
+    "demand_rate": "string (optional)",
     "createdAt": "date",
     "updatedAt": "date"
   },
@@ -90,10 +96,18 @@
     "year": "string",
     "quantity": "string",
     "brandName": "string (only brand field; do not use brand)",
-    "imageUrls": ["string"],
-    "receiptPhotoUrls": ["string"],
-    "priceEstimatorUrls": ["string"],
-    "quoteUrls": ["string"],
+    "imageUrls": [
+      "string"
+    ],
+    "receiptPhotoUrls": [
+      "string"
+    ],
+    "priceEstimatorUrls": [
+      "string"
+    ],
+    "quoteUrls": [
+      "string"
+    ],
     "approved": "boolean",
     "approvedNextDrop": "boolean",
     "orderId": "OBJECT_ID (optional, ref Order)",
@@ -115,7 +129,9 @@
   "Order": {
     "_id": "OBJECT_ID",
     "user_id": "OBJECT_ID (ref User)",
-    "orderitem_ids": ["OBJECT_ID (ref OrderItem)"],
+    "orderitem_ids": [
+      "OBJECT_ID (ref OrderItem)"
+    ],
     "order_status": "string (enum)",
     "deliveryDate": "date (optional)",
     "deliveryStatus": "string (optional, enum: pending, shipped, delivered, failed)",
@@ -146,36 +162,40 @@
   },
   "Sale": {
     "_id": "OBJECT_ID",
-    "order_id": "OBJECT_ID (ref Order)",
-    "order_item_id": "OBJECT_ID (ref OrderItem)",
+    "order_id": "OBJECT_ID (optional, ref Order)",
+    "order_item_id": "OBJECT_ID (optional, ref OrderItem)",
     "item_id": "OBJECT_ID (optional, ref Item)",
     "transaction_id": "OBJECT_ID (optional, ref Transaction)",
-    "amount": "string (total sale amount)",
+    "amount": "string (optional) — Total listing price (gross)",
     "listingPrice": "string (optional)",
-    "erlumeCommission": "string (amount * (1 - item.saleRate))",
-    "sellerPayout": "string (amount * item.saleRate)",
+    "erlumeCommission": "string (optional) — Erlume's cut from this sale",
+    "sellerPayout": "string (optional) — Seller's cut",
     "buyer": "string (optional)",
     "status": "string (optional)",
-    "sale_date": "date (optional)",
+    "sale_date": "date (optional, indexed)",
     "bag_record": "string (optional)",
-    "invoice_number": "string",
-    "invoice_url": "string",
-    "payment_evidence_url": "string",
+    "invoice_number": "string (optional)",
+    "invoice_url": "string (optional)",
+    "payment_evidence_url": "string (optional)",
     "createdAt": "date",
     "updatedAt": "date"
   },
   "Income": {
     "_id": "OBJECT_ID",
-    "order_id": "OBJECT_ID (optional)",
-    "order_item_id": "OBJECT_ID (optional)",
-    "item_id": "OBJECT_ID (optional)",
+    "order_id": "OBJECT_ID (optional, ref Order)",
+    "order_item_id": "OBJECT_ID (optional, ref OrderItem)",
+    "item_id": "OBJECT_ID (optional, ref Item)",
     "seller_id": "OBJECT_ID (optional, ref User)",
-    "amount": "string (total sale amount, same as Sale.amount)",
-    "currency": "string",
-    "platform": "string",
-    "income_type": "string",
-    "received_at": "date",
-    "notes": "string",
+    "amount": "string (required) — Erlume commission (what got to Erlume's bank, excludes seller payout)",
+    "erlumeCommissionAmount": "string (optional, deprecated: use amount)",
+    "sellerPayoutAmount": "string (optional)",
+    "currency": "string (default: KWD)",
+    "platform": "string (optional)",
+    "income_type": "string (default: sale)",
+    "received_at": "date (default: Date.now, indexed)",
+    "month": "date (optional, indexed)",
+    "prelaunch_bag": "string (optional) — Item ref text when item_id not linked. Format: Name-Brand-Year",
+    "notes": "string (optional)",
     "createdAt": "date",
     "updatedAt": "date"
   },
@@ -183,14 +203,15 @@
     "_id": "OBJECT_ID",
     "name": "string",
     "cost": "string",
-    "currency": "string (optional, default KWD)",
+    "currency": "string (optional, default: KWD)",
     "employee_id": "OBJECT_ID (optional, ref User) — Employee",
-    "notes": "string",
-    "type": ["string"],
-
+    "notes": "string (optional, default: empty string)",
+    "type": [
+      "string"
+    ],
     "month": "date",
     "paidBy": "string (optional) — Paid By",
-    "isRecurring": "boolean (optional) — Recurring?",
+    "isRecurring": "boolean (optional, default: false) — Recurring?",
     "phase": "string (optional) — e.g. Pre-launch",
     "createdAt": "date",
     "updatedAt": "date"
@@ -214,7 +235,9 @@
   },
   "Outfit": {
     "_id": "OBJECT_ID",
-    "item_ids": ["OBJECT_ID (ref Item)"],
+    "item_ids": [
+      "OBJECT_ID (ref Item)"
+    ],
     "outfit_title": "string",
     "outfit_tags": "string",
     "createdAt": "date",
@@ -232,8 +255,20 @@
     "_id": "OBJECT_ID",
     "userId": "OBJECT_ID (optional, ref User)",
     "sellerId": "OBJECT_ID (ref Seller)",
-    "rating": "number (1-5)",
+    "rating": "number (1-5, enum)",
     "description": "string",
+    "createdAt": "date",
+    "updatedAt": "date"
+  },
+  "Employee": {
+    "_id": "OBJECT_ID",
+    "name": "string",
+    "photo": "string (optional)",
+    "role": "string (optional)",
+    "type": "string (optional)",
+    "salaryActual": "string (optional)",
+    "salaryProjected": "string (optional)",
+    "user_id": "OBJECT_ID (optional, ref User)",
     "createdAt": "date",
     "updatedAt": "date"
   }

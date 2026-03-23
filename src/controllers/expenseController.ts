@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Expense from "../models/Expense";
 import User from "../models/User";
+import Employee from "../models/Employee";
 import { ExpenseType } from "../enums/expenseEnums";
 
 const normalizeMonthDate = (value: unknown): Date | null => {
@@ -47,7 +48,13 @@ const getExpenses = async (req: Request, res: Response): Promise<void> => {
 			filter.month = { $gte: start, $lt: end };
 		}
 
-		const expenses = await Expense.find(filter).populate("employee_id");
+		const expenses = await Expense.find(filter).populate({
+			path: "employee_id",
+			populate: {
+				path: "user_id",
+				select: "-password",
+			},
+		});
 		res.status(200).json({
 			success: true,
 			data: expenses,
@@ -68,7 +75,13 @@ const getExpenseById = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
-		const expense = await Expense.findById(expenseId).populate("employee_id");
+		const expense = await Expense.findById(expenseId).populate({
+			path: "employee_id",
+			populate: {
+				path: "user_id",
+				select: "-password",
+			},
+		});
 		if (!expense) {
 			res.status(404).json({ success: false, error: "Expense not found" });
 			return;
@@ -141,9 +154,13 @@ const createExpense = async (req: Request, res: Response): Promise<void> => {
 				return;
 			}
 
-			const employee = await User.findById(employee_id);
+			// Check if Employee document exists
+			const employee = await Employee.findById(employee_id);
 			if (!employee) {
-				res.status(404).json({ success: false, error: "Employee not found" });
+				res.status(404).json({ 
+					success: false, 
+					error: "Employee not found" 
+				});
 				return;
 			}
 		}
@@ -268,9 +285,13 @@ const updateExpense = async (req: Request, res: Response): Promise<void> => {
 					return;
 				}
 
-				const employee = await User.findById(employee_id);
+				// Check if Employee document exists
+				const employee = await Employee.findById(employee_id);
 				if (!employee) {
-					res.status(404).json({ success: false, error: "Employee not found" });
+					res.status(404).json({ 
+						success: false, 
+						error: "Employee not found" 
+					});
 					return;
 				}
 				update.employee_id = employee_id;
@@ -281,7 +302,13 @@ const updateExpense = async (req: Request, res: Response): Promise<void> => {
 			expenseId,
 			{ $set: update },
 			{ new: true, runValidators: true },
-		).populate("employee_id");
+		).populate({
+			path: "employee_id",
+			populate: {
+				path: "user_id",
+				select: "-password",
+			},
+		});
 
 		res.status(200).json({
 			success: true,

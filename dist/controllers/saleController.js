@@ -19,6 +19,7 @@ const OrderItem_1 = __importDefault(require("../models/OrderItem"));
 const Transaction_1 = __importDefault(require("../models/Transaction"));
 const Item_1 = __importDefault(require("../models/Item"));
 const dateRange_1 = require("../utils/dateRange");
+const sendError_1 = require("../utils/sendError");
 const itemEnums_1 = require("../enums/itemEnums");
 const normalizeSaleRate = (value) => {
     const numeric = Number(value);
@@ -188,7 +189,7 @@ const recalculateSaleCommissions = (req, res) => __awaiter(void 0, void 0, void 
     }
     catch (error) {
         console.error("Error in recalculateSaleCommissions:", error);
-        res.status(500).json({ success: false, error: "Internal server error" });
+        (0, sendError_1.sendError)(res, 500, "Internal server error", "INTERNAL_ERROR");
     }
 });
 const getSalesByOrderId = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

@@ -121,7 +121,7 @@ if (isDebug) {
 app.get("/", (req, res) => {
     res.send("API is working");
 });
-// Swagger / OpenAPI docs: full spec + backoffice-only and frontend-only (filtered by x-usedBy)
+// Swagger / OpenAPI — single full spec (no filtered admin/frontend views)
 const openApiPath = path_1.default.join(__dirname, "..", "openapi.json");
 let openApiSpec = {};
 try {
@@ -130,47 +130,17 @@ try {
 catch (e) {
     console.warn("Swagger: openapi.json not found at", openApiPath, "- docs disabled");
 }
-function filterSpecByAudience(spec, audience) {
-    var _a, _b;
-    const paths = spec.paths;
-    if (!paths)
-        return Object.assign(Object.assign({}, spec), { paths: {} });
-    const filteredPaths = {};
-    for (const [pathKey, pathItem] of Object.entries(paths)) {
-        const item = pathItem;
-        const usedByList = item === null || item === void 0 ? void 0 : item["x-usedBy"];
-        if (Array.isArray(usedByList) && usedByList.includes(audience)) {
-            filteredPaths[pathKey] = pathItem;
-        }
-    }
-    const specInfo = spec.info;
-    const infoTitle = (_a = specInfo === null || specInfo === void 0 ? void 0 : specInfo.title) !== null && _a !== void 0 ? _a : "API";
-    const infoDesc = (_b = specInfo === null || specInfo === void 0 ? void 0 : specInfo.description) !== null && _b !== void 0 ? _b : "";
-    const pathCount = Object.keys(filteredPaths).length;
-    return Object.assign(Object.assign({}, spec), { info: Object.assign(Object.assign({}, specInfo), { title: `${infoTitle} — ${audience} only`, description: `**Filtered view:** Only paths where \`x-usedBy\` includes "${audience}" (${pathCount} path(s)). Shared endpoints appear in both backoffice and frontend docs. ${infoDesc}` }), paths: filteredPaths });
-}
-const backofficeSpec = filterSpecByAudience(openApiSpec, "backoffice");
-const frontendSpec = filterSpecByAudience(openApiSpec, "frontend");
-// Serve spec JSON first (so Swagger UI can fetch by URL and avoid resolver errors)
 app.get("/api-docs.json", (_req, res) => {
     res.json(openApiSpec);
 });
-app.get("/api-docs/backoffice.json", (_req, res) => {
-    res.json(backofficeSpec);
-});
-app.get("/api-docs/frontend.json", (_req, res) => {
-    res.json(frontendSpec);
-});
-// Swagger UI: inline spec (deep copy) so operations render; docExpansion "full" so they show by default
 const swaggerUiOpts = { swaggerOptions: { docExpansion: "full", displayRequestDuration: true } };
-app.use("/api-docs/backoffice", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(JSON.parse(JSON.stringify(backofficeSpec)), swaggerUiOpts));
-app.use("/api-docs/frontend", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(JSON.parse(JSON.stringify(frontendSpec)), swaggerUiOpts));
-app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(JSON.parse(JSON.stringify(openApiSpec)), swaggerUiOpts));
+const openApiSpecCopy = JSON.parse(JSON.stringify(openApiSpec));
+app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(openApiSpecCopy, swaggerUiOpts));
 // Routes
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/items", itemRoutes_1.default);
 app.use("/api/categories", categoryRoutes_1.default);
-app.use("/api/subcategories", subCategoryRoutes_1.default);
+app.use("/api/sub-categories", subCategoryRoutes_1.default);
 app.use("/api/reviews", reviewRoutes_1.default);
 app.use("/api/orders", orderRoutes_1.default);
 app.use("/api/orderitems", orderItemRoutes_1.default);
@@ -180,7 +150,7 @@ app.use("/api/sales", saleRoutes_1.default);
 app.use("/api/outfits", outfitRoutes_1.default);
 app.use("/api/outfititems", outfitItemRoutes_1.default);
 app.use("/api/demands", demandRoutes_1.default);
-app.use("/api/discountcodes", discountCodeRoutes_1.default);
+app.use("/api/discount-codes", discountCodeRoutes_1.default);
 app.use("/api/drops", dropRoutes_1.default);
 app.use("/api/enums", enumRoutes_1.default);
 app.use("/api/sellers", sellerRoutes_1.default);
@@ -211,7 +181,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     // Start server
     app.listen(PORT, () => {
         console.log(`🚀 Server running on http://localhost:${PORT}`);
-        console.log(`📚 API docs: full http://localhost:${PORT}/api-docs | backoffice http://localhost:${PORT}/api-docs/backoffice | frontend http://localhost:${PORT}/api-docs/frontend`);
+        console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
     });
 });
 startServer();

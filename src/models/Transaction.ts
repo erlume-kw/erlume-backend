@@ -9,6 +9,7 @@ const TransactionSchema: Schema = new Schema(
 			type: Schema.Types.ObjectId,
 			ref: "Order",
 			required: true,
+			unique: true,
 			index: true,
 		},
 		discount_rate: { type: String, required: true },

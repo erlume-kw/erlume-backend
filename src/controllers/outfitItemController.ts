@@ -3,6 +3,7 @@ import OutfitItem from "../models/OutfitItem";
 import Outfit from "../models/Outfit";
 import Item from "../models/Item";
 import mongoose from "mongoose";
+import { sendError } from "../utils/sendError";
 
 const getOutfitItems = async (req: Request, res: Response): Promise<void> => {
 	try {
@@ -26,11 +27,6 @@ const getOutfitItemsByOutfitId = async (
 ): Promise<void> => {
 	try {
 		const outfitId = req.params.outfitId;
-
-		if (!mongoose.Types.ObjectId.isValid(outfitId)) {
-			res.status(400).json({ success: false, error: "Invalid outfit ID" });
-			return;
-		}
 
 		const outfit = await Outfit.findById(outfitId);
 		if (!outfit) {
@@ -59,11 +55,6 @@ const getOutfitItemById = async (
 ): Promise<void> => {
 	try {
 		const outfitItemId = req.params.id;
-
-		if (!mongoose.Types.ObjectId.isValid(outfitItemId)) {
-			res.status(400).json({ success: false, error: "Invalid outfit item ID" });
-			return;
-		}
 
 		const outfitItem = await OutfitItem.findById(outfitItemId)
 			.populate("outfit_id")
@@ -273,16 +264,11 @@ const toggleFeaturedItem = async (
 ): Promise<void> => {
 	try {
 		const outfitItemId = req.params.id;
-		const { featured } = req.body;
-
-		if (!mongoose.Types.ObjectId.isValid(outfitItemId)) {
-			res.status(400).json({ success: false, error: "Invalid outfit item ID" });
-			return;
-		}
+		const { featured } = req.body as { featured?: boolean };
 
 		const outfitItem = await OutfitItem.findById(outfitItemId);
 		if (!outfitItem) {
-			res.status(404).json({ success: false, error: "Outfit item not found" });
+			sendError(res, 404, "Outfit item not found", "NOT_FOUND");
 			return;
 		}
 
@@ -302,7 +288,7 @@ const toggleFeaturedItem = async (
 		});
 	} catch (error) {
 		console.error("Error in toggleFeaturedItem:", error);
-		res.status(500).json({ success: false, error: "Internal server error" });
+		sendError(res, 500, "Internal server error", "INTERNAL_ERROR");
 	}
 };
 

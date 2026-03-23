@@ -93,6 +93,15 @@ const createCategory = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
     catch (error) {
         console.error("Error in createCategory:", error);
+        if (error.name === "ValidationError") {
+            const errors = Object.values(error.errors).map((err) => err.message);
+            res.status(400).json({
+                success: false,
+                error: "Validation error",
+                details: errors,
+            });
+            return;
+        }
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 });
@@ -138,6 +147,15 @@ const updateCategory = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
     catch (error) {
         console.error("Error in updateCategory:", error);
+        if (error.name === "ValidationError") {
+            const errors = Object.values(error.errors).map((err) => err.message);
+            res.status(400).json({
+                success: false,
+                error: "Validation error",
+                details: errors,
+            });
+            return;
+        }
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 });

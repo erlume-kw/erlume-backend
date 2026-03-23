@@ -223,6 +223,17 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
+		// Check for duplicate items in the order
+		const itemIdsInOrder = orderItems.map((oi: any) => oi.item_id).filter(Boolean);
+		const uniqueItemIds = new Set(itemIdsInOrder);
+		if (itemIdsInOrder.length !== uniqueItemIds.size) {
+			res.status(400).json({
+				success: false,
+				error: "Duplicate items are not allowed in the same order. Each item can only be added once.",
+			});
+			return;
+		}
+
 		// Create order
 		const newOrder = new Order({
 			user_id,
@@ -273,6 +284,39 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 				res.status(404).json({
 					success: false,
 					error: `Item not found: ${item_id}`,
+				});
+				await session.abortTransaction();
+				return;
+			}
+
+			// Check if item is already ordered/sold
+			// Only reject if orderId exists AND the order is not cancelled/deleted
+			if (item.orderId) {
+				const existingOrder = await Order.findById(item.orderId).session(session);
+				// If order doesn't exist (was deleted) or is cancelled, allow re-ordering
+				if (existingOrder && existingOrder.order_status !== OrderStatus.Cancelled) {
+					res.status(400).json({
+						success: false,
+						error: `Item ${item_id} is already sold or ordered (order status: ${existingOrder.order_status})`,
+					});
+					await session.abortTransaction();
+					return;
+				}
+				// If order was deleted or cancelled, clear the stale orderId
+				if (!existingOrder || existingOrder.order_status === OrderStatus.Cancelled) {
+					await Item.findByIdAndUpdate(
+						item_id,
+						{ $unset: { orderId: "" } },
+						{ session },
+					);
+				}
+			}
+
+			// Check if item status is available
+			if (item.itemStatus !== ItemStatus.Available) {
+				res.status(400).json({
+					success: false,
+					error: `Item ${item_id} is not available (status: ${item.itemStatus}). Only items with status '${ItemStatus.Available}' can be ordered.`,
 				});
 				await session.abortTransaction();
 				return;
@@ -354,22 +398,36 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 			await Income.insertMany(incomeDocs, { session });
 		}
 
-		const transaction = await Transaction.create(
-			[
-				{
-					order_id: savedOrder._id,
-					discount_rate: "0",
-					amount: totalAmount.toFixed(2),
-					status: TransactionStatus.Pending,
-				},
-			],
-			{ session },
-		);
+		// Check if transaction already exists for this order (prevent duplicates)
+		let transaction = await Transaction.findOne({ order_id: savedOrder._id }).session(session);
+		
+		if (!transaction) {
+			// Create transaction only if it doesn't exist
+			const createdTransactions = await Transaction.create(
+				[
+					{
+						order_id: savedOrder._id,
+						discount_rate: "0",
+						amount: totalAmount.toFixed(2),
+						status: TransactionStatus.Pending,
+					},
+				],
+				{ session },
+			);
+			transaction = createdTransactions[0];
+		} else {
+			// Transaction already exists - update amount if needed (optional)
+			// This ensures the transaction amount matches the current order total
+			if (transaction.amount !== totalAmount.toFixed(2)) {
+				transaction.amount = totalAmount.toFixed(2);
+				await transaction.save({ session });
+			}
+		}
 
 		if (saleDocs.length > 0) {
 			const saleDocsWithTransaction = saleDocs.map((doc) => ({
 				...doc,
-				transaction_id: transaction[0]._id,
+				transaction_id: transaction._id,
 			}));
 			await Sale.insertMany(saleDocsWithTransaction, { session });
 		}
@@ -391,6 +449,15 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 				success: false,
 				error: "Validation error",
 				details: errors,
+			});
+			return;
+		}
+
+		// Handle duplicate transaction error (unique constraint violation)
+		if (error.code === 11000 || error.message?.includes("duplicate")) {
+			res.status(400).json({
+				success: false,
+				error: "Transaction already exists for this order",
 			});
 			return;
 		}
@@ -553,6 +620,20 @@ const updateOrder = async (req: Request, res: Response): Promise<void> => {
 			await markOrderItemsSold(orderId);
 		}
 
+		// If order is cancelled, clear orderId from items so they can be ordered again
+		if (update.order_status === OrderStatus.Cancelled) {
+			const orderItems = await OrderItem.find({ order_id: orderId });
+			const itemIds = orderItems
+				.map((oi) => oi.item_id)
+				.filter(Boolean) as mongoose.Types.ObjectId[];
+			if (itemIds.length > 0) {
+				await Item.updateMany(
+					{ _id: { $in: itemIds }, orderId: orderId },
+					{ $unset: { orderId: "" } },
+				);
+			}
+		}
+
 		res.status(200).json({
 			success: true,
 			message: "Order updated successfully",
@@ -588,8 +669,22 @@ const deleteOrder = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
+		// Get all order items to clear orderId from items
+		const orderItems = await OrderItem.find({ order_id: orderId });
+		const itemIds = orderItems
+			.map((oi) => oi.item_id)
+			.filter(Boolean) as mongoose.Types.ObjectId[];
+
 		// Delete order (cascade delete will handle OrderItems)
 		await Order.findByIdAndDelete(orderId);
+
+		// Clear orderId from items so they can be ordered again
+		if (itemIds.length > 0) {
+			await Item.updateMany(
+				{ _id: { $in: itemIds }, orderId: orderId },
+				{ $unset: { orderId: "" } },
+			);
+		}
 
 		res.status(200).json({
 			success: true,

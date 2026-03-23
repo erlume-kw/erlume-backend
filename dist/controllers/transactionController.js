@@ -123,6 +123,17 @@ const createTransaction = (req, res) => __awaiter(void 0, void 0, void 0, functi
             res.status(404).json({ success: false, error: "Order not found" });
             return;
         }
+        // Check if transaction already exists for this order
+        const existingTransaction = yield Transaction_1.default.findOne({ order_id });
+        if (existingTransaction) {
+            // Return success with existing transaction instead of error
+            res.status(200).json({
+                success: true,
+                message: "Transaction already exists for this order",
+                data: existingTransaction,
+            });
+            return;
+        }
         // Validate discount_id if provided
         if (discount_id) {
             if (!mongoose_1.default.Types.ObjectId.isValid(discount_id)) {

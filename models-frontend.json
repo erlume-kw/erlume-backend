@@ -1,0 +1,1107 @@
+{
+  "_description": "Complete data models reference for Frontend/Backoffice. All field types and requirements.",
+  "_version": "1.0.0",
+  "_lastUpdated": "2024-12-19",
+  "_notes": [
+    "OBJECT_ID = MongoDB ObjectId (24 hex characters)",
+    "All models include createdAt and updatedAt timestamps",
+    "Optional fields can be omitted or set to null/undefined",
+    "Enum values are documented where applicable"
+  ],
+  "models": {
+    "Address": {
+      "description": "Address object used in User model",
+      "fields": {
+        "street": {
+          "type": "string",
+          "required": true,
+          "description": "Street address"
+        },
+        "city": {
+          "type": "string",
+          "required": true,
+          "description": "City name"
+        },
+        "block": {
+          "type": "string",
+          "required": true,
+          "description": "Block number"
+        },
+        "governorate": {
+          "type": "string",
+          "required": true,
+          "description": "Governorate name"
+        },
+        "house": {
+          "type": "string",
+          "required": true,
+          "description": "House number"
+        },
+        "flat": {
+          "type": "string",
+          "required": false,
+          "description": "Flat/apartment number"
+        }
+      }
+    },
+    "User": {
+      "description": "User account model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "description": "MongoDB ObjectId"
+        },
+        "password": {
+          "type": "string",
+          "required": true,
+          "description": "Hashed password (never returned in responses)"
+        },
+        "emailAddress": {
+          "type": "string",
+          "required": true,
+          "description": "Email address (unique, used for login)"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "required": true,
+          "description": "Phone number (7-15 digits, can include +, spaces, dashes)"
+        },
+        "address": {
+          "type": "Address",
+          "required": true,
+          "description": "Address object"
+        },
+        "roles": {
+          "type": "string[]",
+          "required": true,
+          "description": "Array of user roles (e.g., ['user', 'seller'])",
+          "enum": ["user", "seller", "admin"]
+        },
+        "cardIds": {
+          "type": "OBJECT_ID[]",
+          "required": false,
+          "description": "Array of CreditCard ObjectIds"
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Soft delete flag"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true,
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true,
+          "description": "Last update timestamp"
+        }
+      }
+    },
+    "Seller": {
+      "description": "Seller profile model (linked to User)",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "description": "Seller document ID"
+        },
+        "userId": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "User",
+          "description": "Reference to User document"
+        },
+        "fullName": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Seller full name"
+        },
+        "emailAddress": {
+          "type": "string",
+          "required": false,
+          "description": "Seller email (can differ from user email)"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "required": false,
+          "description": "Seller phone (can differ from user phone)"
+        },
+        "addressText": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Seller address as text"
+        },
+        "balance": {
+          "type": "string",
+          "required": true,
+          "description": "Seller balance (string to preserve precision)"
+        },
+        "itemIds": {
+          "type": "OBJECT_ID[]",
+          "required": false,
+          "default": [],
+          "ref": "Item",
+          "description": "Array of Item ObjectIds"
+        },
+        "IBAN": {
+          "type": "string",
+          "required": false,
+          "description": "Bank IBAN"
+        },
+        "qrCode": {
+          "type": "string",
+          "required": false,
+          "description": "QR code string"
+        },
+        "isDeactivated": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Seller active status (false = active, true = deactivated)"
+        },
+        "consentGiven": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Consent flag"
+        },
+        "preferredPickupDate": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Preferred pickup date"
+        },
+        "intakeTimestamp": {
+          "type": "string",
+          "required": false,
+          "description": "Intake timestamp"
+        },
+        "sellerPolicyAcceptedAt": {
+          "type": "date",
+          "required": false,
+          "description": "When seller policy was accepted"
+        },
+        "escalationStatus": {
+          "type": "string",
+          "required": false,
+          "enum": ["none", "seller_no_response", "escalated", "resolved"],
+          "description": "Escalation status"
+        },
+        "escalationNotes": {
+          "type": "string",
+          "required": false,
+          "description": "Escalation notes"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Item": {
+      "description": "Product/item model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "basePrice": {
+          "type": "string",
+          "required": true,
+          "description": "Base price before discounts"
+        },
+        "listingPrice": {
+          "type": "string",
+          "required": true,
+          "description": "Final listing price (after discounts)"
+        },
+        "condition": {
+          "type": "string",
+          "required": true,
+          "enum": ["New", "LikeNew", "GentlyUsed", "Fair", "Worn"],
+          "description": "Item condition"
+        },
+        "uploadedAt": {
+          "type": "date",
+          "required": true,
+          "description": "Upload date"
+        },
+        "saleRate": {
+          "type": "string",
+          "required": true,
+          "description": "Sale rate/discount percentage"
+        },
+        "itemStatus": {
+          "type": "string",
+          "required": true,
+          "enum": ["available", "sold", "out_of_stock", "pending", "approved", "rejected"],
+          "description": "Item availability status"
+        },
+        "color": {
+          "type": "string",
+          "required": true
+        },
+        "size": {
+          "type": "string",
+          "required": true
+        },
+        "itemName": {
+          "type": "string",
+          "required": true,
+          "description": "Item name"
+        },
+        "itemModel": {
+          "type": "string",
+          "required": false,
+          "description": "Model name"
+        },
+        "year": {
+          "type": "string",
+          "required": false,
+          "description": "Year (e.g., '2024')"
+        },
+        "quantity": {
+          "type": "string",
+          "required": true,
+          "description": "Quantity available"
+        },
+        "brandName": {
+          "type": "string",
+          "required": true,
+          "description": "Brand name"
+        },
+        "imageUrls": {
+          "type": "string[]",
+          "required": true,
+          "description": "Array of image URLs"
+        },
+        "receiptPhotoUrls": {
+          "type": "string[]",
+          "required": false,
+          "description": "Receipt photo URLs"
+        },
+        "priceEstimatorUrls": {
+          "type": "string[]",
+          "required": false,
+          "description": "Price estimator URLs"
+        },
+        "quoteUrls": {
+          "type": "string[]",
+          "required": false,
+          "description": "Quote URLs"
+        },
+        "approved": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "approvedNextDrop": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "orderId": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Order",
+          "description": "Order ID if item is sold"
+        },
+        "authNeeded": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "cleaningNeeded": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "photographed": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "authenticationStatus": {
+          "type": "string",
+          "required": false,
+          "enum": ["pending", "authentic", "not_authentic"]
+        },
+        "authenticatedAt": {
+          "type": "date",
+          "required": false
+        },
+        "returnDate": {
+          "type": "date",
+          "required": false
+        },
+        "returnStatus": {
+          "type": "string",
+          "required": false,
+          "enum": ["pending", "scheduled", "returned", "not_returned"]
+        },
+        "seller_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "User",
+          "description": "Seller user ID"
+        },
+        "category_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Category"
+        },
+        "sub_category_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "SubCategory"
+        },
+        "drop_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Drop"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Order": {
+      "description": "Customer order model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "user_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "User"
+        },
+        "orderitem_ids": {
+          "type": "OBJECT_ID[]",
+          "required": false,
+          "default": [],
+          "ref": "OrderItem",
+          "description": "Array of OrderItem IDs"
+        },
+        "order_status": {
+          "type": "string",
+          "required": true,
+          "enum": ["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"],
+          "description": "Order status"
+        },
+        "deliveryDate": {
+          "type": "date",
+          "required": false,
+          "description": "Expected delivery date"
+        },
+        "deliveryStatus": {
+          "type": "string",
+          "required": false,
+          "enum": ["pending", "shipped", "delivered", "failed"]
+        },
+        "trackingReference": {
+          "type": "string",
+          "required": false,
+          "description": "Tracking number"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "OrderItem": {
+      "description": "Order line item model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "order_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Order"
+        },
+        "item_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Item"
+        },
+        "quantity": {
+          "type": "number",
+          "required": true,
+          "description": "Quantity ordered"
+        },
+        "price": {
+          "type": "string",
+          "required": true,
+          "description": "Price at time of order (snapshot)"
+        },
+        "is_returned": {
+          "type": "boolean",
+          "required": true,
+          "default": false
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Category": {
+      "description": "Product category model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "base_rate": {
+          "type": "string",
+          "required": true
+        },
+        "op_rate": {
+          "type": "string",
+          "required": false
+        },
+        "clean_rate": {
+          "type": "string",
+          "required": false
+        },
+        "sub_category_id": {
+          "type": "OBJECT_ID",
+          "required": false
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "SubCategory": {
+      "description": "Product subcategory model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "sub_cat_name": {
+          "type": "string",
+          "required": true
+        },
+        "category_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Category"
+        },
+        "demand_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Demand"
+        },
+        "sub_clean_rate": {
+          "type": "string",
+          "required": false
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Demand": {
+      "description": "Demand rate model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "demand_name": {
+          "type": "string",
+          "required": true
+        },
+        "demand_rate": {
+          "type": "string",
+          "required": false
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Drop": {
+      "description": "Product drop model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "required": false
+        },
+        "releaseDate": {
+          "type": "date",
+          "required": true
+        },
+        "status": {
+          "type": "string",
+          "required": true,
+          "enum": ["upcoming", "active", "completed", "cancelled"]
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Review": {
+      "description": "Seller review model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "userId": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "User"
+        },
+        "sellerId": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Seller"
+        },
+        "rating": {
+          "type": "number",
+          "required": true,
+          "enum": [1, 2, 3, 4, 5],
+          "description": "Rating (1-5 stars)"
+        },
+        "description": {
+          "type": "string",
+          "required": true
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Transaction": {
+      "description": "Payment transaction model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "order_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Order"
+        },
+        "discount_rate": {
+          "type": "string",
+          "required": true
+        },
+        "amount": {
+          "type": "string",
+          "required": true,
+          "description": "Transaction amount"
+        },
+        "discount_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "DiscountCode"
+        },
+        "status": {
+          "type": "string",
+          "required": true,
+          "enum": ["Pending", "Completed", "Failed", "Refunded"]
+        },
+        "paymentMethod": {
+          "type": "string",
+          "required": false,
+          "enum": ["credit_card", "debit_card", "bank_transfer", "cash"]
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Sale": {
+      "description": "Sale record model (full transaction breakdown)",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "order_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Order"
+        },
+        "order_item_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "OrderItem"
+        },
+        "item_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Item"
+        },
+        "transaction_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Transaction"
+        },
+        "amount": {
+          "type": "string",
+          "required": false,
+          "description": "Total listing price (gross)"
+        },
+        "listingPrice": {
+          "type": "string",
+          "required": false
+        },
+        "erlumeCommission": {
+          "type": "string",
+          "required": false,
+          "description": "Erlume's cut from this sale"
+        },
+        "sellerPayout": {
+          "type": "string",
+          "required": false,
+          "description": "Seller's cut"
+        },
+        "buyer": {
+          "type": "string",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "required": false
+        },
+        "sale_date": {
+          "type": "date",
+          "required": false,
+          "description": "Sale date (indexed)"
+        },
+        "bag_record": {
+          "type": "string",
+          "required": false
+        },
+        "invoice_number": {
+          "type": "string",
+          "required": false
+        },
+        "invoice_url": {
+          "type": "string",
+          "required": false,
+          "description": "Invoice URL"
+        },
+        "payment_evidence_url": {
+          "type": "string",
+          "required": false,
+          "description": "Payment evidence URL"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Income": {
+      "description": "Income record model (Erlume bank receipt only)",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "order_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Order"
+        },
+        "order_item_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "OrderItem"
+        },
+        "item_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "Item"
+        },
+        "seller_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "User"
+        },
+        "amount": {
+          "type": "string",
+          "required": true,
+          "description": "Erlume commission (what got to Erlume's bank, excludes seller payout)"
+        },
+        "erlumeCommissionAmount": {
+          "type": "string",
+          "required": false,
+          "deprecated": true,
+          "description": "Deprecated: use amount instead"
+        },
+        "sellerPayoutAmount": {
+          "type": "string",
+          "required": false
+        },
+        "currency": {
+          "type": "string",
+          "required": false,
+          "default": "KWD"
+        },
+        "platform": {
+          "type": "string",
+          "required": false
+        },
+        "income_type": {
+          "type": "string",
+          "required": false,
+          "default": "sale"
+        },
+        "received_at": {
+          "type": "date",
+          "required": false,
+          "default": "Date.now",
+          "description": "When income was received (indexed)"
+        },
+        "month": {
+          "type": "date",
+          "required": false,
+          "description": "Month for reporting (indexed)"
+        },
+        "prelaunch_bag": {
+          "type": "string",
+          "required": false,
+          "description": "Item ref text when item_id not linked. Format: Name-Brand-Year"
+        },
+        "notes": {
+          "type": "string",
+          "required": false
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Expense": {
+      "description": "Expense record model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "description": "Expense name/title"
+        },
+        "cost": {
+          "type": "string",
+          "required": true,
+          "description": "Expense cost"
+        },
+        "currency": {
+          "type": "string",
+          "required": false,
+          "default": "KWD"
+        },
+        "employee_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "User",
+          "description": "Employee reference"
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "type": {
+          "type": "string[]",
+          "required": true,
+          "description": "Expense types (e.g., ['Supplies', 'Subscriptions'])"
+        },
+        "month": {
+          "type": "date",
+          "required": true,
+          "description": "Month for reporting"
+        },
+        "paidBy": {
+          "type": "string",
+          "required": false,
+          "description": "Who paid for this expense"
+        },
+        "isRecurring": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Is this a recurring expense?"
+        },
+        "phase": {
+          "type": "string",
+          "required": false,
+          "description": "Phase (e.g., 'Pre-launch')"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "DiscountCode": {
+      "description": "Discount code model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "code": {
+          "type": "string",
+          "required": true,
+          "description": "Discount code (auto-uppercased)"
+        },
+        "discount_percentage": {
+          "type": "string",
+          "required": true,
+          "description": "Discount percentage (0-100)"
+        },
+        "expiry_date": {
+          "type": "date",
+          "required": true
+        },
+        "is_active": {
+          "type": "boolean",
+          "required": true,
+          "default": true
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "CreditCard": {
+      "description": "Credit card model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "cardNumber": {
+          "type": "string",
+          "required": true
+        },
+        "expiryDate": {
+          "type": "string",
+          "required": true
+        },
+        "holderName": {
+          "type": "string",
+          "required": true
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Outfit": {
+      "description": "Outfit curation model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "item_ids": {
+          "type": "OBJECT_ID[]",
+          "required": true,
+          "ref": "Item",
+          "description": "Array of Item IDs in this outfit"
+        },
+        "outfit_title": {
+          "type": "string",
+          "required": true
+        },
+        "outfit_tags": {
+          "type": "string",
+          "required": true
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "OutfitItem": {
+      "description": "Item in outfit model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "item_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Item"
+        },
+        "outfit_id": {
+          "type": "OBJECT_ID",
+          "required": true,
+          "ref": "Outfit"
+        },
+        "featured_in_product": {
+          "type": "boolean",
+          "required": true,
+          "description": "Is this item featured in the outfit?"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    },
+    "Employee": {
+      "description": "Employee/salary record model",
+      "fields": {
+        "_id": {
+          "type": "OBJECT_ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "photo": {
+          "type": "string",
+          "required": false,
+          "description": "Photo URL"
+        },
+        "role": {
+          "type": "string",
+          "required": false
+        },
+        "type": {
+          "type": "string",
+          "required": false
+        },
+        "salaryActual": {
+          "type": "string",
+          "required": false
+        },
+        "salaryProjected": {
+          "type": "string",
+          "required": false
+        },
+        "user_id": {
+          "type": "OBJECT_ID",
+          "required": false,
+          "ref": "User"
+        },
+        "createdAt": {
+          "type": "date",
+          "required": true
+        },
+        "updatedAt": {
+          "type": "date",
+          "required": true
+        }
+      }
+    }
+  }
+}

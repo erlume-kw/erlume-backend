@@ -1,6 +1,6 @@
 /**
  * Enums for pickup, return, delivery, and escalation flows.
- * Exposed via GET /api/enums/{category} for backoffice dropdowns/filters.
+ * Exposed via GET /api/enums/{category} for client dropdowns/filters.
  */
 
 /** Item authentication result (pickup pipeline). */

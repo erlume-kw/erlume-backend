@@ -3,15 +3,7 @@
   "info": {
     "title": "Erlume Backend API",
     "version": "1.0.0",
-    "description": "REST API for Erlume. Use this spec in Backoffice / Admin dashboard for documentation, code generation, or API clients. All IDs are MongoDB ObjectIds unless noted. List endpoints support date filters (year, month) where applicable.\n\n**Audience:** Each path has `x-usedBy` indicating who consumes it: `backoffice` (admin dashboard only), `frontend` (customer-facing website only), or `both`. Use this to avoid exposing admin-only fields to the frontend and to document which endpoints each app should call. See docs/API_AND_FIELD_AUDIENCE.md for full endpoint and field-level audience."
-  },
-  "x-audience-convention": {
-    "description": "Marks which client(s) use each path. Use the same values in field-level docs.",
-    "usedBy": {
-      "backoffice": "Admin dashboard (erlume-backoffice). Full CRUD, internal data, seller/user management.",
-      "frontend": "Customer-facing website. Catalog, checkout, my orders, reviews, discount validation.",
-      "both": "Used by both backoffice and frontend. Catalog, orders, shared lookups."
-    }
+    "description": "REST API for Erlume. Use this spec for documentation, code generation, or API clients. All IDs are MongoDB ObjectIds unless noted. List endpoints support date filters (year, month) where applicable."
   },
   "servers": [
     {
@@ -20,13 +12,13 @@
     },
     {
       "url": "/",
-      "description": "Relative (use your Backoffice base URL)"
+      "description": "Relative (use your API base URL)"
     }
   ],
   "tags": [
     {
       "name": "Users",
-      "description": "User accounts only (login, roles, soft-delete). For seller profile (bank, policy, escalation) use Sellers."
+      "description": "User accounts (roles, soft-delete). For seller profile (bank, policy, escalation) use Sellers."
     },
     {
       "name": "Sellers",
@@ -107,9 +99,6 @@
   ],
   "paths": {
     "/api/users": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Users"
@@ -141,7 +130,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -152,13 +144,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/users/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Users"
@@ -168,7 +160,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -180,7 +175,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "patch": {
         "tags": [
@@ -196,7 +194,7 @@
                 "properties": {
                   "isDeleted": {
                     "type": "boolean",
-                    "description": "Set true to soft-delete user. Backoffice uses this for Delete button."
+                    "description": "Set true to soft-delete the user account."
                   }
                 }
               }
@@ -207,18 +205,24 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
           "Users"
         ],
-        "summary": "Delete user (hard). Backoffice uses PATCH with isDeleted for soft delete.",
+        "summary": "Delete user (hard). Prefer PATCH with isDeleted for soft delete.",
         "responses": {
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -232,9 +236,6 @@
       ]
     },
     "/api/users/{id}/roles": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "put": {
         "tags": [
           "Users"
@@ -261,7 +262,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -275,9 +279,6 @@
       ]
     },
     "/api/sellers": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Sellers"
@@ -301,7 +302,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -312,13 +316,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/sellers/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Sellers"
@@ -328,7 +332,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -340,7 +347,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "patch": {
         "tags": [
@@ -352,7 +362,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -363,7 +376,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -378,10 +394,6 @@
       ]
     },
     "/api/items": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Items"
@@ -459,7 +471,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -488,34 +504,130 @@
                   "listingPrice"
                 ],
                 "properties": {
-                  "basePrice": { "type": "string", "description": "Base price" },
-                  "condition": { "type": "string", "enum": ["Like New", "Gently Used", "Worn"], "description": "Item condition" },
-                  "uploadedAt": { "type": "string", "format": "date-time" },
-                  "saleRate": { "type": "string", "description": "Sale/discount rate" },
-                  "itemStatus": { "type": "string", "enum": ["pending", "approved", "available", "sold", "rejected"], "description": "Item status" },
-                  "color": { "type": "string" },
-                  "size": { "type": "string" },
-                  "itemName": { "type": "string", "description": "Item name (or use bag)" },
-                  "bag": { "type": "string", "description": "Alias for itemName" },
-                  "itemModel": { "type": "string" },
-                  "year": { "type": "string" },
-                  "quantity": { "type": "string" },
-                  "brandName": { "type": "string", "description": "Brand name (single field; do not send brand)" },
-                  "imageUrls": { "type": "array", "items": { "type": "string" }, "description": "Image URLs" },
-                  "photoUrls": { "type": "array", "items": { "type": "string" }, "description": "Alias for imageUrls" },
-                  "receiptPhotoUrls": { "type": "array", "items": { "type": "string" } },
-                  "priceEstimatorUrls": { "type": "array", "items": { "type": "string" } },
-                  "quoteUrls": { "type": "array", "items": { "type": "string" } },
-                  "approved": { "type": "boolean" },
-                  "approvedNextDrop": { "type": "boolean" },
-                  "authNeeded": { "type": "boolean" },
-                  "cleaningNeeded": { "type": "boolean" },
-                  "listingPrice": { "type": "string", "description": "Listing price (required); basePrice can differ" },
-                  "photographed": { "type": "boolean" },
-                  "category_id": { "type": "string", "description": "Category ObjectId" },
-                  "sub_category_id": { "type": "string" },
-                  "drop_id": { "type": "string" },
-                  "sellerId": { "type": "string", "description": "Seller user ID" }
+                  "basePrice": {
+                    "type": "string",
+                    "description": "Base price"
+                  },
+                  "condition": {
+                    "type": "string",
+                    "enum": [
+                      "Like New",
+                      "Gently Used",
+                      "Worn"
+                    ],
+                    "description": "Item condition"
+                  },
+                  "uploadedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "saleRate": {
+                    "type": "string",
+                    "description": "Sale/discount rate"
+                  },
+                  "itemStatus": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "approved",
+                      "available",
+                      "sold",
+                      "rejected"
+                    ],
+                    "description": "Item status"
+                  },
+                  "color": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "string"
+                  },
+                  "itemName": {
+                    "type": "string",
+                    "description": "Item name (or use bag)"
+                  },
+                  "bag": {
+                    "type": "string",
+                    "description": "Alias for itemName"
+                  },
+                  "itemModel": {
+                    "type": "string"
+                  },
+                  "year": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "string"
+                  },
+                  "brandName": {
+                    "type": "string",
+                    "description": "Brand name (single field; do not send brand)"
+                  },
+                  "imageUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Image URLs"
+                  },
+                  "photoUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Alias for imageUrls"
+                  },
+                  "receiptPhotoUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "priceEstimatorUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "quoteUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "approved": {
+                    "type": "boolean"
+                  },
+                  "approvedNextDrop": {
+                    "type": "boolean"
+                  },
+                  "authNeeded": {
+                    "type": "boolean"
+                  },
+                  "cleaningNeeded": {
+                    "type": "boolean"
+                  },
+                  "listingPrice": {
+                    "type": "string",
+                    "description": "Listing price (required); basePrice can differ"
+                  },
+                  "photographed": {
+                    "type": "boolean"
+                  },
+                  "category_id": {
+                    "type": "string",
+                    "description": "Category ObjectId"
+                  },
+                  "sub_category_id": {
+                    "type": "string"
+                  },
+                  "drop_id": {
+                    "type": "string"
+                  },
+                  "sellerId": {
+                    "type": "string",
+                    "description": "Seller user ID"
+                  }
                 }
               }
             }
@@ -525,14 +637,14 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/items/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Items"
@@ -542,7 +654,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "put": {
         "tags": [
@@ -555,34 +671,123 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "basePrice": { "type": "string" },
-                  "condition": { "type": "string", "enum": ["Like New", "Gently Used", "Worn"] },
-                  "saleRate": { "type": "string" },
-                  "itemStatus": { "type": "string", "enum": ["pending", "approved", "available", "sold", "rejected"] },
-                  "color": { "type": "string" },
-                  "size": { "type": "string" },
-                  "itemName": { "type": "string" },
-                  "itemModel": { "type": "string" },
-                  "year": { "type": "string" },
-                  "quantity": { "type": "string" },
-                  "brandName": { "type": "string", "description": "Brand name only (do not send brand)" },
-                  "imageUrls": { "type": "array", "items": { "type": "string" } },
-                  "receiptPhotoUrls": { "type": "array", "items": { "type": "string" } },
-                  "priceEstimatorUrls": { "type": "array", "items": { "type": "string" } },
-                  "quoteUrls": { "type": "array", "items": { "type": "string" } },
-                  "approved": { "type": "boolean" },
-                  "authNeeded": { "type": "boolean" },
-                  "cleaningNeeded": { "type": "boolean" },
-                  "listingPrice": { "type": "string" },
-                  "photographed": { "type": "boolean" },
-                  "category_id": { "type": "string" },
-                  "sub_category_id": { "type": "string" },
-                  "drop_id": { "type": "string" },
-                  "sellerId": { "type": "string", "description": "Seller user ID or Seller doc _id" },
-                  "seller_id": { "type": "string", "description": "Alias for sellerId" },
-                  "authenticationStatus": { "type": "string", "enum": ["pending", "authentic", "not_authentic"] },
-                  "returnDate": { "type": "string", "format": "date-time" },
-                  "returnStatus": { "type": "string" }
+                  "basePrice": {
+                    "type": "string"
+                  },
+                  "condition": {
+                    "type": "string",
+                    "enum": [
+                      "Like New",
+                      "Gently Used",
+                      "Worn"
+                    ]
+                  },
+                  "saleRate": {
+                    "type": "string"
+                  },
+                  "itemStatus": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "approved",
+                      "available",
+                      "sold",
+                      "rejected"
+                    ]
+                  },
+                  "color": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "string"
+                  },
+                  "itemName": {
+                    "type": "string"
+                  },
+                  "itemModel": {
+                    "type": "string"
+                  },
+                  "year": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "string"
+                  },
+                  "brandName": {
+                    "type": "string",
+                    "description": "Brand name only (do not send brand)"
+                  },
+                  "imageUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "receiptPhotoUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "priceEstimatorUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "quoteUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "approved": {
+                    "type": "boolean"
+                  },
+                  "authNeeded": {
+                    "type": "boolean"
+                  },
+                  "cleaningNeeded": {
+                    "type": "boolean"
+                  },
+                  "listingPrice": {
+                    "type": "string"
+                  },
+                  "photographed": {
+                    "type": "boolean"
+                  },
+                  "category_id": {
+                    "type": "string"
+                  },
+                  "sub_category_id": {
+                    "type": "string"
+                  },
+                  "drop_id": {
+                    "type": "string"
+                  },
+                  "sellerId": {
+                    "type": "string",
+                    "description": "Seller user ID or Seller doc _id"
+                  },
+                  "seller_id": {
+                    "type": "string",
+                    "description": "Alias for sellerId"
+                  },
+                  "authenticationStatus": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "authentic",
+                      "not_authentic"
+                    ]
+                  },
+                  "returnDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "returnStatus": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -592,7 +797,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "patch": {
         "tags": [
@@ -606,11 +815,37 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "basePrice": { "type": "string" },
-                  "condition": { "type": "string", "enum": ["Like New", "Gently Used", "Worn"] },
-                  "itemStatus": { "type": "string", "enum": ["pending", "approved", "available", "sold", "rejected"] },
-                  "sellerId": { "type": "string", "nullable": true, "description": "Seller user ID or Seller doc _id; null to unassign" },
-                  "seller_id": { "type": "string", "nullable": true, "description": "Alias for sellerId" }
+                  "basePrice": {
+                    "type": "string"
+                  },
+                  "condition": {
+                    "type": "string",
+                    "enum": [
+                      "Like New",
+                      "Gently Used",
+                      "Worn"
+                    ]
+                  },
+                  "itemStatus": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "approved",
+                      "available",
+                      "sold",
+                      "rejected"
+                    ]
+                  },
+                  "sellerId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Seller user ID or Seller doc _id; null to unassign"
+                  },
+                  "seller_id": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Alias for sellerId"
+                  }
                 }
               }
             }
@@ -620,7 +855,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -631,7 +870,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -645,10 +888,6 @@
       ]
     },
     "/api/categories": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Categories"
@@ -658,7 +897,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -669,14 +912,14 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/categories/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Categories"
@@ -686,7 +929,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "put": {
         "tags": [
@@ -697,7 +944,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -708,7 +959,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -722,10 +977,6 @@
       ]
     },
     "/api/subcategories": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "SubCategories"
@@ -735,7 +986,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -746,14 +1001,14 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/subcategories/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "SubCategories"
@@ -763,7 +1018,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "put": {
         "tags": [
@@ -774,7 +1033,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -785,7 +1048,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -799,10 +1066,6 @@
       ]
     },
     "/api/orders": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Orders"
@@ -838,7 +1101,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -907,14 +1174,14 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/orders/user/{userId}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Orders"
@@ -950,14 +1217,14 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/orders/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Orders"
@@ -967,7 +1234,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "patch": {
         "tags": [
@@ -1008,7 +1279,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -1019,7 +1294,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -1033,9 +1312,6 @@
       ]
     },
     "/api/orders/{id}/status": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "patch": {
         "tags": [
           "Orders"
@@ -1045,7 +1321,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -1059,9 +1338,6 @@
       ]
     },
     "/api/orderitems": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "OrderItems"
@@ -1071,7 +1347,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -1117,13 +1396,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/orderitems/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "OrderItems"
@@ -1133,7 +1412,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -1144,7 +1426,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -1155,7 +1440,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -1169,9 +1457,6 @@
       ]
     },
     "/api/transactions": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Transactions"
@@ -1199,7 +1484,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -1210,13 +1498,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/transactions/order/{orderId}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Transactions"
@@ -1252,13 +1540,13 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/transactions/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Transactions"
@@ -1268,7 +1556,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -1279,7 +1570,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "patch": {
         "tags": [
@@ -1290,7 +1584,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -1301,7 +1598,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -1315,9 +1615,6 @@
       ]
     },
     "/api/expenses": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Expenses"
@@ -1345,7 +1642,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -1416,13 +1716,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/expenses/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Expenses"
@@ -1432,7 +1732,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -1443,7 +1746,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -1454,7 +1760,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -1468,74 +1777,140 @@
       ]
     },
     "/api/employees": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
-        "tags": ["Employees"],
+        "tags": [
+          "Employees"
+        ],
         "summary": "List employees",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
-        "tags": ["Employees"],
+        "tags": [
+          "Employees"
+        ],
         "summary": "Create employee",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "properties": {
-                  "name": { "type": "string" },
-                  "photo": { "type": "string" },
-                  "role": { "type": "string" },
-                  "type": { "type": "string", "description": "e.g. full-time" },
-                  "salaryActual": { "type": "string" },
-                  "salaryProjected": { "type": "string" },
-                  "user_id": { "type": "string" }
+                  "name": {
+                    "type": "string"
+                  },
+                  "photo": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "e.g. full-time"
+                  },
+                  "salaryActual": {
+                    "type": "string"
+                  },
+                  "salaryProjected": {
+                    "type": "string"
+                  },
+                  "user_id": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/employees/{id}": {
-      "x-usedBy": ["backoffice"],
       "get": {
-        "tags": ["Employees"],
+        "tags": [
+          "Employees"
+        ],
         "summary": "Get employee by id",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
-        "tags": ["Employees"],
+        "tags": [
+          "Employees"
+        ],
         "summary": "Update employee",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "patch": {
-        "tags": ["Employees"],
+        "tags": [
+          "Employees"
+        ],
         "summary": "Update employee (patch)",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
-        "tags": ["Employees"],
+        "tags": [
+          "Employees"
+        ],
         "summary": "Delete employee",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
           "name": "id",
           "in": "path",
           "required": true,
-          "schema": { "type": "string" }
+          "schema": {
+            "type": "string"
+          }
         }
       ]
     },
     "/api/incomes": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Incomes"
@@ -1585,7 +1960,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -1597,19 +1975,50 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["amount"],
+                "required": [
+                  "amount"
+                ],
                 "properties": {
-                  "amount": { "type": "string", "description": "Erlume commission — what actually got to Erlume's bank account (excludes seller payout)" },
-                  "month": { "type": "string", "format": "date-time", "description": "Month for reporting" },
-                  "prelaunch_bag": { "type": "string", "description": "Item reference text (any product type) when item_id not linked. Format: Name-Brand-Year" },
-                  "order_id": { "type": "string" },
-                  "order_item_id": { "type": "string" },
-                  "item_id": { "type": "string" },
-                  "seller_id": { "type": "string", "description": "Seller doc _id or User id (both accepted)" },
-                  "platform": { "type": "string" },
-                  "income_type": { "type": "string", "default": "sale" },
-                  "received_at": { "type": "string", "format": "date-time" },
-                  "notes": { "type": "string" }
+                  "amount": {
+                    "type": "string",
+                    "description": "Erlume commission — what actually got to Erlume's bank account (excludes seller payout)"
+                  },
+                  "month": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Month for reporting"
+                  },
+                  "prelaunch_bag": {
+                    "type": "string",
+                    "description": "Item reference text (any product type) when item_id not linked. Format: Name-Brand-Year"
+                  },
+                  "order_id": {
+                    "type": "string"
+                  },
+                  "order_item_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "seller_id": {
+                    "type": "string",
+                    "description": "Seller doc _id or User id (both accepted)"
+                  },
+                  "platform": {
+                    "type": "string"
+                  },
+                  "income_type": {
+                    "type": "string",
+                    "default": "sale"
+                  },
+                  "received_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -1619,13 +2028,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/incomes/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Incomes"
@@ -1635,7 +2044,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -1646,7 +2058,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "patch": {
         "tags": [
@@ -1657,7 +2072,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -1668,7 +2086,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -1682,9 +2103,6 @@
       ]
     },
     "/api/creditcards": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "CreditCards"
@@ -1694,7 +2112,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -1705,14 +2126,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/creditcards/user/{userId}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "CreditCards"
@@ -1722,7 +2142,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -1736,10 +2160,6 @@
       ]
     },
     "/api/creditcards/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "CreditCards"
@@ -1749,7 +2169,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "put": {
         "tags": [
@@ -1760,7 +2184,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -1771,7 +2199,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -1785,10 +2217,6 @@
       ]
     },
     "/api/reviews": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Reviews"
@@ -1798,7 +2226,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -1809,14 +2241,14 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/reviews/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Reviews"
@@ -1826,7 +2258,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "put": {
         "tags": [
@@ -1837,7 +2273,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -1848,7 +2288,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -1862,10 +2306,6 @@
       ]
     },
     "/api/drops": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Drops"
@@ -1875,7 +2315,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -1886,14 +2330,14 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/drops/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Drops"
@@ -1903,7 +2347,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "put": {
         "tags": [
@@ -1914,7 +2362,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -1925,7 +2377,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -1939,10 +2395,6 @@
       ]
     },
     "/api/drops/{id}/items": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Drops"
@@ -1952,7 +2404,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -1963,7 +2419,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -1977,9 +2437,6 @@
       ]
     },
     "/api/drops/{id}/items/{itemId}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "delete": {
         "tags": [
           "Drops"
@@ -1989,7 +2446,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -2011,9 +2471,6 @@
       ]
     },
     "/api/demands": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Demands"
@@ -2023,7 +2480,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -2034,13 +2494,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/demands/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Demands"
@@ -2050,7 +2510,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -2061,7 +2524,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -2072,7 +2538,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -2086,9 +2555,6 @@
       ]
     },
     "/api/discountcodes": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "DiscountCodes"
@@ -2098,7 +2564,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -2109,13 +2578,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/discountcodes/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "DiscountCodes"
@@ -2125,7 +2594,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -2136,7 +2608,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -2147,7 +2622,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -2161,10 +2639,6 @@
       ]
     },
     "/api/discountcodes/code/{code}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "DiscountCodes"
@@ -2174,7 +2648,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -2188,9 +2666,6 @@
       ]
     },
     "/api/discountcodes/validate": {
-      "x-usedBy": [
-        "frontend"
-      ],
       "post": {
         "tags": [
           "DiscountCodes"
@@ -2200,14 +2675,13 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "frontend"
+        ]
       }
     },
     "/api/outfits": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Outfits"
@@ -2217,7 +2691,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "post": {
         "tags": [
@@ -2228,14 +2706,14 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/outfits/{id}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Outfits"
@@ -2245,7 +2723,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "put": {
         "tags": [
@@ -2256,7 +2738,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "delete": {
         "tags": [
@@ -2267,7 +2753,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {
@@ -2281,9 +2771,6 @@
       ]
     },
     "/api/outfititems": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "OutfitItems"
@@ -2293,7 +2780,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -2304,13 +2794,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/outfititems/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "OutfitItems"
@@ -2320,7 +2810,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -2331,7 +2824,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -2342,7 +2838,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -2356,9 +2855,6 @@
       ]
     },
     "/api/sales": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Sales"
@@ -2386,7 +2882,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "post": {
         "tags": [
@@ -2399,21 +2898,55 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "order_id": { "type": "string" },
-                  "order_item_id": { "type": "string" },
-                  "item_id": { "type": "string" },
-                  "transaction_id": { "type": "string" },
-                  "amount": { "type": "string", "description": "Total listing price (gross)" },
-                  "listingPrice": { "type": "string" },
-                  "erlumeCommission": { "type": "string", "description": "Auto-calculated: amount * item.saleRate" },
-                  "sellerPayout": { "type": "string", "description": "Auto-calculated: amount * (1 - item.saleRate)" },
-                  "buyer": { "type": "string" },
-                  "status": { "type": "string" },
-                  "sale_date": { "type": "string", "format": "date-time" },
-                  "bag_record": { "type": "string" },
-                  "invoice_number": { "type": "string" },
-                  "invoice_url": { "type": "string" },
-                  "payment_evidence_url": { "type": "string" }
+                  "order_id": {
+                    "type": "string"
+                  },
+                  "order_item_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "transaction_id": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "description": "Total listing price (gross)"
+                  },
+                  "listingPrice": {
+                    "type": "string"
+                  },
+                  "erlumeCommission": {
+                    "type": "string",
+                    "description": "Auto-calculated: amount * item.saleRate"
+                  },
+                  "sellerPayout": {
+                    "type": "string",
+                    "description": "Auto-calculated: amount * (1 - item.saleRate)"
+                  },
+                  "buyer": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "sale_date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "bag_record": {
+                    "type": "string"
+                  },
+                  "invoice_number": {
+                    "type": "string"
+                  },
+                  "invoice_url": {
+                    "type": "string"
+                  },
+                  "payment_evidence_url": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -2423,13 +2956,13 @@
           "201": {
             "description": "Created"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/sales/recalculate-commissions": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "post": {
         "tags": [
           "Sales"
@@ -2439,13 +2972,13 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/sales/{id}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Sales"
@@ -2455,7 +2988,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
         "tags": [
@@ -2466,7 +3002,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "patch": {
         "tags": [
@@ -2477,7 +3016,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
         "tags": [
@@ -2488,7 +3030,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "parameters": [
         {
@@ -2502,9 +3047,6 @@
       ]
     },
     "/api/sales/order/{orderId}": {
-      "x-usedBy": [
-        "backoffice"
-      ],
       "get": {
         "tags": [
           "Sales"
@@ -2540,14 +3082,13 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/enums": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Enums"
@@ -2557,14 +3098,14 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       }
     },
     "/api/enums/{category}": {
-      "x-usedBy": [
-        "backoffice",
-        "frontend"
-      ],
       "get": {
         "tags": [
           "Enums"
@@ -2574,7 +3115,11 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-usedBy": [
+          "backoffice",
+          "frontend"
+        ]
       },
       "parameters": [
         {

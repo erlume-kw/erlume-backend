@@ -3,6 +3,7 @@ import Drop from "../models/Drop";
 import Item from "../models/Item";
 import mongoose, { Types } from "mongoose";
 import { DropStatus } from "../enums/dropEnums";
+import { ItemStatus } from "../enums/statusEnums";
 
 const getDrops = async (req: Request, res: Response): Promise<void> => {
 	try {
@@ -104,14 +105,30 @@ const createDrop = async (req: Request, res: Response): Promise<void> => {
 		}
 
 		// Create new drop
+		const dropStatus = status || DropStatus.Upcoming;
 		const newDrop = new Drop({
 			name,
 			description,
 			releaseDate: releaseDateObj,
-			status: status || DropStatus.Upcoming, // Default to "upcoming"
+			status: dropStatus,
 		});
 
 		const savedDrop = await newDrop.save();
+
+		// Set item status based on drop status:
+		// - "upcoming" → items become "pending"
+		// - "active" → items become "available"
+		if (dropStatus === DropStatus.Upcoming) {
+			await Item.updateMany(
+				{ drop_id: savedDrop._id },
+				{ $set: { itemStatus: ItemStatus.Pending } },
+			);
+		} else if (dropStatus === DropStatus.Active) {
+			await Item.updateMany(
+				{ drop_id: savedDrop._id },
+				{ $set: { itemStatus: ItemStatus.Available } },
+			);
+		}
 
 		res.status(201).json({
 			success: true,
@@ -190,6 +207,27 @@ const updateDrop = async (req: Request, res: Response): Promise<void> => {
 		if (!updatedDrop) {
 			res.status(404).json({ success: false, error: "Drop not found" });
 			return;
+		}
+
+		// Set item status based on drop status:
+		// - "upcoming" → items become "pending"
+		// - "active" → items become "available"
+		if (updateData.status === DropStatus.Upcoming) {
+			const updateResult = await Item.updateMany(
+				{ drop_id: dropId },
+				{ $set: { itemStatus: ItemStatus.Pending } },
+			);
+			console.log(
+				`Updated ${updateResult.modifiedCount} item(s) to Pending status for drop ${dropId} (status: upcoming)`,
+			);
+		} else if (updateData.status === DropStatus.Active) {
+			const updateResult = await Item.updateMany(
+				{ drop_id: dropId },
+				{ $set: { itemStatus: ItemStatus.Available } },
+			);
+			console.log(
+				`Updated ${updateResult.modifiedCount} item(s) to Available status for drop ${dropId} (status: active)`,
+			);
 		}
 
 		res.status(200).json({
@@ -355,9 +393,20 @@ const addItemToDrop = async (req: Request, res: Response): Promise<void> => {
 		}
 
 		// Update items to add them to the drop
+		const updateData: any = { $set: { drop_id: dropId } };
+		
+		// Set item status based on drop status:
+		// - "upcoming" → items become "pending"
+		// - "active" → items become "available"
+		if (drop.status === DropStatus.Upcoming) {
+			updateData.$set.itemStatus = ItemStatus.Pending;
+		} else if (drop.status === DropStatus.Active) {
+			updateData.$set.itemStatus = ItemStatus.Available;
+		}
+
 		const result = await Item.updateMany(
 			{ _id: { $in: itemsToAdd } },
-			{ $set: { drop_id: dropId } },
+			updateData,
 		);
 
 		res.status(200).json({
@@ -367,6 +416,8 @@ const addItemToDrop = async (req: Request, res: Response): Promise<void> => {
 				dropId,
 				itemsAdded: result.modifiedCount,
 				itemIds: itemsToAdd,
+				itemsSetToPending: drop.status === DropStatus.Upcoming ? result.modifiedCount : 0,
+				itemsSetToAvailable: drop.status === DropStatus.Active ? result.modifiedCount : 0,
 			},
 		});
 	} catch (error) {

@@ -157,7 +157,7 @@ const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const session = yield mongoose_1.default.startSession();
     session.startTransaction();
     try {
@@ -200,6 +200,16 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(400).json({
                 success: false,
                 error: "orderItems must contain at least one item",
+            });
+            return;
+        }
+        // Check for duplicate items in the order
+        const itemIdsInOrder = orderItems.map((oi) => oi.item_id).filter(Boolean);
+        const uniqueItemIds = new Set(itemIdsInOrder);
+        if (itemIdsInOrder.length !== uniqueItemIds.size) {
+            res.status(400).json({
+                success: false,
+                error: "Duplicate items are not allowed in the same order. Each item can only be added once.",
             });
             return;
         }
@@ -246,6 +256,33 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 res.status(404).json({
                     success: false,
                     error: `Item not found: ${item_id}`,
+                });
+                yield session.abortTransaction();
+                return;
+            }
+            // Check if item is already ordered/sold
+            // Only reject if orderId exists AND the order is not cancelled/deleted
+            if (item.orderId) {
+                const existingOrder = yield Order_1.default.findById(item.orderId).session(session);
+                // If order doesn't exist (was deleted) or is cancelled, allow re-ordering
+                if (existingOrder && existingOrder.order_status !== orderEnums_1.OrderStatus.Cancelled) {
+                    res.status(400).json({
+                        success: false,
+                        error: `Item ${item_id} is already sold or ordered (order status: ${existingOrder.order_status})`,
+                    });
+                    yield session.abortTransaction();
+                    return;
+                }
+                // If order was deleted or cancelled, clear the stale orderId
+                if (!existingOrder || existingOrder.order_status === orderEnums_1.OrderStatus.Cancelled) {
+                    yield Item_1.default.findByIdAndUpdate(item_id, { $unset: { orderId: "" } }, { session });
+                }
+            }
+            // Check if item status is available
+            if (item.itemStatus !== statusEnums_1.ItemStatus.Available) {
+                res.status(400).json({
+                    success: false,
+                    error: `Item ${item_id} is not available (status: ${item.itemStatus}). Only items with status '${statusEnums_1.ItemStatus.Available}' can be ordered.`,
                 });
                 yield session.abortTransaction();
                 return;
@@ -304,16 +341,30 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (incomeDocs.length > 0) {
             yield Income_1.default.insertMany(incomeDocs, { session });
         }
-        const transaction = yield Transaction_1.default.create([
-            {
-                order_id: savedOrder._id,
-                discount_rate: "0",
-                amount: totalAmount.toFixed(2),
-                status: transactionEnums_1.TransactionStatus.Pending,
-            },
-        ], { session });
+        // Check if transaction already exists for this order (prevent duplicates)
+        let transaction = yield Transaction_1.default.findOne({ order_id: savedOrder._id }).session(session);
+        if (!transaction) {
+            // Create transaction only if it doesn't exist
+            const createdTransactions = yield Transaction_1.default.create([
+                {
+                    order_id: savedOrder._id,
+                    discount_rate: "0",
+                    amount: totalAmount.toFixed(2),
+                    status: transactionEnums_1.TransactionStatus.Pending,
+                },
+            ], { session });
+            transaction = createdTransactions[0];
+        }
+        else {
+            // Transaction already exists - update amount if needed (optional)
+            // This ensures the transaction amount matches the current order total
+            if (transaction.amount !== totalAmount.toFixed(2)) {
+                transaction.amount = totalAmount.toFixed(2);
+                yield transaction.save({ session });
+            }
+        }
         if (saleDocs.length > 0) {
-            const saleDocsWithTransaction = saleDocs.map((doc) => (Object.assign(Object.assign({}, doc), { transaction_id: transaction[0]._id })));
+            const saleDocsWithTransaction = saleDocs.map((doc) => (Object.assign(Object.assign({}, doc), { transaction_id: transaction._id })));
             yield Sale_1.default.insertMany(saleDocsWithTransaction, { session });
         }
         yield session.commitTransaction();
@@ -332,6 +383,14 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 success: false,
                 error: "Validation error",
                 details: errors,
+            });
+            return;
+        }
+        // Handle duplicate transaction error (unique constraint violation)
+        if (error.code === 11000 || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes("duplicate"))) {
+            res.status(400).json({
+                success: false,
+                error: "Transaction already exists for this order",
             });
             return;
         }
@@ -454,6 +513,16 @@ const updateOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (update.order_status === orderEnums_1.OrderStatus.Delivered) {
             yield markOrderItemsSold(orderId);
         }
+        // If order is cancelled, clear orderId from items so they can be ordered again
+        if (update.order_status === orderEnums_1.OrderStatus.Cancelled) {
+            const orderItems = yield OrderItem_1.default.find({ order_id: orderId });
+            const itemIds = orderItems
+                .map((oi) => oi.item_id)
+                .filter(Boolean);
+            if (itemIds.length > 0) {
+                yield Item_1.default.updateMany({ _id: { $in: itemIds }, orderId: orderId }, { $unset: { orderId: "" } });
+            }
+        }
         res.status(200).json({
             success: true,
             message: "Order updated successfully",
@@ -486,8 +555,17 @@ const deleteOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(404).json({ success: false, error: "Order not found" });
             return;
         }
+        // Get all order items to clear orderId from items
+        const orderItems = yield OrderItem_1.default.find({ order_id: orderId });
+        const itemIds = orderItems
+            .map((oi) => oi.item_id)
+            .filter(Boolean);
         // Delete order (cascade delete will handle OrderItems)
         yield Order_1.default.findByIdAndDelete(orderId);
+        // Clear orderId from items so they can be ordered again
+        if (itemIds.length > 0) {
+            yield Item_1.default.updateMany({ _id: { $in: itemIds }, orderId: orderId }, { $unset: { orderId: "" } });
+        }
         res.status(200).json({
             success: true,
             message: "Order deleted successfully",

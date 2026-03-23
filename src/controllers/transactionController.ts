@@ -135,6 +135,18 @@ const getTransactionById = async (
 			return;
 		}
 
+		// Check if transaction already exists for this order
+		const existingTransaction = await Transaction.findOne({ order_id });
+		if (existingTransaction) {
+			// Return success with existing transaction instead of error
+			res.status(200).json({
+				success: true,
+				message: "Transaction already exists for this order",
+				data: existingTransaction,
+			});
+			return;
+		}
+
 		// Validate discount_id if provided
 		if (discount_id) {
 			if (!mongoose.Types.ObjectId.isValid(discount_id)) {

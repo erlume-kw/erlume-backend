@@ -91,69 +91,79 @@ app.get("/", (req: Request, res: Response) => {
 	res.send("API is working");
 });
 
-// Swagger / OpenAPI docs: full spec + backoffice-only and frontend-only (filtered by x-usedBy)
+// Swagger / OpenAPI
 const openApiPath = path.join(__dirname, "..", "openapi.json");
-let openApiSpec: Record<string, unknown> = {};
+let openApiSpec: Record<string, any> = {};
 try {
 	openApiSpec = JSON.parse(fs.readFileSync(openApiPath, "utf-8"));
 } catch (e) {
 	console.warn("Swagger: openapi.json not found at", openApiPath, "- docs disabled");
 }
 
-function filterSpecByAudience(
-	spec: Record<string, unknown>,
-	audience: "backoffice" | "frontend",
-): Record<string, unknown> {
-	const paths = spec.paths as Record<string, unknown> | undefined;
-	if (!paths) return { ...spec, paths: {} };
-	const filteredPaths: Record<string, unknown> = {};
-	for (const [pathKey, pathItem] of Object.entries(paths)) {
-		const item = pathItem as Record<string, unknown>;
-		const usedByList: unknown = item?.["x-usedBy"];
-		if (Array.isArray(usedByList) && usedByList.includes(audience)) {
-			filteredPaths[pathKey] = pathItem;
+// Helper: filter openapi spec paths by x-usedBy audience
+function filterSpecByAudience(spec: Record<string, any>, audience: string): Record<string, any> {
+	const filtered = JSON.parse(JSON.stringify(spec));
+	const paths = filtered.paths || {};
+	const filteredPaths: Record<string, any> = {};
+	for (const [pathKey, methods] of Object.entries(paths) as [string, any][]) {
+		const filteredMethods: Record<string, any> = {};
+		for (const [method, operation] of Object.entries(methods) as [string, any][]) {
+			const usedBy: string[] = operation["x-usedBy"] || [];
+			if (usedBy.includes(audience)) {
+				filteredMethods[method] = operation;
+			}
+		}
+		if (Object.keys(filteredMethods).length > 0) {
+			filteredPaths[pathKey] = filteredMethods;
 		}
 	}
-	const specInfo = spec.info as Record<string, unknown> | undefined;
-	const infoTitle = (specInfo?.title as string) ?? "API";
-	const infoDesc = (specInfo?.description as string) ?? "";
-	const pathCount = Object.keys(filteredPaths).length;
-	return {
-		...spec,
-		info: {
-			...specInfo,
-			title: `${infoTitle} — ${audience} only`,
-			description: `**Filtered view:** Only paths where \`x-usedBy\` includes "${audience}" (${pathCount} path(s)). Shared endpoints appear in both backoffice and frontend docs. ${infoDesc}`,
-		},
-		paths: filteredPaths,
-	};
+	filtered.paths = filteredPaths;
+	return filtered;
 }
+
+// Full spec
+app.get("/api-docs.json", (_req: Request, res: Response): void => {
+	res.json(openApiSpec);
+});
+
+// Filtered specs
+app.get("/api-docs/backoffice.json", (_req: Request, res: Response): void => {
+	res.json(filterSpecByAudience(openApiSpec, "backoffice"));
+});
+
+app.get("/api-docs/frontend.json", (_req: Request, res: Response): void => {
+	res.json(filterSpecByAudience(openApiSpec, "frontend"));
+});
+
+// Swagger UI: full, backoffice, frontend (each on its own Router to avoid conflicts)
+const swaggerUiOpts = { swaggerOptions: { docExpansion: "full" as const, displayRequestDuration: true } };
 
 const backofficeSpec = filterSpecByAudience(openApiSpec, "backoffice");
 const frontendSpec = filterSpecByAudience(openApiSpec, "frontend");
 
-// Serve spec JSON first (so Swagger UI can fetch by URL and avoid resolver errors)
-app.get("/api-docs.json", (_req: Request, res: Response): void => {
-	res.json(openApiSpec);
-});
-app.get("/api-docs/backoffice.json", (_req: Request, res: Response): void => {
-	res.json(backofficeSpec);
-});
-app.get("/api-docs/frontend.json", (_req: Request, res: Response): void => {
-	res.json(frontendSpec);
-});
+// Backoffice-only Swagger UI
+const backofficeRouter = express.Router();
+backofficeRouter.use("/", swaggerUi.serveFiles(backofficeSpec, swaggerUiOpts));
+backofficeRouter.get("/", swaggerUi.setup(backofficeSpec, swaggerUiOpts));
+app.use("/api-docs/backoffice", backofficeRouter);
 
-// Swagger UI: inline spec (deep copy) so operations render; docExpansion "full" so they show by default
-const swaggerUiOpts = { swaggerOptions: { docExpansion: "full" as const, displayRequestDuration: true } };
-app.use("/api-docs/backoffice", swaggerUi.serve, swaggerUi.setup(JSON.parse(JSON.stringify(backofficeSpec)), swaggerUiOpts));
-app.use("/api-docs/frontend", swaggerUi.serve, swaggerUi.setup(JSON.parse(JSON.stringify(frontendSpec)), swaggerUiOpts));
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(JSON.parse(JSON.stringify(openApiSpec)), swaggerUiOpts));
+// Frontend-only Swagger UI
+const frontendRouter = express.Router();
+frontendRouter.use("/", swaggerUi.serveFiles(frontendSpec, swaggerUiOpts));
+frontendRouter.get("/", swaggerUi.setup(frontendSpec, swaggerUiOpts));
+app.use("/api-docs/frontend", frontendRouter);
+
+// Full Swagger UI (all paths) — must be registered last
+const fullRouter = express.Router();
+fullRouter.use("/", swaggerUi.serveFiles(openApiSpec, swaggerUiOpts));
+fullRouter.get("/", swaggerUi.setup(openApiSpec, swaggerUiOpts));
+app.use("/api-docs", fullRouter);
 
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/categories", categoryRoutes);
-app.use("/api/subcategories", subCategoryRoutes);
+app.use("/api/sub-categories", subCategoryRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/orderitems", orderItemRoutes);
@@ -163,7 +173,7 @@ app.use("/api/sales", saleRoutes);
 app.use("/api/outfits", outfitRoutes);
 app.use("/api/outfititems", outfitItemRoutes);
 app.use("/api/demands", demandRoutes);
-app.use("/api/discountcodes", discountCodeRoutes);
+app.use("/api/discount-codes", discountCodeRoutes);
 app.use("/api/drops", dropRoutes);
 app.use("/api/enums", enumRoutes);
 app.use("/api/sellers", sellerRoutes);
@@ -198,7 +208,7 @@ const startServer = async (): Promise<void> => {
 	// Start server
 	app.listen(PORT, () => {
 		console.log(`🚀 Server running on http://localhost:${PORT}`);
-		console.log(`📚 API docs: full http://localhost:${PORT}/api-docs | backoffice http://localhost:${PORT}/api-docs/backoffice | frontend http://localhost:${PORT}/api-docs/frontend`);
+		console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
 	});
 };
 

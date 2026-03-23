@@ -16,6 +16,7 @@ const OrderItem_1 = __importDefault(require("../models/OrderItem"));
 const Order_1 = __importDefault(require("../models/Order"));
 const Item_1 = __importDefault(require("../models/Item"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const statusEnums_1 = require("../enums/statusEnums");
 const getOrderItems = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const orderItems = yield OrderItem_1.default.find({})
@@ -116,6 +117,22 @@ const createOrderItem = (req, res) => __awaiter(void 0, void 0, void 0, function
         const item = yield Item_1.default.findById(item_id);
         if (!item) {
             res.status(404).json({ success: false, error: "Item not found" });
+            return;
+        }
+        // Check if item is already ordered/sold
+        if (item.orderId) {
+            res.status(400).json({
+                success: false,
+                error: `Item ${item_id} is already sold or ordered`,
+            });
+            return;
+        }
+        // Check if item status is available
+        if (item.itemStatus !== statusEnums_1.ItemStatus.Available) {
+            res.status(400).json({
+                success: false,
+                error: `Item ${item_id} is not available (status: ${item.itemStatus}). Only items with status '${statusEnums_1.ItemStatus.Available}' can be ordered.`,
+            });
             return;
         }
         // Calculate price at time of order (snapshot)

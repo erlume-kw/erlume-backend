@@ -35,7 +35,7 @@ export interface ItemInterface extends Document {
 	authenticatedAt?: Date;
 	/** Return date for unsold/after-sale (optional). */
 	returnDate?: Date;
-	/** Return status for backoffice (optional). */
+	/** Return status after sale / unsold (optional). */
 	returnStatus?: ReturnStatus;
 	seller_id?: Types.ObjectId; // Reference to seller userId
 	category_id: Types.ObjectId; // Reference to Category

@@ -2,7 +2,49 @@
 
 ## Overview
 
-This document outlines step-by-step instructions to elevate your backend system with AdminJS integration, payment gateway, Zoho invoice system, and enhanced logistics tracking.
+This document outlines step-by-step instructions to elevate your backend system with payment gateway integration, Zoho invoicing, enhanced logistics tracking, and supporting APIs. This backend is **REST + OpenAPI only** — client apps consume **`openapi.json`** as the contract.
+
+## Status snapshot (this repository)
+
+Last reviewed against **`backend-1.0`** — **March 2026**. The steps below remain the **target roadmap**; this section records what is **done**, **partial**, or **not started** in the current codebase.
+
+| Phase | Topic | Status |
+|-------|--------|--------|
+| **1** | Database schema enhancements | **Partial** — core models exist; many roadmap-only fields and two planned models are missing. |
+| **2** | Payment gateway | **Not started** — no Stripe/Tap/PayPal SDK or `/api/payments/*` routes. |
+| **3** | Zoho | **Not started** — no Zoho client or sync routes. |
+| **4** | Google Form workflow | **Pending** — no `POST /api/onboarding/google-form-webhook` (or similar); manual entry still assumed. |
+| **5** | WhatsApp | **Not started** — no messaging service layer. |
+| **6** | Automation (queues, cron) | **Not started** — no `bull` / `bullmq` / `redis` / `node-cron` in dependencies. |
+| **7** | API enhancements | **Partial** — REST + **Zod** on many routes; no `logisticsRoutes`, `sellerOnboardingRoutes`, or `analyticsRoutes` modules as specified. |
+| **8** | Testing | **Not started** — `npm test` is a placeholder. |
+| **9** | Deployment / monitoring | **Partial** — no `/api/health`, no Winston/Sentry in `package.json` (console logging only). |
+| **10** | Documentation | **Partial** — `openapi.json`, `api-routes.json`, `docs/*`. |
+
+### Phase 1 — roadmap vs current code
+
+| Roadmap item | Status |
+|--------------|--------|
+| **Drop** model (`name`, `description`, `releaseDate`, `status`) | **Done** — see `src/models/Drop.ts`. |
+| **Item** — catalog, auth, drop link, `listingPrice`, `seller_id` (User ref), returns | **Partial** — implemented in `src/models/Item.ts`. **Missing / different vs doc:** required `sellerId` → **Seller** document (code uses `seller_id` → User), `salePrice` / per-item `sellerShareAmount` / `erlumeShareAmount`, `photographyStatus`, `cleaningCost`, `zohoItemId`, dedicated `listedDate` / `soldDate` / `pickupDate` as in the roadmap, etc. |
+| **Seller** — profile, `IBAN`, escalation | **Partial** — `src/models/Seller.ts`. **Missing vs doc:** `onboardingStatus`, `lastContactDate`, `responseStatus`, Zoho/Google Form fields, `totalItemsSold` / `totalEarnings` / `totalErlumeCommission`, `agreementSigned`, etc. |
+| **Order** — delivery + tracking | **Partial** — `deliveryDate`, `deliveryStatus`, `trackingReference` in `src/models/Order.ts`. **Missing vs doc:** `paymentStatus`, gateway IDs, Zoho invoice fields, `customerFeedback`, `discountCodeUsed`, structured `deliveryAddress`, etc. |
+| **Transaction** | **Partial** — amount, status, `paymentMethod`, discount linkage. **Missing vs doc:** `paymentGatewayResponse`, refund fields, Zoho IDs, per-tx `sellerShareAmount` / `erlumeShareAmount`. |
+| **Sale** + **Income** (money vs evidence) | **Done (conceptually)** — `Sale` holds commission + invoice/evidence fields; `Income` exists; order flow creates/updates sale/income-related data. Recalculate endpoint: `POST /api/sales/recalculate-commissions`. |
+| **PickupDelivery** / **Escalation** collections | **Not started** — escalation is modeled as **fields** on Seller, not separate models. |
+| Commission math | **Partial** — implemented in order/sale logic and recalculation; not every storage location from §1.6 is mirrored on Item/Transaction as written in the roadmap. |
+
+### Already implemented (cross-cutting)
+
+- Express + Mongoose REST API (`src/server.ts`, `src/routes/*`).
+- **Zod** validation middleware and shared schemas (`src/middleware/validation.ts`, `src/validations/schemas.ts`) — coverage is **not** 100% of handlers.
+- **OpenAPI** + Swagger UI: `/api-docs` (spec JSON: `/api-docs.json`). See `docs/BACKEND_SINGLE_SOURCE_AND_LIGHTER.md`.
+- **`sendError`** helper (`src/utils/sendError.ts`) — used in a few controllers only.
+- **`api-routes.json`** and markdown under `docs/`.
+
+### Pending (summary)
+
+Everything in Phases **2–6** (payments, Zoho, form automation, WhatsApp, queues/cron) and most of **8–10** (tests, observability, full API surface from Phase 7) unless explicitly listed as partial above.
 
 ---
 
@@ -63,7 +105,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 - Group items together in drops/collections
 - Track drop release dates
-- Filter items by drop in AdminJS and website
+- Filter items by drop in the backoffice app and on the website
 
 ### Step 1.3: Enhance Order Model
 
@@ -186,129 +228,9 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## PHASE 2: AdminJS Setup & Configuration
+## PHASE 2: Payment Gateway Integration
 
-### Step 2.1: Install Additional AdminJS Dependencies
-
-**Install these packages:**
-
-- `@adminjs/upload` (for file uploads - photos, documents)
-- `@adminjs/cloudinary` or `@adminjs/s3` (if using cloud storage)
-- `express-session` (for AdminJS authentication)
-- `express-formidable` (already installed, but configure properly)
-
-### Step 2.2: Create AdminJS Configuration File
-
-**Create `src/config/adminjs.config.ts`:**
-
-- Import all your models
-- Configure AdminJS with Mongoose adapter
-- Set up authentication (username/password or JWT)
-- Configure branding (logo, colors, company name)
-- Set up file upload handling for images
-
-### Step 2.3: Configure Resource Customization
-
-**For each model, configure:**
-
-- **Seller Resource:**
-  - Custom properties (calculated fields: totalItemsSold, totalEarnings)
-  - Filters: by onboardingStatus, responseStatus, escalationLevel, manuallyEnteredBy
-  - Actions: "Send WhatsApp", "Escalate", "Generate Payout", "Mark as Entered from Google Form"
-  - List view: Show key metrics (items sold, earnings, response rate)
-  - Bulk import/export functionality (for Google Form data)
-  - Form view optimized for manual data entry from Google Forms
-- **Item Resource:**
-  - Filters: by itemStatus, authenticationStatus, sellerId, brandName
-  - Actions: "Mark as Authentic", "Schedule Pickup", "Request Return", "Generate Listing"
-  - Custom properties: daysInHolding, daysUntilReturn
-  - Image gallery view for imageUrls
-- **Order Resource:**
-  - Filters: by order_status, paymentStatus, deliveryStatus
-  - Actions: "Generate Invoice", "Process Refund", "Update Delivery Status"
-  - Custom properties: totalAmount, itemCount, customerInfo
-  - Link to related Transaction, OrderItems
-- **Transaction Resource:**
-  - Filters: by paymentStatus, refundStatus
-  - Actions: "Process Refund", "Sync with Zoho"
-  - Show payment gateway details
-
-### Step 2.4: Create Custom Dashboard
-
-**Create dashboard components:**
-
-- **Overview Dashboard:**
-  - Total sellers (active, pending onboarding)
-  - Total items (by status: pending, listed, sold)
-  - Total orders (by status)
-  - Revenue metrics (today, week, month)
-  - Pending actions (pickups, returns, escalations)
-- **Seller Dashboard:**
-  - Onboarding funnel (initial_contact → onboarded)
-  - Google Form submissions vs. manual entries (conversion rate)
-  - Pending manual entries alert
-  - Response rate metrics
-  - Escalation alerts
-  - Top sellers by earnings
-- **Operations Dashboard:**
-  - Pending pickups (next 7 days)
-  - Items awaiting authentication
-  - Items ready to list
-  - Pending returns
-  - Non-responsive sellers
-- **Financial Dashboard:**
-  - Revenue by day/week/month
-  - Commission breakdown:
-    - Total Erlume share (platform revenue)
-    - Total seller payouts
-    - Commission rate distribution
-    - Revenue split chart (Erlume vs Seller)
-  - Pending payouts (sellers awaiting payment)
-  - Payment gateway status
-  - Zoho sync status
-
-### Step 2.5: Set Up AdminJS Actions
-
-**Create custom actions:**
-
-- **Bulk Actions:**
-  - Bulk update item status
-  - Bulk send WhatsApp messages
-  - Bulk generate invoices
-- **Seller Actions:**
-  - "Import from Google Form" (manual entry form pre-filled with Google Form structure)
-  - "Mark as Entered" (after manual entry from Google Form)
-  - "Calculate Payout" (for sold items - calculates seller share and Erlume share)
-  - "Generate Payout Report" (shows breakdown of seller share vs Erlume commission)
-  - "View Commission Breakdown" (shows detailed split for each item)
-  - "Escalate Seller"
-  - "Send WhatsApp" (for communication)
-- **Item Actions:**
-  - "Authenticate Item" (opens form, updates status)
-  - "Schedule Photography"
-  - "Publish to Website"
-  - "Request Return"
-- **Order Actions:**
-  - "Generate Zoho Invoice"
-  - "Send Confirmation Email"
-  - "Update Delivery Status"
-  - "Process Refund"
-
-### Step 2.6: Integrate AdminJS with Express
-
-**In `src/server.ts`:**
-
-- Import AdminJS configuration
-- Set up AdminJS router with authentication
-- Mount AdminJS at `/admin` route
-- Configure session middleware
-- Set up file upload middleware
-
----
-
-## PHASE 3: Payment Gateway Integration
-
-### Step 3.1: Choose Payment Gateway
+### Step 2.1: Choose Payment Gateway
 
 **Recommended options:**
 
@@ -317,7 +239,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Tap Payments (Middle East focused - good for Kuwait)
 - Checkout.com (global, good rates)
 
-### Step 3.2: Install Payment Gateway SDK
+### Step 2.2: Install Payment Gateway SDK
 
 **Install appropriate package:**
 
@@ -325,7 +247,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - For Tap: `tap-payments-node`
 - For PayPal: `@paypal/checkout-server-sdk`
 
-### Step 3.3: Create Payment Service Layer
+### Step 2.3: Create Payment Service Layer
 
 **Create `src/services/payment.service.ts`:**
 
@@ -335,7 +257,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Process refunds
 - Store payment gateway responses in Transaction model
 
-### Step 3.4: Create Payment Routes
+### Step 2.4: Create Payment Routes
 
 **Create `src/routes/paymentRoutes.ts`:**
 
@@ -345,7 +267,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - `POST /api/payments/refund` - Process refund
 - `GET /api/payments/status/:transactionId` - Check payment status
 
-### Step 3.5: Update Order Controller
+### Step 2.5: Update Order Controller
 
 **Modify order creation flow:**
 
@@ -354,7 +276,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Update paymentStatus based on gateway response
 - Link payment to Transaction record
 
-### Step 3.6: Set Up Webhook Handler
+### Step 2.6: Set Up Webhook Handler
 
 **Create webhook endpoint:**
 
@@ -365,7 +287,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Trigger Zoho invoice generation on successful payment
 - Send confirmation emails
 
-### Step 3.7: Environment Variables
+### Step 2.7: Environment Variables
 
 **Add to `.env`:**
 
@@ -376,9 +298,9 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## PHASE 4: Zoho Integration
+## PHASE 3: Zoho Integration
 
-### Step 4.1: Set Up Zoho API Access
+### Step 3.1: Set Up Zoho API Access
 
 **Steps:**
 
@@ -388,13 +310,13 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Set up redirect URIs
 - Generate refresh token for server-to-server communication
 
-### Step 4.2: Install Zoho SDK
+### Step 3.2: Install Zoho SDK
 
 **Install package:**
 
 - `zoho-nodejs-sdk` or use Zoho REST API directly with `axios`
 
-### Step 4.3: Create Zoho Service Layer
+### Step 3.3: Create Zoho Service Layer
 
 **Create `src/services/zoho.service.ts`:**
 
@@ -405,17 +327,17 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Inventory sync (optional - if using Zoho Inventory)
 - Payout tracking
 
-### Step 4.4: Zoho Contact Sync
+### Step 3.4: Zoho Contact Sync
 
 **When seller is manually entered from Google Form:**
 
-- Admin enters seller data in AdminJS (from Google Form)
+- Staff enters seller data in the **backoffice app** (from Google Form responses)
 - Optionally: Auto-create Zoho Contact when seller is saved
 - Store `zohoContactId` in Seller model
 - Update contact when seller info changes
 - Sync seller balance/payout info
 
-### Step 4.5: Zoho Invoice Generation
+### Step 3.5: Zoho Invoice Generation
 
 **When order payment is successful:**
 
@@ -428,7 +350,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Generate PDF and store `invoiceUrl`
 - Send invoice to customer via email
 
-### Step 4.6: Zoho Payment Recording
+### Step 3.6: Zoho Payment Recording
 
 **After payment confirmation:**
 
@@ -437,7 +359,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Update invoice status to "Paid"
 - Store `zohoPaymentId` in Transaction
 
-### Step 4.7: Zoho Payout Tracking (Optional)
+### Step 3.7: Zoho Payout Tracking (Optional)
 
 **For seller payouts:**
 
@@ -445,7 +367,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Track commission and seller payout
 - Generate payout reports
 
-### Step 4.8: Create Zoho Routes
+### Step 3.8: Create Zoho Routes
 
 **Create `src/routes/zohoRoutes.ts`:**
 
@@ -454,7 +376,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - `GET /api/zoho/invoice/:invoiceId` - Get invoice details
 - `POST /api/zoho/sync-payment/:transactionId` - Sync payment
 
-### Step 4.9: Environment Variables
+### Step 3.9: Environment Variables
 
 **Add to `.env`:**
 
@@ -466,9 +388,9 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## PHASE 5: Google Form Integration & Manual Entry Workflow
+## PHASE 4: Google Form Integration & Manual Entry Workflow
 
-### Step 5.1: Google Form Setup
+### Step 4.1: Google Form Setup
 
 **Configure Google Form:**
 
@@ -482,7 +404,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Get Google Form webhook URL (if using Zapier/Make.com) OR
 - Use Google Apps Script to send data to your API
 
-### Step 5.2: Google Form Webhook (Optional Automation)
+### Step 4.2: Google Form Webhook (Optional Automation)
 
 **If using webhook integration:**
 
@@ -490,41 +412,41 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Use Google Apps Script to POST to your API endpoint
 - Endpoint: `POST /api/onboarding/google-form-webhook`
 - Store submission data temporarily (in a queue or temp collection)
-- Alert admin in AdminJS dashboard
+- Notify staff in the **backoffice app** (e.g. notification, queue, or email)
 
-### Step 5.3: Manual Entry Process in AdminJS
+### Step 4.3: Manual entry in the backoffice app
 
-**Configure AdminJS for manual entry:**
+**Implement in your backoffice (consumes this REST API):**
 
-- Create custom "Import Seller" action in AdminJS
-- Form fields match Google Form structure
-- Pre-fill option: Copy-paste from Google Form response
-- Validation: Ensure all required fields are filled
-- After save: Auto-update onboardingStatus to "ready_for_pickup"
-- Track who entered the data (manuallyEnteredBy field)
+- Seller create/edit screens aligned with Google Form fields
+- Optional “Import seller” flow with fields matching the form
+- Pre-fill from pasted Google Form response where helpful
+- Validation against required Seller/API rules
+- After save: update onboarding status (e.g. `ready_for_pickup`) as per product rules
+- Track who entered the data (`manuallyEnteredBy` or audit field)
 
-### Step 5.4: AdminJS Bulk Import (Optional)
+### Step 4.4: Bulk import (optional)
 
 **For multiple sellers:**
 
-- Create CSV export from Google Form responses
-- AdminJS bulk import feature
+- Export CSV from Google Form responses
+- Backoffice bulk import or one-off script using `POST /api/sellers` (or equivalent)
 - Map CSV columns to Seller model fields
 - Validate before import
 - Show import summary (successful, failed, errors)
 
-### Step 5.5: Pending Entry Dashboard
+### Step 4.5: Pending entry dashboard
 
-**In AdminJS dashboard:**
+**In the backoffice app:**
 
-- Widget showing: "Sellers Pending Manual Entry"
-- Count of Google Form submissions not yet entered
+- Surface “Sellers pending manual entry” (or equivalent queue)
+- Count submissions not yet entered in the DB
 - Link to entry form
 - Filter by date submitted
 
 ---
 
-## PHASE 6: WhatsApp Integration (Optional but Recommended)
+## PHASE 5: WhatsApp Integration (Optional but Recommended)
 
 ### Step 5.1: Choose WhatsApp Solution
 
@@ -571,7 +493,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## PHASE 7: Automation & Workflow Engine
+## PHASE 6: Automation & Workflow Engine
 
 ### Step 6.1: Install Job Queue
 
@@ -621,7 +543,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## PHASE 8: API Enhancements
+## PHASE 7: API Enhancements
 
 ### Step 7.1: Create Logistics Endpoints
 
@@ -671,7 +593,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## PHASE 9: Testing & Quality Assurance
+## PHASE 8: Testing & Quality Assurance
 
 ### Step 8.1: Unit Tests
 
@@ -691,18 +613,17 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Database operations
 - Order flow end-to-end
 
-### Step 8.3: AdminJS Testing
+### Step 8.3: Backoffice app testing
 
-**Test:**
+**Test (against this API):**
 
-- Admin authentication
-- Resource CRUD operations
-- Custom actions
-- Dashboard loading
+- Staff authentication and authorization
+- Critical CRUD flows (sellers, items, orders) your backoffice uses
+- Custom workflows (payouts, status changes) if implemented in the UI
 
 ---
 
-## PHASE 10: Deployment & Monitoring
+## PHASE 9: Deployment & Monitoring
 
 ### Step 9.1: Environment Setup
 
@@ -748,7 +669,7 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## PHASE 11: Documentation
+## PHASE 10: Documentation
 
 ### Step 10.1: API Documentation
 
@@ -759,14 +680,13 @@ This document outlines step-by-step instructions to elevate your backend system 
 - Authentication guide
 - Error codes reference
 
-### Step 10.2: AdminJS User Guide
+### Step 10.2: Backoffice / operations guide
 
 **Create:**
 
-- How to use AdminJS dashboard
-- How to perform common tasks
-- Custom actions guide
-- Reports guide
+- How staff use the backoffice app with this API (`openapi.json` as contract)
+- Common operational tasks (onboarding, listing, refunds)
+- Escalation and reporting conventions
 
 ### Step 10.3: Integration Guides
 
@@ -779,36 +699,41 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ---
 
-## IMPLEMENTATION PRIORITY
+## IMPLEMENTATION PRIORITY (vs current codebase)
 
-### Phase 1 (Week 1-2): Foundation
+Original timeline below is **aspirational**; status reflects **this repo** (see **Status snapshot**).
 
-- Database schema enhancements
-- AdminJS basic setup
-- Environment configuration
+### Done or in progress
 
-### Phase 2 (Week 3-4): Core Integrations
+- [x] Core REST API + Mongoose models for the main domain (users, items, orders, drops, sales, incomes, transactions, etc.).
+- [x] **Zod** validation on many routes (not every endpoint).
+- [x] **OpenAPI + Swagger** (`openapi.json`, filtered views by `x-usedBy`).
+- [~] **Phase 1 schema** — **partial**; align remaining fields/models with product before payments and Zoho work.
 
-- Payment gateway integration
-- Zoho basic integration (invoices)
-- AdminJS customization
+### Recommended next steps
 
-### Phase 3 (Week 5-6): Automation
+1. **Close Phase 1 gaps** you actually need (payment-related Order fields, optional PickupDelivery, etc.) — avoid duplicating fields already covered by Sale/Income if the product accepts that split.
+2. **Payment gateway** (Phase 2), then **Zoho** (Phase 3) — order of integration matters for webhooks and invoice timing.
+3. **Google Form / backoffice flows** (Phase 4) as needed for operations.
+4. **Queues + cron** (Phase 6) once workflows are defined (requires Redis if using Bull/BullMQ).
+5. **Tests + health + logging** (Phases 8–9) before scaling traffic.
 
-- Workflow engine setup
-- Automated notifications
-- Scheduled tasks
+### Not started (from roadmap, unchanged)
 
-### Phase 4 (Week 7-8): Polish & Testing
+- Payment/Zoho/WhatsApp integrations, job queues, dedicated logistics/onboarding/analytics route files, automated test suite, Winston/Sentry, `/api/health` (unless added outside this snapshot). Backoffice UI is **out of scope** for this backend repo; consume **`openapi.json`**.
 
-- WhatsApp integration (if needed)
-- Testing
-- Documentation
-- Deployment
+### Original timeline (reference only)
+
+| Original block | Intended focus |
+|----------------|----------------|
+| Phase 1 (Week 1–2) | Foundation: DB, env, API contract |
+| Phase 2 (Week 3–4) | Payments, Zoho |
+| Phase 3 (Week 5–6) | Automation, notifications, cron |
+| Phase 4 (Week 7–8) | WhatsApp (optional), testing, docs, deploy |
 
 ---
 
-## KEY METRICS TO TRACK IN ADMINJS
+## KEY METRICS TO TRACK (BACKOFFICE / OPS)
 
 1. **Seller Metrics:**
 
@@ -847,13 +772,14 @@ This document outlines step-by-step instructions to elevate your backend system 
 
 ## NOTES
 
-- **Seller Data Entry:** All seller data comes from Google Forms and is manually entered into the database via AdminJS
+- **Seller data entry:** Google Forms → manual entry into the DB via your **backoffice app** (or scripts / MongoDB tools). This backend exposes REST + OpenAPI only.
+- **Roadmap vs code:** The **Status snapshot** at the top tracks what is implemented in `backend-1.0`; the numbered phases below are the full target design.
 - **No Automated Form Sending:** WhatsApp is used for communication only, not for sending forms
 - Start with Phase 1 (database) - everything else depends on it
 - Test each integration separately before combining
 - Use environment variables for all sensitive data
 - Implement proper error handling from the start
 - Set up logging early for debugging
-- Keep AdminJS dashboard simple initially, add complexity gradually
+- Keep the backoffice app aligned with `openapi.json` and add complexity gradually
 - Document as you go, not at the end
-- **Google Form Integration:** Can be fully manual (admin copies from Google Form to AdminJS) OR semi-automated (webhook receives form data, admin reviews and confirms entry)
+- **Google Form integration:** Fully manual (copy into backoffice / API) OR semi-automated (webhook → queue → staff confirms in backoffice)

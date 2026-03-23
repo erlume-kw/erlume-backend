@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const Expense_1 = __importDefault(require("../models/Expense"));
-const User_1 = __importDefault(require("../models/User"));
+const Employee_1 = __importDefault(require("../models/Employee"));
 const expenseEnums_1 = require("../enums/expenseEnums");
 const normalizeMonthDate = (value) => {
     if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -50,7 +50,13 @@ const getExpenses = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             const end = new Date(yearNum, monthNum, 1);
             filter.month = { $gte: start, $lt: end };
         }
-        const expenses = yield Expense_1.default.find(filter).populate("employee_id");
+        const expenses = yield Expense_1.default.find(filter).populate({
+            path: "employee_id",
+            populate: {
+                path: "user_id",
+                select: "-password",
+            },
+        });
         res.status(200).json({
             success: true,
             data: expenses,
@@ -69,7 +75,13 @@ const getExpenseById = (req, res) => __awaiter(void 0, void 0, void 0, function*
             res.status(400).json({ success: false, error: "Invalid expense ID" });
             return;
         }
-        const expense = yield Expense_1.default.findById(expenseId).populate("employee_id");
+        const expense = yield Expense_1.default.findById(expenseId).populate({
+            path: "employee_id",
+            populate: {
+                path: "user_id",
+                select: "-password",
+            },
+        });
         if (!expense) {
             res.status(404).json({ success: false, error: "Expense not found" });
             return;
@@ -121,9 +133,13 @@ const createExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 res.status(400).json({ success: false, error: "Invalid employee_id" });
                 return;
             }
-            const employee = yield User_1.default.findById(employee_id);
+            // Check if Employee document exists
+            const employee = yield Employee_1.default.findById(employee_id);
             if (!employee) {
-                res.status(404).json({ success: false, error: "Employee not found" });
+                res.status(404).json({
+                    success: false,
+                    error: "Employee not found"
+                });
                 return;
             }
         }
@@ -228,15 +244,25 @@ const updateExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                         .json({ success: false, error: "Invalid employee_id" });
                     return;
                 }
-                const employee = yield User_1.default.findById(employee_id);
+                // Check if Employee document exists
+                const employee = yield Employee_1.default.findById(employee_id);
                 if (!employee) {
-                    res.status(404).json({ success: false, error: "Employee not found" });
+                    res.status(404).json({
+                        success: false,
+                        error: "Employee not found"
+                    });
                     return;
                 }
                 update.employee_id = employee_id;
             }
         }
-        const updatedExpense = yield Expense_1.default.findByIdAndUpdate(expenseId, { $set: update }, { new: true, runValidators: true }).populate("employee_id");
+        const updatedExpense = yield Expense_1.default.findByIdAndUpdate(expenseId, { $set: update }, { new: true, runValidators: true }).populate({
+            path: "employee_id",
+            populate: {
+                path: "user_id",
+                select: "-password",
+            },
+        });
         res.status(200).json({
             success: true,
             message: "Expense updated successfully",

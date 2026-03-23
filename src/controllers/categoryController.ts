@@ -88,8 +88,19 @@ const createCategory = async (req: Request, res: Response): Promise<void> => {
 			message: "Category created successfully",
 			data: savedCategory,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error("Error in createCategory:", error);
+		
+		if (error.name === "ValidationError") {
+			const errors = Object.values(error.errors).map((err: any) => err.message);
+			res.status(400).json({
+				success: false,
+				error: "Validation error",
+				details: errors,
+			});
+			return;
+		}
+		
 		res.status(500).json({ success: false, error: "Internal server error" });
 	}
 };
@@ -145,8 +156,19 @@ const updateCategory = async (req: Request, res: Response): Promise<void> => {
 			message: "Category updated successfully",
 			data: updatedCategory,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error("Error in updateCategory:", error);
+		
+		if (error.name === "ValidationError") {
+			const errors = Object.values(error.errors).map((err: any) => err.message);
+			res.status(400).json({
+				success: false,
+				error: "Validation error",
+				details: errors,
+			});
+			return;
+		}
+		
 		res.status(500).json({ success: false, error: "Internal server error" });
 	}
 };

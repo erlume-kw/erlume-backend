@@ -16,6 +16,7 @@ const Drop_1 = __importDefault(require("../models/Drop"));
 const Item_1 = __importDefault(require("../models/Item"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const dropEnums_1 = require("../enums/dropEnums");
+const statusEnums_1 = require("../enums/statusEnums");
 const getDrops = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { status } = req.query;
@@ -97,13 +98,23 @@ const createDrop = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             return;
         }
         // Create new drop
+        const dropStatus = status || dropEnums_1.DropStatus.Upcoming;
         const newDrop = new Drop_1.default({
             name,
             description,
             releaseDate: releaseDateObj,
-            status: status || dropEnums_1.DropStatus.Upcoming, // Default to "upcoming"
+            status: dropStatus,
         });
         const savedDrop = yield newDrop.save();
+        // Set item status based on drop status:
+        // - "upcoming" → items become "pending"
+        // - "active" → items become "available"
+        if (dropStatus === dropEnums_1.DropStatus.Upcoming) {
+            yield Item_1.default.updateMany({ drop_id: savedDrop._id }, { $set: { itemStatus: statusEnums_1.ItemStatus.Pending } });
+        }
+        else if (dropStatus === dropEnums_1.DropStatus.Active) {
+            yield Item_1.default.updateMany({ drop_id: savedDrop._id }, { $set: { itemStatus: statusEnums_1.ItemStatus.Available } });
+        }
         res.status(201).json({
             success: true,
             message: "Drop created successfully",
@@ -169,6 +180,17 @@ const updateDrop = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         if (!updatedDrop) {
             res.status(404).json({ success: false, error: "Drop not found" });
             return;
+        }
+        // Set item status based on drop status:
+        // - "upcoming" → items become "pending"
+        // - "active" → items become "available"
+        if (updateData.status === dropEnums_1.DropStatus.Upcoming) {
+            const updateResult = yield Item_1.default.updateMany({ drop_id: dropId }, { $set: { itemStatus: statusEnums_1.ItemStatus.Pending } });
+            console.log(`Updated ${updateResult.modifiedCount} item(s) to Pending status for drop ${dropId} (status: upcoming)`);
+        }
+        else if (updateData.status === dropEnums_1.DropStatus.Active) {
+            const updateResult = yield Item_1.default.updateMany({ drop_id: dropId }, { $set: { itemStatus: statusEnums_1.ItemStatus.Available } });
+            console.log(`Updated ${updateResult.modifiedCount} item(s) to Available status for drop ${dropId} (status: active)`);
         }
         res.status(200).json({
             success: true,
@@ -309,7 +331,17 @@ const addItemToDrop = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // Update items to add them to the drop
-        const result = yield Item_1.default.updateMany({ _id: { $in: itemsToAdd } }, { $set: { drop_id: dropId } });
+        const updateData = { $set: { drop_id: dropId } };
+        // Set item status based on drop status:
+        // - "upcoming" → items become "pending"
+        // - "active" → items become "available"
+        if (drop.status === dropEnums_1.DropStatus.Upcoming) {
+            updateData.$set.itemStatus = statusEnums_1.ItemStatus.Pending;
+        }
+        else if (drop.status === dropEnums_1.DropStatus.Active) {
+            updateData.$set.itemStatus = statusEnums_1.ItemStatus.Available;
+        }
+        const result = yield Item_1.default.updateMany({ _id: { $in: itemsToAdd } }, updateData);
         res.status(200).json({
             success: true,
             message: `Successfully added ${result.modifiedCount} item(s) to drop`,
@@ -317,6 +349,8 @@ const addItemToDrop = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 dropId,
                 itemsAdded: result.modifiedCount,
                 itemIds: itemsToAdd,
+                itemsSetToPending: drop.status === dropEnums_1.DropStatus.Upcoming ? result.modifiedCount : 0,
+                itemsSetToAvailable: drop.status === dropEnums_1.DropStatus.Active ? result.modifiedCount : 0,
             },
         });
     }

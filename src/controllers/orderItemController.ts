@@ -3,6 +3,7 @@ import OrderItem from "../models/OrderItem";
 import Order from "../models/Order";
 import Item from "../models/Item";
 import mongoose from "mongoose";
+import { ItemStatus } from "../enums/statusEnums";
 
 const getOrderItems = async (req: Request, res: Response): Promise<void> => {
 	try {
@@ -121,6 +122,24 @@ const createOrderItem = async (req: Request, res: Response): Promise<void> => {
 		const item = await Item.findById(item_id);
 		if (!item) {
 			res.status(404).json({ success: false, error: "Item not found" });
+			return;
+		}
+
+		// Check if item is already ordered/sold
+		if (item.orderId) {
+			res.status(400).json({
+				success: false,
+				error: `Item ${item_id} is already sold or ordered`,
+			});
+			return;
+		}
+
+		// Check if item status is available
+		if (item.itemStatus !== ItemStatus.Available) {
+			res.status(400).json({
+				success: false,
+				error: `Item ${item_id} is not available (status: ${item.itemStatus}). Only items with status '${ItemStatus.Available}' can be ordered.`,
+			});
 			return;
 		}
 

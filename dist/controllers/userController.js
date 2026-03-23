@@ -212,6 +212,14 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     if (update.password) {
         update.password = yield bcryptjs_1.default.hash(update.password, 10);
     }
+    // Sync seller's isDeactivated with user's isDeleted
+    // If user isDeleted is being updated and user is a seller, sync seller status
+    if ("isDeleted" in update && update.isDeleted !== undefined) {
+        const userBeforeUpdate = yield User_1.default.findById(id);
+        if (userBeforeUpdate === null || userBeforeUpdate === void 0 ? void 0 : userBeforeUpdate.roles.includes(userEnums_1.UserRole.SELLER)) {
+            yield Seller_1.default.updateOne({ userId: id }, { isDeactivated: update.isDeleted });
+        }
+    }
     const user = yield User_1.default.findByIdAndUpdate(id, update, {
         new: true,
         runValidators: true,
@@ -232,18 +240,65 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
    UPDATE SELLER (PATCH SAFE)
 ========================= */
 const updateSellerInfo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const { id } = req.params;
     if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-        res.status(400).json({ error: "Invalid ID" });
+        res.status(400).json({ success: false, error: "Invalid ID" });
         return;
     }
-    const user = yield User_1.default.findById(id);
+    // Match getSellerById / deleteSeller: :id may be Seller document _id or User id
+    let sellerDoc = yield Seller_1.default.findById(id);
+    if (!sellerDoc) {
+        sellerDoc = yield Seller_1.default.findOne({ userId: id });
+    }
+    if (!sellerDoc) {
+        res.status(404).json({ success: false, error: "Seller not found" });
+        return;
+    }
+    const user = yield User_1.default.findById(sellerDoc.userId);
     if (!user || !user.roles.includes(userEnums_1.UserRole.SELLER)) {
-        res.status(404).json({ error: "Seller not found" });
+        res.status(404).json({ success: false, error: "Seller not found" });
         return;
     }
     const update = {};
+    // Handle isDeactivated (status)
+    if ("isDeactivated" in req.body) {
+        const val = req.body.isDeactivated;
+        let isDeactivatedValue;
+        if (typeof val === "boolean") {
+            isDeactivatedValue = val;
+        }
+        else if (typeof val === "string") {
+            isDeactivatedValue = val.toLowerCase() === "true";
+        }
+        else {
+            isDeactivatedValue = val === true;
+        }
+        update.isDeactivated = isDeactivatedValue;
+        // Sync user's isDeleted with seller's isDeactivated
+        // If seller is deactivated, soft-delete the user
+        // If seller is activated, restore the user (set isDeleted to false)
+        yield User_1.default.findByIdAndUpdate(user._id, { isDeleted: isDeactivatedValue }, { new: true });
+    }
+    // Handle other seller fields
+    if ("fullName" in req.body) {
+        update.fullName = (_a = req.body.fullName) !== null && _a !== void 0 ? _a : "";
+    }
+    if ("emailAddress" in req.body) {
+        update.emailAddress = req.body.emailAddress;
+    }
+    if ("phoneNumber" in req.body) {
+        update.phoneNumber = req.body.phoneNumber;
+    }
+    if ("addressText" in req.body) {
+        update.addressText = (_b = req.body.addressText) !== null && _b !== void 0 ? _b : "";
+    }
+    if ("qrCode" in req.body) {
+        update.qrCode = req.body.qrCode;
+    }
+    if ("intakeTimestamp" in req.body) {
+        update.intakeTimestamp = req.body.intakeTimestamp;
+    }
     if ("consentGiven" in req.body) {
         const consentValue = req.body.consentGiven;
         if (typeof consentValue === "string") {
@@ -258,11 +313,14 @@ const updateSellerInfo = (req, res) => __awaiter(void 0, void 0, void 0, functio
         }
     }
     if ("preferredPickupDate" in req.body) {
-        update.preferredPickupDate = (_a = req.body.preferredPickupDate) !== null && _a !== void 0 ? _a : "";
+        update.preferredPickupDate = (_c = req.body.preferredPickupDate) !== null && _c !== void 0 ? _c : "";
     }
     if ("IBAN" in req.body) {
         update.IBAN = req.body.IBAN;
-        update.qrCode = `QR_${req.body.IBAN}`;
+        // Auto-generate qrCode if IBAN is provided and qrCode not explicitly set
+        if (!("qrCode" in req.body)) {
+            update.qrCode = `QR_${req.body.IBAN}`;
+        }
     }
     if ("balance" in req.body) {
         update.balance = req.body.balance;
@@ -278,6 +336,7 @@ const updateSellerInfo = (req, res) => __awaiter(void 0, void 0, void 0, functio
             val !== "" &&
             !Object.values(flowEnums_1.EscalationStatus).includes(val)) {
             res.status(400).json({
+                success: false,
                 error: `Invalid escalationStatus. Must be one of: ${Object.values(flowEnums_1.EscalationStatus).join(", ")}`,
             });
             return;
@@ -285,7 +344,7 @@ const updateSellerInfo = (req, res) => __awaiter(void 0, void 0, void 0, functio
         update.escalationStatus = val == null || val === "" ? undefined : val;
     }
     if ("escalationNotes" in req.body) {
-        update.escalationNotes = (_b = req.body.escalationNotes) !== null && _b !== void 0 ? _b : "";
+        update.escalationNotes = (_d = req.body.escalationNotes) !== null && _d !== void 0 ? _d : "";
     }
     const seller = yield Seller_1.default.findOneAndUpdate({ userId: user._id }, { $set: update }, { new: true, upsert: true, runValidators: true });
     res.json({

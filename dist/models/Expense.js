@@ -41,7 +41,7 @@ const ExpenseSchema = new mongoose_1.Schema({
     currency: { type: String, required: false, default: "KWD" },
     employee_id: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Employee",
         required: false,
         index: true,
     },

@@ -16,6 +16,7 @@ const OutfitItem_1 = __importDefault(require("../models/OutfitItem"));
 const Outfit_1 = __importDefault(require("../models/Outfit"));
 const Item_1 = __importDefault(require("../models/Item"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const sendError_1 = require("../utils/sendError");
 const getOutfitItems = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const outfitItems = yield OutfitItem_1.default.find({})
@@ -35,10 +36,6 @@ const getOutfitItems = (req, res) => __awaiter(void 0, void 0, void 0, function*
 const getOutfitItemsByOutfitId = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const outfitId = req.params.outfitId;
-        if (!mongoose_1.default.Types.ObjectId.isValid(outfitId)) {
-            res.status(400).json({ success: false, error: "Invalid outfit ID" });
-            return;
-        }
         const outfit = yield Outfit_1.default.findById(outfitId);
         if (!outfit) {
             res.status(404).json({ success: false, error: "Outfit not found" });
@@ -61,10 +58,6 @@ const getOutfitItemsByOutfitId = (req, res) => __awaiter(void 0, void 0, void 0,
 const getOutfitItemById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const outfitItemId = req.params.id;
-        if (!mongoose_1.default.Types.ObjectId.isValid(outfitItemId)) {
-            res.status(400).json({ success: false, error: "Invalid outfit item ID" });
-            return;
-        }
         const outfitItem = yield OutfitItem_1.default.findById(outfitItemId)
             .populate("outfit_id")
             .populate("item_id");
@@ -235,13 +228,9 @@ const toggleFeaturedItem = (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const outfitItemId = req.params.id;
         const { featured } = req.body;
-        if (!mongoose_1.default.Types.ObjectId.isValid(outfitItemId)) {
-            res.status(400).json({ success: false, error: "Invalid outfit item ID" });
-            return;
-        }
         const outfitItem = yield OutfitItem_1.default.findById(outfitItemId);
         if (!outfitItem) {
-            res.status(404).json({ success: false, error: "Outfit item not found" });
+            (0, sendError_1.sendError)(res, 404, "Outfit item not found", "NOT_FOUND");
             return;
         }
         const featuredValue = featured !== undefined ? featured : !outfitItem.featured_in_product;
@@ -254,7 +243,7 @@ const toggleFeaturedItem = (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
     catch (error) {
         console.error("Error in toggleFeaturedItem:", error);
-        res.status(500).json({ success: false, error: "Internal server error" });
+        (0, sendError_1.sendError)(res, 500, "Internal server error", "INTERNAL_ERROR");
     }
 });
 exports.default = {

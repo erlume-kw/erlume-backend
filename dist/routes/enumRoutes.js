@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const enumController_1 = require("../controllers/enumController");
+const validation_1 = require("../middleware/validation");
+const schemas_1 = require("../validations/schemas");
 const router = (0, express_1.Router)();
 /**
  * GET /api/enums
@@ -23,5 +25,5 @@ router.get("/", enumController_1.getEnums);
  * - kuwaitCity
  * - kuwaitGovernorateCities
  */
-router.get("/:category", enumController_1.getEnumCategory);
+router.get("/:category", (0, validation_1.validateParams)(schemas_1.categoryParamSchema), enumController_1.getEnumCategory);
 exports.default = router;

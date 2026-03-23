@@ -1,0 +1,1354 @@
+{
+  "_description": "Complete API routes reference for Frontend/Backoffice. Base URL: http://localhost:3000",
+  "_version": "1.0.0",
+  "_lastUpdated": "2024-12-20",
+  "routes": {
+    "users": {
+      "basePath": "/api/users",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/users",
+          "description": "List all users",
+          "queryParams": {
+            "includeDeleted": "string (optional, 'true' or 'false')",
+            "role": "string (optional, filter by role)"
+          },
+          "response": "Array of User objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/users/:id",
+          "description": "Get user by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "User object with seller info if seller"
+        },
+        {
+          "method": "POST",
+          "path": "/api/users",
+          "description": "Create new user",
+          "body": {
+            "password": "string (required, min 6 chars)",
+            "emailAddress": "string (required, valid email)",
+            "phoneNumber": "string (required, 7-15 digits)",
+            "address": {
+              "street": "string (required)",
+              "city": "string (required)",
+              "block": "string (required)",
+              "governorate": "string (required)",
+              "house": "string (required)",
+              "flat": "string (optional)"
+            },
+            "roles": "string[] (optional, defaults to ['user'])",
+            "consentGiven": "boolean|string (optional)",
+            "preferredPickupDate": "string (optional)"
+          },
+          "response": "Created User object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/users/:id",
+          "description": "Update user (full update)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial User object",
+          "response": "Updated User object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/users/:id",
+          "description": "Update user (partial update)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial User object (e.g., { isDeleted: true })",
+          "response": "Updated User object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/users/:id/roles",
+          "description": "Update user roles",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": {
+            "roles": "string[] (required, min 1 role)"
+          },
+          "response": "Updated User object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/users/:id",
+          "description": "Soft delete user",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "sellers": {
+      "basePath": "/api/sellers",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/sellers",
+          "description": "List all sellers",
+          "queryParams": {
+            "includeDeactivated": "string (optional, 'true' to include deactivated)"
+          },
+          "response": "Array of Seller objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/sellers/:id",
+          "description": "Get seller by ID (accepts seller _id or userId)",
+          "params": {
+            "id": "ObjectId (required, seller _id or userId)"
+          },
+          "response": "Seller object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/sellers",
+          "description": "Create new seller (creates user + seller)",
+          "body": {
+            "password": "string (required)",
+            "emailAddress": "string (required)",
+            "phoneNumber": "string (required)",
+            "address": "Address object (required)",
+            "fullName": "string (optional)",
+            "addressText": "string (optional)",
+            "consentGiven": "boolean|string (optional)",
+            "preferredPickupDate": "string (optional)",
+            "intakeTimestamp": "string (optional)"
+          },
+          "response": "Created User and Seller objects"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/sellers/:id",
+          "description": "Update seller info",
+          "params": {
+            "id": "ObjectId (required, seller _id or userId)"
+          },
+          "body": {
+            "isDeactivated": "boolean (optional)",
+            "fullName": "string (optional)",
+            "emailAddress": "string (optional)",
+            "phoneNumber": "string (optional)",
+            "addressText": "string (optional)",
+            "balance": "string (optional)",
+            "IBAN": "string (optional)",
+            "qrCode": "string (optional)",
+            "consentGiven": "boolean|string (optional)",
+            "preferredPickupDate": "string (optional)",
+            "sellerPolicyAcceptedAt": "date (optional)",
+            "escalationStatus": "string (optional)",
+            "escalationNotes": "string (optional)"
+          },
+          "response": "Updated Seller object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/sellers/:id",
+          "description": "Update seller info (partial)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Seller object",
+          "response": "Updated Seller object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/sellers/:id",
+          "description": "Deactivate seller and soft-delete user",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "items": {
+      "basePath": "/api/items",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/items",
+          "description": "List all items",
+          "queryParams": {
+            "itemStatus": "string (optional, enum)",
+            "category_id": "ObjectId (optional)",
+            "sub_category_id": "ObjectId (optional)",
+            "drop_id": "ObjectId (optional)",
+            "seller_id": "ObjectId (optional)"
+          },
+          "response": "Array of Item objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/items/:id",
+          "description": "Get item by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Item object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/items",
+          "description": "Create new item",
+          "body": "Item object (see models.json for full schema)",
+          "response": "Created Item object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/items/:id",
+          "description": "Update item (full)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Item object",
+          "response": "Updated Item object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/items/:id",
+          "description": "Update item (partial)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Item object",
+          "response": "Updated Item object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/items/:id",
+          "description": "Delete item",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "orders": {
+      "basePath": "/api/orders",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/orders",
+          "description": "List all orders",
+          "queryParams": {
+            "status": "string (optional, order status)",
+            "year": "number (optional)",
+            "month": "number (optional, 1-12)"
+          },
+          "response": "Array of Order objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/orders/user/:userId",
+          "description": "Get orders by user ID",
+          "params": {
+            "userId": "ObjectId (required)"
+          },
+          "queryParams": {
+            "year": "number (optional)",
+            "month": "number (optional, 1-12)"
+          },
+          "response": "Array of Order objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/orders/:id",
+          "description": "Get order by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Order object with populated orderItems"
+        },
+        {
+          "method": "POST",
+          "path": "/api/orders",
+          "description": "Create new order",
+          "body": {
+            "user_id": "ObjectId (required)",
+            "orderItems": [
+              {
+                "item_id": "ObjectId (required)",
+                "quantity": "number (optional, min 1, default 1)",
+                "is_returned": "boolean (optional)"
+              }
+            ],
+            "order_status": "string (optional, enum, defaults to 'Pending')"
+          },
+          "response": "Created Order object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/orders/:id",
+          "description": "Update order (partial)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": {
+            "order_status": "string (optional)",
+            "deliveryDate": "date (optional)",
+            "deliveryStatus": "string (optional)",
+            "trackingReference": "string (optional)"
+          },
+          "response": "Updated Order object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/orders/:id/status",
+          "description": "Update order status only",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": {
+            "order_status": "string (required, enum)"
+          },
+          "response": "Updated Order object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/orders/:id",
+          "description": "Delete order",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "orderItems": {
+      "basePath": "/api/order-items",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/order-items",
+          "description": "List all order items",
+          "response": "Array of OrderItem objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/order-items/order/:orderId",
+          "description": "Get order items by order ID",
+          "params": {
+            "orderId": "ObjectId (required)"
+          },
+          "response": "Array of OrderItem objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/order-items/:id",
+          "description": "Get order item by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "OrderItem object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/order-items",
+          "description": "Create order item",
+          "body": {
+            "order_id": "ObjectId (required)",
+            "item_id": "ObjectId (required)",
+            "quantity": "number (required, min 1)",
+            "price": "string (required)",
+            "is_returned": "boolean (required)"
+          },
+          "response": "Created OrderItem object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/order-items/:id",
+          "description": "Update order item",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial OrderItem object",
+          "response": "Updated OrderItem object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/order-items/:id",
+          "description": "Delete order item",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/order-items/:id/return",
+          "description": "Mark order item as returned",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Updated OrderItem object"
+        }
+      ]
+    },
+    "categories": {
+      "basePath": "/api/categories",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/categories",
+          "description": "List all categories",
+          "response": "Array of Category objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/categories/:id",
+          "description": "Get category by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Category object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/categories",
+          "description": "Create category",
+          "body": {
+            "name": "string (required)",
+            "base_rate": "number (required, converted to string for storage)",
+            "op_rate": "number (optional, converted to string for storage)",
+            "clean_rate": "number (optional, converted to string for storage)",
+            "sub_category_id": "ObjectId (optional)"
+          },
+          "response": "Created Category object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/categories/:id",
+          "description": "Update category",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Category object",
+          "response": "Updated Category object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/categories/:id",
+          "description": "Delete category",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "subCategories": {
+      "basePath": "/api/sub-categories",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/sub-categories",
+          "description": "List all subcategories",
+          "response": "Array of SubCategory objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/sub-categories/category/:categoryId",
+          "description": "Get subcategories by category ID",
+          "params": {
+            "categoryId": "ObjectId (required)"
+          },
+          "response": "Array of SubCategory objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/sub-categories/:id",
+          "description": "Get subcategory by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "SubCategory object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/sub-categories",
+          "description": "Create subcategory",
+          "body": {
+            "sub_cat_name": "string (required)",
+            "category_id": "ObjectId (required)",
+            "demand_id": "ObjectId (optional)",
+            "sub_clean_rate": "number (optional, converted to string for storage)"
+          },
+          "response": "Created SubCategory object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/sub-categories/:id",
+          "description": "Update subcategory",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial SubCategory object",
+          "response": "Updated SubCategory object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/sub-categories/:id",
+          "description": "Delete subcategory",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "demands": {
+      "basePath": "/api/demands",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/demands",
+          "description": "List all demands",
+          "response": "Array of Demand objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/demands/subcategory/:subCategoryId",
+          "description": "Get demands by subcategory ID",
+          "params": {
+            "subCategoryId": "ObjectId (required)"
+          },
+          "response": "Array of Demand objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/demands/:id",
+          "description": "Get demand by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Demand object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/demands",
+          "description": "Create demand",
+          "body": {
+            "demand_name": "string (required)",
+            "demand_rate": "number (optional, converted to string for storage)"
+          },
+          "response": "Created Demand object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/demands/:id",
+          "description": "Update demand",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Demand object",
+          "response": "Updated Demand object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/demands/:id",
+          "description": "Delete demand",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "drops": {
+      "basePath": "/api/drops",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/drops",
+          "description": "List all drops",
+          "response": "Array of Drop objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/drops/:id",
+          "description": "Get drop by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Drop object"
+        },
+        {
+          "method": "GET",
+          "path": "/api/drops/:id/items",
+          "description": "Get items in a drop",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Array of Item objects"
+        },
+        {
+          "method": "POST",
+          "path": "/api/drops",
+          "description": "Create drop",
+          "body": {
+            "name": "string (required)",
+            "description": "string (optional)",
+            "releaseDate": "date (required)",
+            "status": "string (optional, enum: 'upcoming', 'active', 'ended', default: 'upcoming')"
+          },
+          "response": "Created Drop object",
+          "notes": "When drop status is 'upcoming', items in the drop are automatically set to 'pending'. When status is 'active', items are set to 'available'."
+        },
+        {
+          "method": "POST",
+          "path": "/api/drops/:id/items",
+          "description": "Add items to drop",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": {
+            "itemId": "ObjectId (optional, single item)",
+            "itemIds": "ObjectId[] (optional, multiple items)"
+          },
+          "response": "Success message with count",
+          "notes": "Items added to a drop with status 'upcoming' are automatically set to 'pending'. Items added to a drop with status 'active' are automatically set to 'available'."
+        },
+        {
+          "method": "PUT",
+          "path": "/api/drops/:id",
+          "description": "Update drop",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Drop object",
+          "response": "Updated Drop object",
+          "notes": "When drop status is updated to 'upcoming', all items in the drop are automatically set to 'pending'. When status is updated to 'active', all items are set to 'available'."
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/drops/:id",
+          "description": "Delete drop",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/drops/:id/items/:itemId",
+          "description": "Remove item from drop",
+          "params": {
+            "id": "ObjectId (required)",
+            "itemId": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "reviews": {
+      "basePath": "/api/reviews",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/reviews",
+          "description": "List all reviews",
+          "response": "Array of Review objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/reviews/product/:productId",
+          "description": "Get reviews by product ID",
+          "params": {
+            "productId": "string (required)"
+          },
+          "response": "Array of Review objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/reviews/seller/:sellerId",
+          "description": "Get reviews by seller ID",
+          "params": {
+            "sellerId": "ObjectId (required)"
+          },
+          "response": "Array of Review objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/reviews/:id",
+          "description": "Get review by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Review object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/reviews",
+          "description": "Create review",
+          "body": {
+            "sellerId": "ObjectId (required)",
+            "userId": "ObjectId (optional)",
+            "rating": "number (required, 1-5)",
+            "description": "string (required)"
+          },
+          "response": "Created Review object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/reviews/:id",
+          "description": "Update review",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Review object",
+          "response": "Updated Review object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/reviews/:id",
+          "description": "Delete review",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "transactions": {
+      "basePath": "/api/transactions",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/transactions",
+          "description": "List all transactions",
+          "queryParams": {
+            "year": "number (optional)",
+            "month": "number (optional, 1-12)"
+          },
+          "response": "Array of Transaction objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/transactions/order/:orderId",
+          "description": "Get transactions by order ID",
+          "params": {
+            "orderId": "ObjectId (required)"
+          },
+          "response": "Array of Transaction objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/transactions/:id",
+          "description": "Get transaction by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Transaction object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/transactions",
+          "description": "Create transaction",
+          "body": {
+            "order_id": "ObjectId (required)",
+            "discount_rate": "string (required)",
+            "amount": "string (required)",
+            "discount_id": "ObjectId (optional)",
+            "status": "string (required, enum)",
+            "paymentMethod": "string (optional, enum)"
+          },
+          "response": "Created Transaction object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/transactions/:id",
+          "description": "Update transaction",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Transaction object",
+          "response": "Updated Transaction object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/transactions/:id",
+          "description": "Update transaction (partial)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Transaction object",
+          "response": "Updated Transaction object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/transactions/:id/status",
+          "description": "Update transaction status",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": {
+            "status": "string (required)"
+          },
+          "response": "Updated Transaction object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/transactions/:id",
+          "description": "Delete transaction",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "sales": {
+      "basePath": "/api/sales",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/sales",
+          "description": "List all sales",
+          "queryParams": {
+            "year": "number (optional)",
+            "month": "number (optional, 1-12)"
+          },
+          "response": "Array of Sale objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/sales/order/:orderId",
+          "description": "Get sales by order ID",
+          "params": {
+            "orderId": "ObjectId (required)"
+          },
+          "queryParams": {
+            "year": "number (optional)",
+            "month": "number (optional)"
+          },
+          "response": "Array of Sale objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/sales/:id",
+          "description": "Get sale by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Sale object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/sales",
+          "description": "Create sale",
+          "body": "Sale object (see models.json)",
+          "response": "Created Sale object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/sales/recalculate-commissions",
+          "description": "Recalculate sale commissions",
+          "response": "Success message"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/sales/:id",
+          "description": "Update sale",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Sale object",
+          "response": "Updated Sale object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/sales/:id",
+          "description": "Update sale (partial)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Sale object",
+          "response": "Updated Sale object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/sales/:id",
+          "description": "Delete sale",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "incomes": {
+      "basePath": "/api/incomes",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/incomes",
+          "description": "List all incomes",
+          "queryParams": {
+            "year": "number (optional)",
+            "month": "number (optional, 1-12)"
+          },
+          "response": "Array of Income objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/incomes/:id",
+          "description": "Get income by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Income object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/incomes",
+          "description": "Create income",
+          "body": "Income object (see models.json)",
+          "response": "Created Income object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/incomes/:id",
+          "description": "Update income",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Income object",
+          "response": "Updated Income object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/incomes/:id",
+          "description": "Update income (partial)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Income object",
+          "response": "Updated Income object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/incomes/:id",
+          "description": "Delete income",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "expenses": {
+      "basePath": "/api/expenses",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/expenses",
+          "description": "List all expenses",
+          "queryParams": {
+            "year": "number (optional)",
+            "month": "number (optional, 1-12)"
+          },
+          "response": "Array of Expense objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/expenses/:id",
+          "description": "Get expense by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Expense object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/expenses",
+          "description": "Create expense",
+          "body": {
+            "name": "string (required)",
+            "cost": "string (required)",
+            "currency": "string (optional, default: 'KWD')",
+            "employee_id": "ObjectId (optional, ref Employee, not User)",
+            "notes": "string (optional)",
+            "type": "string[] (required, min 1)",
+            "month": "date (required)",
+            "paidBy": "string (optional)",
+            "isRecurring": "boolean (optional)",
+            "phase": "string (optional)"
+          },
+          "response": "Created Expense object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/expenses/:id",
+          "description": "Update expense",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Expense object",
+          "response": "Updated Expense object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/expenses/:id",
+          "description": "Delete expense",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "discountCodes": {
+      "basePath": "/api/discount-codes",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/discount-codes",
+          "description": "List all discount codes",
+          "response": "Array of DiscountCode objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/discount-codes/code/:code",
+          "description": "Get discount code by code string",
+          "params": {
+            "code": "string (required)"
+          },
+          "response": "DiscountCode object"
+        },
+        {
+          "method": "GET",
+          "path": "/api/discount-codes/:id",
+          "description": "Get discount code by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "DiscountCode object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/discount-codes",
+          "description": "Create discount code",
+          "body": {
+            "code": "string (required, auto-uppercased)",
+            "discount_percentage": "number (required, 0-100, converted to string for storage)",
+            "expiry_date": "date (required)",
+            "is_active": "boolean (optional, default: true)"
+          },
+          "response": "Created DiscountCode object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/discount-codes/validate",
+          "description": "Validate discount code",
+          "body": {
+            "code": "string (required)",
+            "orderTotal": "string (optional)"
+          },
+          "response": "Validation result"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/discount-codes/:id",
+          "description": "Update discount code",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial DiscountCode object",
+          "response": "Updated DiscountCode object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/discount-codes/:id",
+          "description": "Delete discount code",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "creditCards": {
+      "basePath": "/api/credit-cards",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/credit-cards",
+          "description": "List all credit cards",
+          "response": "Array of CreditCard objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/credit-cards/user/:userId",
+          "description": "Get credit cards by user ID",
+          "params": {
+            "userId": "ObjectId (required)"
+          },
+          "response": "Array of CreditCard objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/credit-cards/:id",
+          "description": "Get credit card by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "CreditCard object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/credit-cards",
+          "description": "Create credit card",
+          "body": {
+            "cardNumber": "string (required)",
+            "expiryDate": "string (required)",
+            "holderName": "string (required)"
+          },
+          "response": "Created CreditCard object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/credit-cards/:id",
+          "description": "Update credit card",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial CreditCard object",
+          "response": "Updated CreditCard object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/credit-cards/:id",
+          "description": "Delete credit card",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "outfits": {
+      "basePath": "/api/outfits",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/outfits",
+          "description": "List all outfits",
+          "response": "Array of Outfit objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/outfits/:id",
+          "description": "Get outfit by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Outfit object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/outfits",
+          "description": "Create outfit",
+          "body": {
+            "item_ids": "ObjectId[] (required, min 1)",
+            "outfit_title": "string (required)",
+            "outfit_tags": "string (required)"
+          },
+          "response": "Created Outfit object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/outfits/:id",
+          "description": "Update outfit",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Outfit object",
+          "response": "Updated Outfit object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/outfits/:id",
+          "description": "Delete outfit",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "outfitItems": {
+      "basePath": "/api/outfit-items",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/outfit-items",
+          "description": "List all outfit items",
+          "response": "Array of OutfitItem objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/outfit-items/outfit/:outfitId",
+          "description": "Get outfit items by outfit ID",
+          "params": {
+            "outfitId": "ObjectId (required)"
+          },
+          "response": "Array of OutfitItem objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/outfit-items/:id",
+          "description": "Get outfit item by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "OutfitItem object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/outfit-items",
+          "description": "Create outfit item",
+          "body": {
+            "item_id": "ObjectId (required)",
+            "outfit_id": "ObjectId (required)",
+            "featured_in_product": "boolean (required)"
+          },
+          "response": "Created OutfitItem object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/outfit-items/:id",
+          "description": "Update outfit item",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial OutfitItem object",
+          "response": "Updated OutfitItem object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/outfit-items/:id",
+          "description": "Delete outfit item",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/outfit-items/:id/featured",
+          "description": "Toggle featured status of outfit item",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Updated OutfitItem object"
+        }
+      ]
+    },
+    "employees": {
+      "basePath": "/api/employees",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/employees",
+          "description": "List all employees",
+          "response": "Array of Employee objects"
+        },
+        {
+          "method": "GET",
+          "path": "/api/employees/:id",
+          "description": "Get employee by ID",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Employee object"
+        },
+        {
+          "method": "POST",
+          "path": "/api/employees",
+          "description": "Create employee",
+          "body": {
+            "name": "string (required)",
+            "photo": "string (optional, URL)",
+            "role": "string (optional)",
+            "type": "string (optional)",
+            "salaryActual": "string (optional)",
+            "salaryProjected": "string (optional)",
+            "user_id": "ObjectId (optional)"
+          },
+          "response": "Created Employee object"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/employees/:id",
+          "description": "Update employee",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Employee object",
+          "response": "Updated Employee object"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/employees/:id",
+          "description": "Update employee (partial)",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "body": "Partial Employee object",
+          "response": "Updated Employee object"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/employees/:id",
+          "description": "Delete employee",
+          "params": {
+            "id": "ObjectId (required)"
+          },
+          "response": "Success message"
+        }
+      ]
+    },
+    "enums": {
+      "basePath": "/api/enums",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/enums",
+          "description": "Get all enum categories",
+          "response": "Object with all enum categories"
+        },
+        {
+          "method": "GET",
+          "path": "/api/enums/:category",
+          "description": "Get enum values for a specific category",
+          "params": {
+            "category": "string (required, e.g., 'orderStatus', 'itemStatus', 'userRole', 'dropStatus', 'itemCondition', 'reviewStars', 'kuwaitGovernorate', 'kuwaitCity')"
+          },
+          "response": "Array of enum values"
+        }
+      ]
+    }
+  },
+  "_notes": [
+    "All ObjectId parameters must be valid MongoDB ObjectIds (24 hex characters)",
+    "All dates should be ISO 8601 strings or Date objects",
+    "Query parameters for date filtering: year (4 digits), month (1-12)",
+    "Error responses follow format: { success: false, error: string, code?: string, details?: array }",
+    "Success responses follow format: { success: true, data: any, count?: number }",
+    "Rate fields (base_rate, op_rate, clean_rate, sub_clean_rate, demand_rate) accept numbers and are automatically converted to strings for storage",
+    "Drop status changes automatically update item statuses: 'upcoming' → items become 'pending', 'active' → items become 'available'"
+  ]
+}

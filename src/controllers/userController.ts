@@ -270,6 +270,18 @@ const updateUser = async (req: Request, res: Response) => {
 		update.password = await bcrypt.hash(update.password, 10);
 	}
 
+	// Sync seller's isDeactivated with user's isDeleted
+	// If user isDeleted is being updated and user is a seller, sync seller status
+	if ("isDeleted" in update && update.isDeleted !== undefined) {
+		const userBeforeUpdate = await User.findById(id);
+		if (userBeforeUpdate?.roles.includes(UserRole.SELLER)) {
+			await Seller.updateOne(
+				{ userId: id },
+				{ isDeactivated: update.isDeleted },
+			);
+		}
+	}
+
 	const user = await User.findByIdAndUpdate(id, update, {
 		new: true,
 		runValidators: true,
@@ -297,17 +309,75 @@ const updateSellerInfo = async (req: Request, res: Response) => {
 	const { id } = req.params;
 
 	if (!mongoose.Types.ObjectId.isValid(id)) {
-		res.status(400).json({ error: "Invalid ID" });
+		res.status(400).json({ success: false, error: "Invalid ID" });
 		return;
 	}
 
-	const user = await User.findById(id);
+	// Match getSellerById / deleteSeller: :id may be Seller document _id or User id
+	let sellerDoc = await Seller.findById(id);
+	if (!sellerDoc) {
+		sellerDoc = await Seller.findOne({ userId: id });
+	}
+	if (!sellerDoc) {
+		res.status(404).json({ success: false, error: "Seller not found" });
+		return;
+	}
+
+	const user = await User.findById(sellerDoc.userId);
 	if (!user || !user.roles.includes(UserRole.SELLER)) {
-		res.status(404).json({ error: "Seller not found" });
+		res.status(404).json({ success: false, error: "Seller not found" });
 		return;
 	}
 
 	const update: any = {};
+
+	// Handle isDeactivated (status)
+	if ("isDeactivated" in req.body) {
+		const val = req.body.isDeactivated;
+		let isDeactivatedValue: boolean;
+		if (typeof val === "boolean") {
+			isDeactivatedValue = val;
+		} else if (typeof val === "string") {
+			isDeactivatedValue = val.toLowerCase() === "true";
+		} else {
+			isDeactivatedValue = val === true;
+		}
+		update.isDeactivated = isDeactivatedValue;
+		
+		// Sync user's isDeleted with seller's isDeactivated
+		// If seller is deactivated, soft-delete the user
+		// If seller is activated, restore the user (set isDeleted to false)
+		await User.findByIdAndUpdate(
+			user._id,
+			{ isDeleted: isDeactivatedValue },
+			{ new: true },
+		);
+	}
+
+	// Handle other seller fields
+	if ("fullName" in req.body) {
+		update.fullName = req.body.fullName ?? "";
+	}
+
+	if ("emailAddress" in req.body) {
+		update.emailAddress = req.body.emailAddress;
+	}
+
+	if ("phoneNumber" in req.body) {
+		update.phoneNumber = req.body.phoneNumber;
+	}
+
+	if ("addressText" in req.body) {
+		update.addressText = req.body.addressText ?? "";
+	}
+
+	if ("qrCode" in req.body) {
+		update.qrCode = req.body.qrCode;
+	}
+
+	if ("intakeTimestamp" in req.body) {
+		update.intakeTimestamp = req.body.intakeTimestamp;
+	}
 
 	if ("consentGiven" in req.body) {
 		const consentValue = req.body.consentGiven;
@@ -327,7 +397,10 @@ const updateSellerInfo = async (req: Request, res: Response) => {
 
 	if ("IBAN" in req.body) {
 		update.IBAN = req.body.IBAN;
+		// Auto-generate qrCode if IBAN is provided and qrCode not explicitly set
+		if (!("qrCode" in req.body)) {
 		update.qrCode = `QR_${req.body.IBAN}`;
+		}
 	}
 
 	if ("balance" in req.body) {
@@ -348,6 +421,7 @@ const updateSellerInfo = async (req: Request, res: Response) => {
 			!Object.values(EscalationStatus).includes(val)
 		) {
 			res.status(400).json({
+				success: false,
 				error: `Invalid escalationStatus. Must be one of: ${Object.values(
 					EscalationStatus,
 				).join(", ")}`,

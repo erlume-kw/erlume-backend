@@ -41,6 +41,7 @@ const TransactionSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Order",
         required: true,
+        unique: true,
         index: true,
     },
     discount_rate: { type: String, required: true },

@@ -1,7 +1,7 @@
 "use strict";
 /**
  * Enums for pickup, return, delivery, and escalation flows.
- * Exposed via GET /api/enums/{category} for backoffice dropdowns/filters.
+ * Exposed via GET /api/enums/{category} for client dropdowns/filters.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EscalationStatus = exports.DeliveryStatus = exports.ReturnStatus = exports.AuthenticationStatus = void 0;

@@ -6,6 +6,7 @@ import OrderItem from "../models/OrderItem";
 import Transaction from "../models/Transaction";
 import Item from "../models/Item";
 import { getMonthYearDateRange } from "../utils/dateRange";
+import { sendError } from "../utils/sendError";
 import { ItemCondition } from "../enums/itemEnums";
 
 const normalizeSaleRate = (value: unknown): number => {
@@ -194,7 +195,7 @@ const recalculateSaleCommissions = async (
 		});
 	} catch (error) {
 		console.error("Error in recalculateSaleCommissions:", error);
-		res.status(500).json({ success: false, error: "Internal server error" });
+		sendError(res, 500, "Internal server error", "INTERNAL_ERROR");
 	}
 };
 

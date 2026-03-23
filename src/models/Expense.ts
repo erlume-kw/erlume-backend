@@ -9,7 +9,7 @@ const ExpenseSchema: Schema = new Schema(
 		currency: { type: String, required: false, default: "KWD" },
 		employee_id: {
 			type: Schema.Types.ObjectId,
-			ref: "User",
+			ref: "Employee",
 			required: false,
 			index: true,
 		},
