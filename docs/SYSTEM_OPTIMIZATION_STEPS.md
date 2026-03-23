@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines step-by-step instructions to elevate your backend system with payment gateway integration, Zoho invoicing, enhanced logistics tracking, and supporting APIs. This backend is **REST + OpenAPI only** — client apps consume **`openapi.json`** as the contract.
+This document outlines step-by-step instructions to elevate the backend system with payment gateway integration, Zoho invoicing, enhanced logistics tracking, and supporting APIs. This backend is **REST + OpenAPI only** — client apps consume **`openapi.json`** as the contract.
 
 ## Status snapshot (this repository)
 
@@ -27,10 +27,13 @@ Last reviewed against **`backend-1.0`** — **March 2026**. The steps below rema
 |--------------|--------|
 | **Drop** model (`name`, `description`, `releaseDate`, `status`) | **Done** — see `src/models/Drop.ts`. |
 | **Item** — catalog, auth, drop link, `listingPrice`, `seller_id` (User ref), returns | **Partial** — implemented in `src/models/Item.ts`. **Missing / different vs doc:** required `sellerId` → **Seller** document (code uses `seller_id` → User), `salePrice` / per-item `sellerShareAmount` / `erlumeShareAmount`, `photographyStatus`, `cleaningCost`, `zohoItemId`, dedicated `listedDate` / `soldDate` / `pickupDate` as in the roadmap, etc. |
-| **Seller** — profile, `IBAN`, escalation | **Partial** — `src/models/Seller.ts`. **Missing vs doc:** `onboardingStatus`, `lastContactDate`, `responseStatus`, Zoho/Google Form fields, `totalItemsSold` / `totalEarnings` / `totalErlumeCommission`, `agreementSigned`, etc. |
+| **Item status lifecycle** (unlaunched → pending → available → sold) | **Needs update** — current enum lacks `unlaunched` status. See §1.2.1. |
+| **Seller** — profile, `IBAN`, escalation, items onboarding status | **Partial** — `src/models/Seller.ts`. **Missing vs doc:** `onboardingStatus`, `itemsOnboardingStatus`, `lastContactDate`, `responseStatus`, Zoho/Google Form fields, `totalItemsSold` / `totalEarnings` / `totalErlumeCommission`, `agreementSigned`, etc. See §1.1.1. |
 | **Order** — delivery + tracking | **Partial** — `deliveryDate`, `deliveryStatus`, `trackingReference` in `src/models/Order.ts`. **Missing vs doc:** `paymentStatus`, gateway IDs, Zoho invoice fields, `customerFeedback`, `discountCodeUsed`, structured `deliveryAddress`, etc. |
 | **Transaction** | **Partial** — amount, status, `paymentMethod`, discount linkage. **Missing vs doc:** `paymentGatewayResponse`, refund fields, Zoho IDs, per-tx `sellerShareAmount` / `erlumeShareAmount`. |
 | **Sale** + **Income** (money vs evidence) | **Done (conceptually)** — `Sale` holds commission + invoice/evidence fields; `Income` exists; order flow creates/updates sale/income-related data. Recalculate endpoint: `POST /api/sales/recalculate-commissions`. |
+| **Profit on delivered (not pending)** | **Needs fix** — profit/income currently created at order creation. Must defer to `delivered` status. See §1.6.1. |
+| **User → bags validation** | **Needs implementation** — editing user info should validate bag assignments. See §1.7. |
 | **PickupDelivery** / **Escalation** collections | **Not started** — escalation is modeled as **fields** on Seller, not separate models. |
 | Commission math | **Partial** — implemented in order/sale logic and recalculation; not every storage location from §1.6 is mirrored on Item/Transaction as written in the roadmap. |
 
@@ -38,7 +41,7 @@ Last reviewed against **`backend-1.0`** — **March 2026**. The steps below rema
 
 - Express + Mongoose REST API (`src/server.ts`, `src/routes/*`).
 - **Zod** validation middleware and shared schemas (`src/middleware/validation.ts`, `src/validations/schemas.ts`) — coverage is **not** 100% of handlers.
-- **OpenAPI** + Swagger UI: `/api-docs` (spec JSON: `/api-docs.json`). See `docs/BACKEND_SINGLE_SOURCE_AND_LIGHTER.md`.
+- **OpenAPI** + Swagger UI: `/api-docs` (spec JSON: `/api-docs.json`), filtered views at `/api-docs/backoffice` and `/api-docs/frontend`.
 - **`sendError`** helper (`src/utils/sendError.ts`) — used in a few controllers only.
 - **`api-routes.json`** and markdown under `docs/`.
 
@@ -69,6 +72,29 @@ Everything in Phases **2–6** (payments, Zoho, form automation, WhatsApp, queue
 - `manuallyEnteredBy`: ObjectId (User ID of admin who entered data)
 - `manuallyEnteredAt`: Date
 
+#### Step 1.1.1: Add Items Onboarding Status to Seller Model
+
+**Purpose:** Track the overall onboarding progress of a seller's items — whether their bags have been received, photographed, authenticated, and listed.
+
+**Add to Seller schema:**
+
+- `itemsOnboardingStatus`: Enum ["no_items", "items_pending_pickup", "items_received", "items_in_processing", "items_listed", "partially_listed"]
+
+**How it works:**
+
+- `no_items` — Seller has been onboarded but no items submitted yet.
+- `items_pending_pickup` — Items submitted, awaiting pickup from seller.
+- `items_received` — Items picked up and received at Erlume.
+- `items_in_processing` — Items are being photographed, cleaned, or authenticated.
+- `items_listed` — All items have been listed and are available for sale.
+- `partially_listed` — Some items listed, others still in processing.
+
+**When to update:**
+
+- Auto-compute from the seller's linked items' statuses when items are created/updated.
+- Optionally expose a helper endpoint or compute on read: aggregate `itemStatus` values across the seller's `itemIds`.
+- Display in the backoffice Sellers page so staff can see at a glance which sellers need attention.
+
 ### Step 1.2: Enhance Item Model
 
 **Add these fields to Item schema:**
@@ -92,7 +118,43 @@ Everything in Phases **2–6** (payments, Zoho, form automation, WhatsApp, queue
 - `zohoItemId`: String (if you sync items to Zoho inventory)
 - `drop_id`: ObjectId (reference to Drop - optional, items can belong to a drop)
 
-### Step 1.2.1: Create Drop Model
+#### Step 1.2.1: Fix Item Status Lifecycle (unlaunched vs sold)
+
+**Problem:** The current `ItemStatus` enum (`available`, `sold`, `out_of_stock`, `pending`, `approved`, `rejected`) doesn't distinguish between an item that hasn't been launched yet (not in any active drop) and one that has been sold.
+
+**Updated `ItemStatus` enum:**
+
+```
+unlaunched    — Item created/approved but not yet assigned to an active drop
+pending       — Item assigned to an upcoming drop, waiting for launch
+available     — Item is live and available for purchase (drop is active)
+sold          — Item has been purchased and order is confirmed
+out_of_stock  — Item temporarily unavailable
+approved      — Item approved by admin (pre-launch review)
+rejected      — Item rejected by admin
+returned      — Item returned after sale
+```
+
+**Lifecycle flow:**
+
+```
+[created] → rejected (if fails review)
+[created] → approved → unlaunched (approved but no active drop)
+unlaunched → pending (assigned to upcoming drop)
+pending → available (drop becomes active)
+available → sold (order placed and confirmed)
+sold → returned (if customer returns)
+```
+
+**Implementation:**
+
+1. Add `unlaunched` to `src/enums/statusEnums.ts`.
+2. Update `dropController.ts` — when adding an item to an upcoming drop, set status to `pending`; when drop becomes active, set to `available`. Items not in any drop stay `unlaunched`.
+3. Update `orderController.ts` — set item to `sold` only when order status transitions (see §1.6.1).
+4. Update `openapi.json` with the new enum value.
+5. Update backoffice item filters to include the `unlaunched` status.
+
+### Step 1.2.2: Create Drop Model
 
 **Create new `Drop` model:**
 
@@ -216,15 +278,127 @@ Everything in Phases **2–6** (payments, Zoho, form automation, WhatsApp, queue
   - Special promotions
 - Store commission rate in Item model when item is listed or sold
 
-**When to Calculate:**
+#### Step 1.6.1: Profit Recorded on Delivered, Not Pending
+
+**Problem:** Currently, `Income` and `Sale` records (profit/commission) are created at order creation time in `orderController.createOrder()`. This means revenue appears in dashboards before the order is actually fulfilled. Profit should only be recognized when the order status becomes **delivered**.
+
+**Current behavior (wrong):**
+
+```
+Order created → Income + Sale created immediately → dashboard shows revenue
+```
+
+**Correct behavior:**
+
+```
+Order created → items marked as sold, Transaction created (pending)
+Order status → delivered → Income + Sale created, commission calculated
+```
+
+**Implementation:**
+
+1. **`orderController.createOrder()`** — Remove Income and Sale creation from order creation. Keep: item status update to `sold`, OrderItem creation, Transaction creation with `status: pending`.
+
+2. **`orderController.updateOrderStatus()`** — When status changes to `delivered`:
+   - Create `Sale` record with commission calculation (saleRate, condition deduction).
+   - Create `Income` record with Erlume's commission amount.
+   - Update `Transaction.status` to `completed`.
+   - Update seller's `totalEarnings` and `totalErlumeCommission` (when those fields exist).
+   - Set `Item.soldDate` to current date.
+
+3. **`orderController.updateOrderStatus()`** — When status changes to `cancelled`:
+   - Revert item status back to `available`.
+   - Update `Transaction.status` to `failed`.
+   - Do NOT create Sale or Income records.
+
+4. **Dashboard impact:** Revenue KPIs should only reflect delivered orders. The backoffice `DashboardPage.tsx` already filters by `isDeliveredSaleByStatus()` — this change makes the data source consistent with that filter.
+
+**When to Calculate (updated):**
 
 - **Before listing:** Set `listingPrice` and `commissionRate` (can show seller expected payout: listingPrice × (1 - commissionRate))
-- **When item is sold:**
-  - Set `salePrice` (final price after discounts)
-  - Calculate and store `sellerShareAmount` = salePrice × (1 - commissionRate)
-  - Calculate and store `erlumeShareAmount` = salePrice × commissionRate
-- **Transaction level:** Store same breakdown for each payment transaction
-- **Seller level:** Update `totalEarnings` += sellerShareAmount, `totalErlumeCommission` += erlumeShareAmount
+- **When order is placed:** Mark items as `sold`, create Transaction (pending), create OrderItems.
+- **When order is delivered:** Calculate and store commission. Create Sale + Income records. This is when profit is officially recognized.
+- **Transaction level:** Update status to `completed` on delivery, store commission breakdown.
+- **Seller level:** Update `totalEarnings` += sellerShareAmount, `totalErlumeCommission` += erlumeShareAmount on delivery.
+
+### Step 1.7: User Editing — Bags Validation
+
+**Problem:** When editing a user's info (especially sellers), assigning bags (items) to a user needs proper validation to prevent orphaned items, duplicate assignments, or invalid references.
+
+**Validation rules for bag assignment:**
+
+1. **Item exists** — Validate that each `itemId` being assigned actually exists in the Items collection.
+2. **Item not already assigned** — Check that the item isn't already assigned to a different seller (prevent double-assignment).
+3. **Seller role required** — User must have the `SELLER` role to have items assigned.
+4. **Seller record exists** — A corresponding `Seller` document must exist for the user.
+5. **Bag brand validation** — If the item's brand is specified, validate it against the `BagBrand` enum.
+6. **Bidirectional sync** — When assigning items to a seller:
+   - Add `itemId` to `Seller.itemIds` array.
+   - Set `Item.seller_id` to the user's ID.
+   - Both sides must stay in sync.
+
+**Implementation in `userController.updateUser()` and `userController.updateSellerInfo()`:**
+
+```
+// When itemIds are included in the update:
+1. Validate all itemIds exist
+2. Check no itemId is assigned to another seller
+3. Diff current vs new itemIds:
+   - Added items: set Item.seller_id = userId, add to Seller.itemIds
+   - Removed items: unset Item.seller_id, remove from Seller.itemIds
+4. Run in a MongoDB transaction for atomicity
+```
+
+**Backoffice UI:** The user/seller edit form should show available (unassigned) bags for selection and warn if a bag is already assigned elsewhere.
+
+---
+
+## PHASE 1B: Backoffice UI Updates
+
+These changes are in the **backoffice** React app (`erlume-backoffice`) and consume the backend REST API.
+
+### Step 1B.1: Add Number of Sellers to Dashboard
+
+**Problem:** The main dashboard (`DashboardPage.tsx`) shows 4 KPI cards: Total Revenue, Total Orders, Total Users, Active Items. It's missing the number of sellers.
+
+**Implementation:**
+
+1. The dashboard already fetches sellers data (`/api/sellers`). Add a 5th KPI card:
+   - **Title:** "Total Sellers"
+   - **Value:** `sellers.length` (or filter by `isDeactivated !== true` for active sellers only)
+   - **Icon:** Use a seller/store icon
+   - **Trend:** 7-day new seller count vs prior 7 days (use `createdAt` timestamps)
+
+2. Update the KPI grid layout from 4 columns to 5 (or use a responsive layout that accommodates 5 cards).
+
+### Step 1B.2: Add Bags to Drop View
+
+**Problem:** The drop detail view needs a function to add bags (items) directly from the drop page, not just from the items page.
+
+**Implementation:**
+
+1. In the Drop detail/edit view, add an "Add Bags" button/section.
+2. When clicked, show a modal or panel with:
+   - Search/filter for available items (status: `unlaunched` or `approved`, not already in a drop).
+   - Filter by brand, category, seller.
+   - Multi-select capability to add multiple bags at once.
+3. On confirm, call `POST /api/drops/:id/items` with the selected `itemIds` array.
+4. The backend already supports this endpoint and auto-updates item statuses based on drop status.
+5. Show the current bags in the drop with the ability to remove individual items (`DELETE /api/drops/:id/items/:itemId`).
+
+### Step 1B.3: Display Items Onboarding Status on Sellers Page
+
+**Implementation:**
+
+1. In the Sellers list/detail view, show the `itemsOnboardingStatus` field (once added to the backend — see §1.1.1).
+2. Use color-coded badges:
+   - `no_items` — grey
+   - `items_pending_pickup` — yellow
+   - `items_received` — blue
+   - `items_in_processing` — orange
+   - `items_listed` — green
+   - `partially_listed` — teal
+3. Optionally compute this client-side from the seller's items if the backend field isn't implemented yet: fetch items by seller, aggregate their statuses.
 
 ---
 
@@ -419,7 +593,7 @@ Everything in Phases **2–6** (payments, Zoho, form automation, WhatsApp, queue
 **Implement in your backoffice (consumes this REST API):**
 
 - Seller create/edit screens aligned with Google Form fields
-- Optional “Import seller” flow with fields matching the form
+- Optional "Import seller" flow with fields matching the form
 - Pre-fill from pasted Google Form response where helpful
 - Validation against required Seller/API rules
 - After save: update onboarding status (e.g. `ready_for_pickup`) as per product rules
@@ -439,7 +613,7 @@ Everything in Phases **2–6** (payments, Zoho, form automation, WhatsApp, queue
 
 **In the backoffice app:**
 
-- Surface “Sellers pending manual entry” (or equivalent queue)
+- Surface "Sellers pending manual entry" (or equivalent queue)
 - Count submissions not yet entered in the DB
 - Link to entry form
 - Filter by date submitted
@@ -710,13 +884,22 @@ Original timeline below is **aspirational**; status reflects **this repo** (see 
 - [x] **OpenAPI + Swagger** (`openapi.json`, filtered views by `x-usedBy`).
 - [~] **Phase 1 schema** — **partial**; align remaining fields/models with product before payments and Zoho work.
 
-### Recommended next steps
+### Recommended next steps (immediate)
 
-1. **Close Phase 1 gaps** you actually need (payment-related Order fields, optional PickupDelivery, etc.) — avoid duplicating fields already covered by Sale/Income if the product accepts that split.
-2. **Payment gateway** (Phase 2), then **Zoho** (Phase 3) — order of integration matters for webhooks and invoice timing.
-3. **Google Form / backoffice flows** (Phase 4) as needed for operations.
-4. **Queues + cron** (Phase 6) once workflows are defined (requires Redis if using Bull/BullMQ).
-5. **Tests + health + logging** (Phases 8–9) before scaling traffic.
+1. **Item status lifecycle** (§1.2.1) — Add `unlaunched` status to distinguish items not yet in a drop from sold items.
+2. **Profit on delivered** (§1.6.1) — Move Income/Sale creation from order creation to order delivery. Critical for accurate revenue reporting.
+3. **User/bags validation** (§1.7) — Add validation when assigning bags to sellers via user edit.
+4. **Dashboard sellers count** (§1B.1) — Add "Total Sellers" KPI card to the backoffice dashboard.
+5. **Add bags in drop view** (§1B.2) — Allow staff to search and add bags directly from the drop detail page.
+6. **Items onboarding status** (§1.1.1) — Add `itemsOnboardingStatus` to the Seller model and display in backoffice.
+
+### Recommended next steps (subsequent)
+
+7. **Close remaining Phase 1 gaps** you actually need (payment-related Order fields, optional PickupDelivery, etc.) — avoid duplicating fields already covered by Sale/Income if the product accepts that split.
+8. **Payment gateway** (Phase 2), then **Zoho** (Phase 3) — order of integration matters for webhooks and invoice timing.
+9. **Google Form / backoffice flows** (Phase 4) as needed for operations.
+10. **Queues + cron** (Phase 6) once workflows are defined (requires Redis if using Bull/BullMQ).
+11. **Tests + health + logging** (Phases 8–9) before scaling traffic.
 
 ### Not started (from roadmap, unchanged)
 
@@ -738,11 +921,13 @@ Original timeline below is **aspirational**; status reflects **this repo** (see 
 1. **Seller Metrics:**
 
    - Onboarding completion rate
+   - Items onboarding status distribution (how many sellers at each stage)
    - Average onboarding time
    - Google Form to database entry time (how long between form submission and manual entry)
    - Manual entry accuracy (track corrections/updates)
    - Response rate
    - Escalation rate
+   - Total active sellers (new dashboard KPI)
 
 2. **Item Metrics:**
 
@@ -750,6 +935,7 @@ Original timeline below is **aspirational**; status reflects **this repo** (see 
    - Authentication pass rate
    - Time to sale
    - Return rate
+   - Unlaunched vs available vs sold distribution
 
 3. **Order Metrics:**
 
@@ -759,8 +945,8 @@ Original timeline below is **aspirational**; status reflects **this repo** (see 
    - Delivery success rate
 
 4. **Financial Metrics:**
-   - Revenue by period (total sales)
-   - Erlume platform revenue (total commission earned)
+   - Revenue by period (total sales — **delivered orders only**)
+   - Erlume platform revenue (total commission earned — **on delivery**)
    - Seller payouts (total paid to sellers)
    - Commission breakdown (by category, seller, item)
    - Average commission rate
@@ -775,6 +961,7 @@ Original timeline below is **aspirational**; status reflects **this repo** (see 
 - **Seller data entry:** Google Forms → manual entry into the DB via your **backoffice app** (or scripts / MongoDB tools). This backend exposes REST + OpenAPI only.
 - **Roadmap vs code:** The **Status snapshot** at the top tracks what is implemented in `backend-1.0`; the numbered phases below are the full target design.
 - **No Automated Form Sending:** WhatsApp is used for communication only, not for sending forms
+- **Profit recognition:** Revenue and commission are recognized on **delivery**, not on order creation. This matches accounting best practices and prevents inflated dashboard numbers from pending/cancelled orders.
 - Start with Phase 1 (database) - everything else depends on it
 - Test each integration separately before combining
 - Use environment variables for all sensitive data
