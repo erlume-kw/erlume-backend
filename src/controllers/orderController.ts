@@ -40,18 +40,65 @@ const getConditionDeductionRate = (condition?: ItemCondition | string): number =
 	}
 };
 
-const markOrderItemsSold = async (orderId: mongoose.Types.ObjectId | string) => {
-	const orderItems = await OrderItem.find({ order_id: orderId })
-		.select("item_id")
-		.lean();
-	const itemIds = orderItems
-		.map((item) => item.item_id)
-		.filter(Boolean);
-	if (itemIds.length > 0) {
-		await Item.updateMany(
-			{ _id: { $in: itemIds } },
-			{ itemStatus: ItemStatus.Sold },
-		);
+const createDeliveredFinancials = async (orderId: mongoose.Types.ObjectId | string) => {
+	const orderItems = await OrderItem.find({ order_id: orderId }).lean();
+
+	const incomeDocs: Array<Record<string, unknown>> = [];
+	const saleDocs: Array<Record<string, unknown>> = [];
+
+	for (const orderItem of orderItems) {
+		const item = await Item.findById(orderItem.item_id).lean();
+		if (!item) continue;
+
+		const listingPrice = parseFloat(item.listingPrice);
+		if (Number.isNaN(listingPrice)) continue;
+
+		const orderQuantity = Number(orderItem.quantity) || 1;
+		const lineTotal = (listingPrice * orderQuantity).toFixed(2);
+
+		const saleRateValue = normalizeSaleRate(item.saleRate);
+		const conditionDeduction = getConditionDeductionRate(item.condition);
+		const adjustedAmount = Number(lineTotal) * (1 - conditionDeduction);
+		const sellerPayout = (adjustedAmount * saleRateValue).toFixed(2);
+		const erlumeCommission = (adjustedAmount * (1 - saleRateValue)).toFixed(2);
+
+		incomeDocs.push({
+			order_id: orderId,
+			order_item_id: orderItem._id,
+			item_id: orderItem.item_id,
+			seller_id: item.seller_id ?? undefined,
+			amount: erlumeCommission,
+			received_at: new Date(),
+		});
+
+		saleDocs.push({
+			order_id: orderId,
+			order_item_id: orderItem._id,
+			item_id: orderItem.item_id,
+			amount: lineTotal,
+			erlumeCommission,
+			sellerPayout,
+		});
+	}
+
+	const transaction = await Transaction.findOne({ order_id: orderId });
+
+	if (incomeDocs.length > 0) {
+		await Income.insertMany(incomeDocs);
+	}
+
+	if (saleDocs.length > 0 && transaction) {
+		const saleDocsWithTransaction = saleDocs.map((doc) => ({
+			...doc,
+			transaction_id: transaction._id,
+		}));
+		await Sale.insertMany(saleDocsWithTransaction);
+	}
+
+	if (transaction) {
+		await Transaction.findByIdAndUpdate(transaction._id, {
+			status: TransactionStatus.Completed,
+		});
 	}
 };
 
@@ -245,8 +292,6 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 
 		const createdOrderItemIds: mongoose.Types.ObjectId[] = [];
 		const itemIds: mongoose.Types.ObjectId[] = [];
-		const incomeDocs: Array<Record<string, unknown>> = [];
-		const saleDocs: Array<Record<string, unknown>> = [];
 		let totalAmount = 0;
 
 		for (const orderItemInput of orderItems) {
@@ -354,33 +399,6 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 
 			const lineTotal = (listingPrice * Number(orderQuantity)).toFixed(2);
 			totalAmount += Number(lineTotal);
-
-			const saleRateValue = normalizeSaleRate(item.saleRate);
-			const conditionDeduction = getConditionDeductionRate(item.condition);
-			const adjustedAmount =
-				Number(lineTotal) * (1 - conditionDeduction);
-			const sellerPayout = (adjustedAmount * saleRateValue).toFixed(2);
-			const erlumeCommission = (
-				adjustedAmount * (1 - saleRateValue)
-			).toFixed(2);
-
-			incomeDocs.push({
-				order_id: savedOrder._id,
-				order_item_id: createdOrderItem[0]._id,
-				item_id,
-				seller_id: item.seller_id ?? undefined,
-				amount: erlumeCommission,
-				received_at: new Date(),
-			});
-
-			saleDocs.push({
-				order_id: savedOrder._id,
-				order_item_id: createdOrderItem[0]._id,
-				item_id,
-				amount: lineTotal,
-				erlumeCommission,
-				sellerPayout,
-			});
 		}
 
 		savedOrder.orderitem_ids = createdOrderItemIds;
@@ -389,21 +407,15 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 		if (itemIds.length > 0) {
 			await Item.updateMany(
 				{ _id: { $in: itemIds } },
-				{ orderId: savedOrder._id },
+				{ orderId: savedOrder._id, itemStatus: ItemStatus.Sold },
 				{ session },
 			);
 		}
 
-		if (incomeDocs.length > 0) {
-			await Income.insertMany(incomeDocs, { session });
-		}
-
-		// Check if transaction already exists for this order (prevent duplicates)
-		let transaction = await Transaction.findOne({ order_id: savedOrder._id }).session(session);
-		
-		if (!transaction) {
-			// Create transaction only if it doesn't exist
-			const createdTransactions = await Transaction.create(
+		// Create pending transaction
+		const existingTransaction = await Transaction.findOne({ order_id: savedOrder._id }).session(session);
+		if (!existingTransaction) {
+			await Transaction.create(
 				[
 					{
 						order_id: savedOrder._id,
@@ -414,22 +426,9 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 				],
 				{ session },
 			);
-			transaction = createdTransactions[0];
-		} else {
-			// Transaction already exists - update amount if needed (optional)
-			// This ensures the transaction amount matches the current order total
-			if (transaction.amount !== totalAmount.toFixed(2)) {
-				transaction.amount = totalAmount.toFixed(2);
-				await transaction.save({ session });
-			}
-		}
-
-		if (saleDocs.length > 0) {
-			const saleDocsWithTransaction = saleDocs.map((doc) => ({
-				...doc,
-				transaction_id: transaction._id,
-			}));
-			await Sale.insertMany(saleDocsWithTransaction, { session });
+		} else if (existingTransaction.amount !== totalAmount.toFixed(2)) {
+			existingTransaction.amount = totalAmount.toFixed(2);
+			await existingTransaction.save({ session });
 		}
 
 		await session.commitTransaction();
@@ -512,7 +511,22 @@ const updateOrderStatus = async (
 		);
 
 		if (status === OrderStatus.Delivered) {
-			await markOrderItemsSold(orderId);
+			await createDeliveredFinancials(orderId);
+		}
+
+		if (status === OrderStatus.Cancelled) {
+			const orderItems = await OrderItem.find({ order_id: orderId }).lean();
+			const itemIds = orderItems.map((oi) => oi.item_id).filter(Boolean) as mongoose.Types.ObjectId[];
+			if (itemIds.length > 0) {
+				await Item.updateMany(
+					{ _id: { $in: itemIds } },
+					{ $unset: { orderId: "" }, itemStatus: ItemStatus.Available },
+				);
+			}
+			await Transaction.findOneAndUpdate(
+				{ order_id: orderId },
+				{ status: TransactionStatus.Failed },
+			);
 		}
 
 		res.status(200).json({
@@ -617,21 +631,24 @@ const updateOrder = async (req: Request, res: Response): Promise<void> => {
 		);
 
 		if (update.order_status === OrderStatus.Delivered) {
-			await markOrderItemsSold(orderId);
+			await createDeliveredFinancials(orderId);
 		}
 
-		// If order is cancelled, clear orderId from items so they can be ordered again
 		if (update.order_status === OrderStatus.Cancelled) {
-			const orderItems = await OrderItem.find({ order_id: orderId });
+			const orderItems = await OrderItem.find({ order_id: orderId }).lean();
 			const itemIds = orderItems
 				.map((oi) => oi.item_id)
 				.filter(Boolean) as mongoose.Types.ObjectId[];
 			if (itemIds.length > 0) {
 				await Item.updateMany(
-					{ _id: { $in: itemIds }, orderId: orderId },
-					{ $unset: { orderId: "" } },
+					{ _id: { $in: itemIds } },
+					{ $unset: { orderId: "" }, itemStatus: ItemStatus.Available },
 				);
 			}
+			await Transaction.findOneAndUpdate(
+				{ order_id: orderId },
+				{ status: TransactionStatus.Failed },
+			);
 		}
 
 		res.status(200).json({

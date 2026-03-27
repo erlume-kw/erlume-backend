@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // src/models/Seller.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const flowEnums_1 = require("../enums/flowEnums");
+const sellerEnums_1 = require("../enums/sellerEnums");
 // Create the Seller schema
 const SellerSchema = new mongoose_1.Schema({
     userId: {
@@ -76,6 +77,18 @@ const SellerSchema = new mongoose_1.Schema({
         required: false,
     },
     escalationNotes: { type: String, required: false },
+    onboardingStatus: {
+        type: String,
+        enum: Object.values(sellerEnums_1.SellerOnboardingStatus),
+        required: false,
+        default: sellerEnums_1.SellerOnboardingStatus.InitialContact,
+    },
+    itemsOnboardingStatus: {
+        type: String,
+        enum: Object.values(sellerEnums_1.ItemsOnboardingStatus),
+        required: false,
+        default: sellerEnums_1.ItemsOnboardingStatus.NoItems,
+    },
 }, { timestamps: true }); // Automatically manage createdAt and updatedAt
 // Create the Seller model
 const Seller = mongoose_1.default.model("Seller", SellerSchema);

@@ -169,7 +169,6 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             !condition ||
             !uploadedAt ||
             !saleRate ||
-            !itemStatus ||
             !color ||
             !size ||
             !resolvedItemName ||
@@ -182,7 +181,7 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             String(listingPrice).trim() === "") {
             res.status(400).json({
                 success: false,
-                error: "Missing required fields: basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName (or bag), quantity, brandName, imageUrls (or photoUrls), category_id, listingPrice",
+                error: "Missing required fields: basePrice, condition, uploadedAt, saleRate, color, size, itemName (or bag), quantity, brandName, imageUrls (or photoUrls), category_id, listingPrice",
             });
             return;
         }
@@ -202,7 +201,7 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             });
             return;
         }
-        if (!Object.values(statusEnums_1.ItemStatus).includes(itemStatus)) {
+        if (itemStatus && !Object.values(statusEnums_1.ItemStatus).includes(itemStatus)) {
             res.status(400).json({
                 success: false,
                 error: `Invalid itemStatus. Must be one of: ${Object.values(statusEnums_1.ItemStatus).join(", ")}`,
@@ -291,7 +290,7 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             condition,
             uploadedAt: new Date(uploadedAt),
             saleRate,
-            itemStatus,
+            itemStatus: itemStatus || statusEnums_1.ItemStatus.Pending,
             color,
             size,
             itemName: resolvedItemName,

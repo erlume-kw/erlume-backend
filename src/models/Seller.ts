@@ -2,6 +2,7 @@
 import mongoose, { Schema } from "mongoose";
 import { SellerInterface } from "../interfaces/Seller";
 import { EscalationStatus } from "../enums/flowEnums";
+import { SellerOnboardingStatus, ItemsOnboardingStatus } from "../enums/sellerEnums";
 
 // Create the Seller schema
 const SellerSchema: Schema = new Schema(
@@ -44,6 +45,18 @@ const SellerSchema: Schema = new Schema(
 			required: false,
 		},
 		escalationNotes: { type: String, required: false },
+		onboardingStatus: {
+			type: String,
+			enum: Object.values(SellerOnboardingStatus),
+			required: false,
+			default: SellerOnboardingStatus.InitialContact,
+		},
+		itemsOnboardingStatus: {
+			type: String,
+			enum: Object.values(ItemsOnboardingStatus),
+			required: false,
+			default: ItemsOnboardingStatus.NoItems,
+		},
 	},
 	{ timestamps: true },
 ); // Automatically manage createdAt and updatedAt

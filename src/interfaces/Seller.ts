@@ -1,5 +1,6 @@
 import { Document, Types } from "mongoose";
 import { EscalationStatus } from "../enums/flowEnums";
+import { SellerOnboardingStatus, ItemsOnboardingStatus } from "../enums/sellerEnums";
 
 export interface SellerInterface extends Document {
 	userId: Types.ObjectId; // Reference to the User
@@ -21,6 +22,10 @@ export interface SellerInterface extends Document {
 	escalationStatus?: EscalationStatus;
 	/** Notes for escalation / Notion flow. */
 	escalationNotes?: string;
+	/** Where the seller is in the Erlume onboarding journey. */
+	onboardingStatus?: SellerOnboardingStatus;
+	/** Where the seller's items are in the physical processing pipeline. */
+	itemsOnboardingStatus?: ItemsOnboardingStatus;
 	createdAt: Date;
 	updatedAt: Date;
 }

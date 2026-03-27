@@ -462,8 +462,11 @@ const removeItemFromDrop = async (
 			return;
 		}
 
-		// Remove item from drop (set drop_id to null)
-		await Item.updateOne({ _id: itemId }, { $unset: { drop_id: "" } });
+		// Remove item from drop and revert status to approved
+		await Item.updateOne(
+			{ _id: itemId },
+			{ $unset: { drop_id: "" }, $set: { itemStatus: ItemStatus.Approved } },
+		);
 
 		res.status(200).json({
 			success: true,

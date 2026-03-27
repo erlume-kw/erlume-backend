@@ -222,7 +222,6 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			!condition ||
 			!uploadedAt ||
 			!saleRate ||
-			!itemStatus ||
 			!color ||
 			!size ||
 			!resolvedItemName ||
@@ -237,7 +236,7 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			res.status(400).json({
 				success: false,
 				error:
-					"Missing required fields: basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName (or bag), quantity, brandName, imageUrls (or photoUrls), category_id, listingPrice",
+					"Missing required fields: basePrice, condition, uploadedAt, saleRate, color, size, itemName (or bag), quantity, brandName, imageUrls (or photoUrls), category_id, listingPrice",
 			});
 			return;
 		}
@@ -262,7 +261,7 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
-		if (!Object.values(ItemStatus).includes(itemStatus)) {
+		if (itemStatus && !Object.values(ItemStatus).includes(itemStatus)) {
 			res.status(400).json({
 				success: false,
 				error: `Invalid itemStatus. Must be one of: ${Object.values(
@@ -373,7 +372,7 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			condition,
 			uploadedAt: new Date(uploadedAt),
 			saleRate,
-			itemStatus,
+			itemStatus: itemStatus || ItemStatus.Pending,
 			color,
 			size,
 			itemName: resolvedItemName,

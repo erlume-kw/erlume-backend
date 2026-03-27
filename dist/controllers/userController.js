@@ -18,6 +18,7 @@ const User_1 = __importDefault(require("../models/User"));
 const Seller_1 = __importDefault(require("../models/Seller"));
 const userEnums_1 = require("../enums/userEnums");
 const flowEnums_1 = require("../enums/flowEnums");
+const sellerEnums_1 = require("../enums/sellerEnums");
 /* =========================
    Helpers
 ========================= */
@@ -45,6 +46,13 @@ const formatSellerResponse = (seller) => {
     else {
         // Always set to empty string if missing, null, undefined, or empty
         response.preferredPickupDate = "";
+    }
+    // Backfill onboarding statuses for old records that predate the fields
+    if (!response.onboardingStatus) {
+        response.onboardingStatus = sellerEnums_1.SellerOnboardingStatus.InitialContact;
+    }
+    if (!response.itemsOnboardingStatus) {
+        response.itemsOnboardingStatus = sellerEnums_1.ItemsOnboardingStatus.NoItems;
     }
     return response;
 };
@@ -345,6 +353,28 @@ const updateSellerInfo = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
     if ("escalationNotes" in req.body) {
         update.escalationNotes = (_d = req.body.escalationNotes) !== null && _d !== void 0 ? _d : "";
+    }
+    if ("onboardingStatus" in req.body) {
+        const val = req.body.onboardingStatus;
+        if (val != null && val !== "" && !Object.values(sellerEnums_1.SellerOnboardingStatus).includes(val)) {
+            res.status(400).json({
+                success: false,
+                error: `Invalid onboardingStatus. Must be one of: ${Object.values(sellerEnums_1.SellerOnboardingStatus).join(", ")}`,
+            });
+            return;
+        }
+        update.onboardingStatus = val == null || val === "" ? undefined : val;
+    }
+    if ("itemsOnboardingStatus" in req.body) {
+        const val = req.body.itemsOnboardingStatus;
+        if (val != null && val !== "" && !Object.values(sellerEnums_1.ItemsOnboardingStatus).includes(val)) {
+            res.status(400).json({
+                success: false,
+                error: `Invalid itemsOnboardingStatus. Must be one of: ${Object.values(sellerEnums_1.ItemsOnboardingStatus).join(", ")}`,
+            });
+            return;
+        }
+        update.itemsOnboardingStatus = val == null || val === "" ? undefined : val;
     }
     const seller = yield Seller_1.default.findOneAndUpdate({ userId: user._id }, { $set: update }, { new: true, upsert: true, runValidators: true });
     res.json({

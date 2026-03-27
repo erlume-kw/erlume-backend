@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ItemCondition } from "../enums/itemEnums";
 import { ItemStatus } from "../enums/statusEnums";
 import { AuthenticationStatus, ReturnStatus, DeliveryStatus, EscalationStatus } from "../enums/flowEnums";
+import { SellerOnboardingStatus, ItemsOnboardingStatus } from "../enums/sellerEnums";
 import { OrderStatus } from "../enums/orderEnums";
 import { UserRole } from "../enums/userEnums";
 import { PaymentMethod } from "../enums/paymentEnums";
@@ -259,6 +260,8 @@ export const updateSellerSchema = z.object({
 	sellerPolicyAcceptedAt: dateSchema.optional(),
 	escalationStatus: z.nativeEnum(EscalationStatus).optional(),
 	escalationNotes: z.string().optional(),
+	onboardingStatus: z.nativeEnum(SellerOnboardingStatus).optional(),
+	itemsOnboardingStatus: z.nativeEnum(ItemsOnboardingStatus).optional(),
 });
 
 // ==================== CATEGORY SCHEMAS ====================

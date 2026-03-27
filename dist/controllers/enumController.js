@@ -22,6 +22,7 @@ const paymentEnums_1 = require("../enums/paymentEnums");
 const expenseEnums_1 = require("../enums/expenseEnums");
 const bagBrandEnums_1 = require("../enums/bagBrandEnums");
 const flowEnums_1 = require("../enums/flowEnums");
+const sellerEnums_1 = require("../enums/sellerEnums");
 /**
  * Get all enums used in the system
  * Useful for frontend/Retool to dynamically populate dropdowns
@@ -149,6 +150,20 @@ const getEnums = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 values: Object.values(bagBrandEnums_1.BagBrand),
                 options: Object.entries(bagBrandEnums_1.BagBrand).map(([key, value]) => ({
                     label: value,
+                    value: value,
+                })),
+            },
+            sellerOnboardingStatus: {
+                values: Object.values(sellerEnums_1.SellerOnboardingStatus),
+                options: Object.entries(sellerEnums_1.SellerOnboardingStatus).map(([key, value]) => ({
+                    label: key,
+                    value: value,
+                })),
+            },
+            itemsOnboardingStatus: {
+                values: Object.values(sellerEnums_1.ItemsOnboardingStatus),
+                options: Object.entries(sellerEnums_1.ItemsOnboardingStatus).map(([key, value]) => ({
+                    label: key,
                     value: value,
                 })),
             },
@@ -332,6 +347,24 @@ const getEnumCategory = (req, res) => __awaiter(void 0, void 0, void 0, function
                     })),
                 };
                 break;
+            case "sellerOnboardingStatus":
+                enumData = {
+                    values: Object.values(sellerEnums_1.SellerOnboardingStatus),
+                    options: Object.entries(sellerEnums_1.SellerOnboardingStatus).map(([key, value]) => ({
+                        label: key,
+                        value: value,
+                    })),
+                };
+                break;
+            case "itemsOnboardingStatus":
+                enumData = {
+                    values: Object.values(sellerEnums_1.ItemsOnboardingStatus),
+                    options: Object.entries(sellerEnums_1.ItemsOnboardingStatus).map(([key, value]) => ({
+                        label: key,
+                        value: value,
+                    })),
+                };
+                break;
             default:
                 res.status(404).json({
                     success: false,
@@ -354,6 +387,8 @@ const getEnumCategory = (req, res) => __awaiter(void 0, void 0, void 0, function
                         "deliveryStatus",
                         "escalationStatus",
                         "bagBrand",
+                        "sellerOnboardingStatus",
+                        "itemsOnboardingStatus",
                     ],
                 });
                 return;

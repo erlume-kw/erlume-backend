@@ -6,6 +6,7 @@ const zod_1 = require("zod");
 const itemEnums_1 = require("../enums/itemEnums");
 const statusEnums_1 = require("../enums/statusEnums");
 const flowEnums_1 = require("../enums/flowEnums");
+const sellerEnums_1 = require("../enums/sellerEnums");
 const orderEnums_1 = require("../enums/orderEnums");
 const userEnums_1 = require("../enums/userEnums");
 const paymentEnums_1 = require("../enums/paymentEnums");
@@ -230,6 +231,8 @@ exports.updateSellerSchema = zod_1.z.object({
     sellerPolicyAcceptedAt: dateSchema.optional(),
     escalationStatus: zod_1.z.nativeEnum(flowEnums_1.EscalationStatus).optional(),
     escalationNotes: zod_1.z.string().optional(),
+    onboardingStatus: zod_1.z.nativeEnum(sellerEnums_1.SellerOnboardingStatus).optional(),
+    itemsOnboardingStatus: zod_1.z.nativeEnum(sellerEnums_1.ItemsOnboardingStatus).optional(),
 });
 // ==================== CATEGORY SCHEMAS ====================
 exports.createCategorySchema = zod_1.z.object({

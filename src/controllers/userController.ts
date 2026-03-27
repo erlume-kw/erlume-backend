@@ -5,6 +5,7 @@ import User from "../models/User";
 import Seller from "../models/Seller";
 import { UserRole } from "../enums/userEnums";
 import { EscalationStatus } from "../enums/flowEnums";
+import { SellerOnboardingStatus, ItemsOnboardingStatus } from "../enums/sellerEnums";
 
 /* =========================
    Helpers
@@ -38,6 +39,14 @@ const formatSellerResponse = (seller: any) => {
 	} else {
 		// Always set to empty string if missing, null, undefined, or empty
 		response.preferredPickupDate = "";
+	}
+
+	// Backfill onboarding statuses for old records that predate the fields
+	if (!response.onboardingStatus) {
+		response.onboardingStatus = SellerOnboardingStatus.InitialContact;
+	}
+	if (!response.itemsOnboardingStatus) {
+		response.itemsOnboardingStatus = ItemsOnboardingStatus.NoItems;
 	}
 
 	return response;
@@ -433,6 +442,30 @@ const updateSellerInfo = async (req: Request, res: Response) => {
 
 	if ("escalationNotes" in req.body) {
 		update.escalationNotes = req.body.escalationNotes ?? "";
+	}
+
+	if ("onboardingStatus" in req.body) {
+		const val = req.body.onboardingStatus;
+		if (val != null && val !== "" && !Object.values(SellerOnboardingStatus).includes(val)) {
+			res.status(400).json({
+				success: false,
+				error: `Invalid onboardingStatus. Must be one of: ${Object.values(SellerOnboardingStatus).join(", ")}`,
+			});
+			return;
+		}
+		update.onboardingStatus = val == null || val === "" ? undefined : val;
+	}
+
+	if ("itemsOnboardingStatus" in req.body) {
+		const val = req.body.itemsOnboardingStatus;
+		if (val != null && val !== "" && !Object.values(ItemsOnboardingStatus).includes(val)) {
+			res.status(400).json({
+				success: false,
+				error: `Invalid itemsOnboardingStatus. Must be one of: ${Object.values(ItemsOnboardingStatus).join(", ")}`,
+			});
+			return;
+		}
+		update.itemsOnboardingStatus = val == null || val === "" ? undefined : val;
 	}
 
 	const seller = await Seller.findOneAndUpdate(

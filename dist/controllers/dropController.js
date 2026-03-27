@@ -387,8 +387,8 @@ const removeItemFromDrop = (req, res) => __awaiter(void 0, void 0, void 0, funct
             });
             return;
         }
-        // Remove item from drop (set drop_id to null)
-        yield Item_1.default.updateOne({ _id: itemId }, { $unset: { drop_id: "" } });
+        // Remove item from drop and revert status to approved
+        yield Item_1.default.updateOne({ _id: itemId }, { $unset: { drop_id: "" }, $set: { itemStatus: statusEnums_1.ItemStatus.Approved } });
         res.status(200).json({
             success: true,
             message: "Item successfully removed from drop",

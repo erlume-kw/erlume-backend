@@ -20,6 +20,7 @@ import {
 	DeliveryStatus,
 	EscalationStatus,
 } from "../enums/flowEnums";
+import { SellerOnboardingStatus, ItemsOnboardingStatus } from "../enums/sellerEnums";
 
 /**
  * Get all enums used in the system
@@ -153,6 +154,20 @@ const getEnums = async (req: Request, res: Response) => {
 				values: Object.values(BagBrand),
 				options: Object.entries(BagBrand).map(([key, value]) => ({
 					label: value,
+					value: value,
+				})),
+			},
+			sellerOnboardingStatus: {
+				values: Object.values(SellerOnboardingStatus),
+				options: Object.entries(SellerOnboardingStatus).map(([key, value]) => ({
+					label: key,
+					value: value,
+				})),
+			},
+			itemsOnboardingStatus: {
+				values: Object.values(ItemsOnboardingStatus),
+				options: Object.entries(ItemsOnboardingStatus).map(([key, value]) => ({
+					label: key,
 					value: value,
 				})),
 			},
@@ -359,6 +374,26 @@ const getEnumCategory = async (req: Request, res: Response) => {
 				};
 				break;
 
+			case "sellerOnboardingStatus":
+				enumData = {
+					values: Object.values(SellerOnboardingStatus),
+					options: Object.entries(SellerOnboardingStatus).map(([key, value]) => ({
+						label: key,
+						value: value,
+					})),
+				};
+				break;
+
+			case "itemsOnboardingStatus":
+				enumData = {
+					values: Object.values(ItemsOnboardingStatus),
+					options: Object.entries(ItemsOnboardingStatus).map(([key, value]) => ({
+						label: key,
+						value: value,
+					})),
+				};
+				break;
+
 			default:
 				res.status(404).json({
 					success: false,
@@ -381,6 +416,8 @@ const getEnumCategory = async (req: Request, res: Response) => {
 						"deliveryStatus",
 						"escalationStatus",
 						"bagBrand",
+						"sellerOnboardingStatus",
+						"itemsOnboardingStatus",
 					],
 				});
 				return;

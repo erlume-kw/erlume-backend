@@ -121,7 +121,7 @@ if (isDebug) {
 app.get("/", (req, res) => {
     res.send("API is working");
 });
-// Swagger / OpenAPI — single full spec (no filtered admin/frontend views)
+// Swagger / OpenAPI
 const openApiPath = path_1.default.join(__dirname, "..", "openapi.json");
 let openApiSpec = {};
 try {
@@ -130,12 +130,56 @@ try {
 catch (e) {
     console.warn("Swagger: openapi.json not found at", openApiPath, "- docs disabled");
 }
+// Helper: filter openapi spec paths by x-usedBy audience
+function filterSpecByAudience(spec, audience) {
+    const filtered = JSON.parse(JSON.stringify(spec));
+    const paths = filtered.paths || {};
+    const filteredPaths = {};
+    for (const [pathKey, methods] of Object.entries(paths)) {
+        const filteredMethods = {};
+        for (const [method, operation] of Object.entries(methods)) {
+            const usedBy = operation["x-usedBy"] || [];
+            if (usedBy.includes(audience)) {
+                filteredMethods[method] = operation;
+            }
+        }
+        if (Object.keys(filteredMethods).length > 0) {
+            filteredPaths[pathKey] = filteredMethods;
+        }
+    }
+    filtered.paths = filteredPaths;
+    return filtered;
+}
+// Full spec
 app.get("/api-docs.json", (_req, res) => {
     res.json(openApiSpec);
 });
+// Filtered specs
+app.get("/api-docs/backoffice.json", (_req, res) => {
+    res.json(filterSpecByAudience(openApiSpec, "backoffice"));
+});
+app.get("/api-docs/frontend.json", (_req, res) => {
+    res.json(filterSpecByAudience(openApiSpec, "frontend"));
+});
+// Swagger UI: full, backoffice, frontend (each on its own Router to avoid conflicts)
 const swaggerUiOpts = { swaggerOptions: { docExpansion: "full", displayRequestDuration: true } };
-const openApiSpecCopy = JSON.parse(JSON.stringify(openApiSpec));
-app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(openApiSpecCopy, swaggerUiOpts));
+const backofficeSpec = filterSpecByAudience(openApiSpec, "backoffice");
+const frontendSpec = filterSpecByAudience(openApiSpec, "frontend");
+// Backoffice-only Swagger UI
+const backofficeRouter = express_1.default.Router();
+backofficeRouter.use("/", swagger_ui_express_1.default.serveFiles(backofficeSpec, swaggerUiOpts));
+backofficeRouter.get("/", swagger_ui_express_1.default.setup(backofficeSpec, swaggerUiOpts));
+app.use("/api-docs/backoffice", backofficeRouter);
+// Frontend-only Swagger UI
+const frontendRouter = express_1.default.Router();
+frontendRouter.use("/", swagger_ui_express_1.default.serveFiles(frontendSpec, swaggerUiOpts));
+frontendRouter.get("/", swagger_ui_express_1.default.setup(frontendSpec, swaggerUiOpts));
+app.use("/api-docs/frontend", frontendRouter);
+// Full Swagger UI (all paths) — must be registered last
+const fullRouter = express_1.default.Router();
+fullRouter.use("/", swagger_ui_express_1.default.serveFiles(openApiSpec, swaggerUiOpts));
+fullRouter.get("/", swagger_ui_express_1.default.setup(openApiSpec, swaggerUiOpts));
+app.use("/api-docs", fullRouter);
 // Routes
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/items", itemRoutes_1.default);

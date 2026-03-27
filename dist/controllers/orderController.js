@@ -50,15 +50,54 @@ const getConditionDeductionRate = (condition) => {
             return 0;
     }
 };
-const markOrderItemsSold = (orderId) => __awaiter(void 0, void 0, void 0, function* () {
-    const orderItems = yield OrderItem_1.default.find({ order_id: orderId })
-        .select("item_id")
-        .lean();
-    const itemIds = orderItems
-        .map((item) => item.item_id)
-        .filter(Boolean);
-    if (itemIds.length > 0) {
-        yield Item_1.default.updateMany({ _id: { $in: itemIds } }, { itemStatus: statusEnums_1.ItemStatus.Sold });
+const createDeliveredFinancials = (orderId) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const orderItems = yield OrderItem_1.default.find({ order_id: orderId }).lean();
+    const incomeDocs = [];
+    const saleDocs = [];
+    for (const orderItem of orderItems) {
+        const item = yield Item_1.default.findById(orderItem.item_id).lean();
+        if (!item)
+            continue;
+        const listingPrice = parseFloat(item.listingPrice);
+        if (Number.isNaN(listingPrice))
+            continue;
+        const orderQuantity = Number(orderItem.quantity) || 1;
+        const lineTotal = (listingPrice * orderQuantity).toFixed(2);
+        const saleRateValue = normalizeSaleRate(item.saleRate);
+        const conditionDeduction = getConditionDeductionRate(item.condition);
+        const adjustedAmount = Number(lineTotal) * (1 - conditionDeduction);
+        const sellerPayout = (adjustedAmount * saleRateValue).toFixed(2);
+        const erlumeCommission = (adjustedAmount * (1 - saleRateValue)).toFixed(2);
+        incomeDocs.push({
+            order_id: orderId,
+            order_item_id: orderItem._id,
+            item_id: orderItem.item_id,
+            seller_id: (_a = item.seller_id) !== null && _a !== void 0 ? _a : undefined,
+            amount: erlumeCommission,
+            received_at: new Date(),
+        });
+        saleDocs.push({
+            order_id: orderId,
+            order_item_id: orderItem._id,
+            item_id: orderItem.item_id,
+            amount: lineTotal,
+            erlumeCommission,
+            sellerPayout,
+        });
+    }
+    const transaction = yield Transaction_1.default.findOne({ order_id: orderId });
+    if (incomeDocs.length > 0) {
+        yield Income_1.default.insertMany(incomeDocs);
+    }
+    if (saleDocs.length > 0 && transaction) {
+        const saleDocsWithTransaction = saleDocs.map((doc) => (Object.assign(Object.assign({}, doc), { transaction_id: transaction._id })));
+        yield Sale_1.default.insertMany(saleDocsWithTransaction);
+    }
+    if (transaction) {
+        yield Transaction_1.default.findByIdAndUpdate(transaction._id, {
+            status: transactionEnums_1.TransactionStatus.Completed,
+        });
     }
 });
 const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -157,7 +196,7 @@ const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a;
     const session = yield mongoose_1.default.startSession();
     session.startTransaction();
     try {
@@ -222,8 +261,6 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const savedOrder = yield newOrder.save({ session });
         const createdOrderItemIds = [];
         const itemIds = [];
-        const incomeDocs = [];
-        const saleDocs = [];
         let totalAmount = 0;
         for (const orderItemInput of orderItems) {
             const { item_id, quantity, is_returned } = orderItemInput !== null && orderItemInput !== void 0 ? orderItemInput : {};
@@ -311,41 +348,16 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             itemIds.push(item._id);
             const lineTotal = (listingPrice * Number(orderQuantity)).toFixed(2);
             totalAmount += Number(lineTotal);
-            const saleRateValue = normalizeSaleRate(item.saleRate);
-            const conditionDeduction = getConditionDeductionRate(item.condition);
-            const adjustedAmount = Number(lineTotal) * (1 - conditionDeduction);
-            const sellerPayout = (adjustedAmount * saleRateValue).toFixed(2);
-            const erlumeCommission = (adjustedAmount * (1 - saleRateValue)).toFixed(2);
-            incomeDocs.push({
-                order_id: savedOrder._id,
-                order_item_id: createdOrderItem[0]._id,
-                item_id,
-                seller_id: (_a = item.seller_id) !== null && _a !== void 0 ? _a : undefined,
-                amount: erlumeCommission,
-                received_at: new Date(),
-            });
-            saleDocs.push({
-                order_id: savedOrder._id,
-                order_item_id: createdOrderItem[0]._id,
-                item_id,
-                amount: lineTotal,
-                erlumeCommission,
-                sellerPayout,
-            });
         }
         savedOrder.orderitem_ids = createdOrderItemIds;
         yield savedOrder.save({ session });
         if (itemIds.length > 0) {
-            yield Item_1.default.updateMany({ _id: { $in: itemIds } }, { orderId: savedOrder._id }, { session });
+            yield Item_1.default.updateMany({ _id: { $in: itemIds } }, { orderId: savedOrder._id, itemStatus: statusEnums_1.ItemStatus.Sold }, { session });
         }
-        if (incomeDocs.length > 0) {
-            yield Income_1.default.insertMany(incomeDocs, { session });
-        }
-        // Check if transaction already exists for this order (prevent duplicates)
-        let transaction = yield Transaction_1.default.findOne({ order_id: savedOrder._id }).session(session);
-        if (!transaction) {
-            // Create transaction only if it doesn't exist
-            const createdTransactions = yield Transaction_1.default.create([
+        // Create pending transaction
+        const existingTransaction = yield Transaction_1.default.findOne({ order_id: savedOrder._id }).session(session);
+        if (!existingTransaction) {
+            yield Transaction_1.default.create([
                 {
                     order_id: savedOrder._id,
                     discount_rate: "0",
@@ -353,19 +365,10 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                     status: transactionEnums_1.TransactionStatus.Pending,
                 },
             ], { session });
-            transaction = createdTransactions[0];
         }
-        else {
-            // Transaction already exists - update amount if needed (optional)
-            // This ensures the transaction amount matches the current order total
-            if (transaction.amount !== totalAmount.toFixed(2)) {
-                transaction.amount = totalAmount.toFixed(2);
-                yield transaction.save({ session });
-            }
-        }
-        if (saleDocs.length > 0) {
-            const saleDocsWithTransaction = saleDocs.map((doc) => (Object.assign(Object.assign({}, doc), { transaction_id: transaction._id })));
-            yield Sale_1.default.insertMany(saleDocsWithTransaction, { session });
+        else if (existingTransaction.amount !== totalAmount.toFixed(2)) {
+            existingTransaction.amount = totalAmount.toFixed(2);
+            yield existingTransaction.save({ session });
         }
         yield session.commitTransaction();
         res.status(201).json({
@@ -387,7 +390,7 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         // Handle duplicate transaction error (unique constraint violation)
-        if (error.code === 11000 || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes("duplicate"))) {
+        if (error.code === 11000 || ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes("duplicate"))) {
             res.status(400).json({
                 success: false,
                 error: "Transaction already exists for this order",
@@ -429,7 +432,15 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         const updatedOrder = yield Order_1.default.findByIdAndUpdate(orderId, { order_status: status }, { new: true, runValidators: true });
         if (status === orderEnums_1.OrderStatus.Delivered) {
-            yield markOrderItemsSold(orderId);
+            yield createDeliveredFinancials(orderId);
+        }
+        if (status === orderEnums_1.OrderStatus.Cancelled) {
+            const orderItems = yield OrderItem_1.default.find({ order_id: orderId }).lean();
+            const itemIds = orderItems.map((oi) => oi.item_id).filter(Boolean);
+            if (itemIds.length > 0) {
+                yield Item_1.default.updateMany({ _id: { $in: itemIds } }, { $unset: { orderId: "" }, itemStatus: statusEnums_1.ItemStatus.Available });
+            }
+            yield Transaction_1.default.findOneAndUpdate({ order_id: orderId }, { status: transactionEnums_1.TransactionStatus.Failed });
         }
         res.status(200).json({
             success: true,
@@ -511,17 +522,17 @@ const updateOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         const updatedOrder = yield Order_1.default.findByIdAndUpdate(orderId, { $set: update }, { new: true, runValidators: true });
         if (update.order_status === orderEnums_1.OrderStatus.Delivered) {
-            yield markOrderItemsSold(orderId);
+            yield createDeliveredFinancials(orderId);
         }
-        // If order is cancelled, clear orderId from items so they can be ordered again
         if (update.order_status === orderEnums_1.OrderStatus.Cancelled) {
-            const orderItems = yield OrderItem_1.default.find({ order_id: orderId });
+            const orderItems = yield OrderItem_1.default.find({ order_id: orderId }).lean();
             const itemIds = orderItems
                 .map((oi) => oi.item_id)
                 .filter(Boolean);
             if (itemIds.length > 0) {
-                yield Item_1.default.updateMany({ _id: { $in: itemIds }, orderId: orderId }, { $unset: { orderId: "" } });
+                yield Item_1.default.updateMany({ _id: { $in: itemIds } }, { $unset: { orderId: "" }, itemStatus: statusEnums_1.ItemStatus.Available });
             }
+            yield Transaction_1.default.findOneAndUpdate({ order_id: orderId }, { status: transactionEnums_1.TransactionStatus.Failed });
         }
         res.status(200).json({
             success: true,
