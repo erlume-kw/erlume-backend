@@ -98,15 +98,8 @@ app.use(express_1.default.json({
     strict: false, // Allow non-object JSON (arrays, strings, etc.)
 }));
 app.use(express_1.default.urlencoded({ limit: "10mb", extended: true }));
-// Custom middleware to handle empty JSON bodies gracefully
-app.use((req, res, next) => {
-    if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
-        if (!req.body || Object.keys(req.body).length === 0) {
-            // Empty body is OK, continue
-        }
-    }
-    next();
-});
+// Ensure preflight requests always get a CORS response
+app.options(/.*/, (0, cors_1.default)(corsOptions));
 // Debug middleware (after body parsing so req.body is populated)
 const isDebug = process.env.NODE_ENV !== "production";
 if (isDebug) {

@@ -296,7 +296,9 @@ const updateIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                     if (!seller) {
                         const user = yield User_1.default.findById(update.seller_id);
                         if (!user) {
-                            res.status(404).json({ success: false, error: "Seller not found" });
+                            res
+                                .status(404)
+                                .json({ success: false, error: "Seller not found" });
                             return;
                         }
                     }
