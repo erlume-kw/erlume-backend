@@ -16,10 +16,15 @@ const OrderItemSchema: Schema = new Schema(
 			required: true,
 			index: true,
 		},
+		quantity: { type: Number, required: true, min: 1 }, // Quantity ordered
+		price: { type: String, required: true }, // Price at time of order (snapshot)
 	},
 	{ timestamps: true },
 );
 
-const OrderItem = mongoose.model<OrderItemInterface>("OrderItem", OrderItemSchema);
+const OrderItem = mongoose.model<OrderItemInterface>(
+	"OrderItem",
+	OrderItemSchema,
+);
 
 export default OrderItem;

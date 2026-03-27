@@ -5,6 +5,8 @@ export interface OrderItemInterface extends Document {
 	order_id: Types.ObjectId; // Reference to Order
 	is_returned: boolean;
 	item_id: Types.ObjectId; // Reference to Item
+	quantity: number; // Quantity ordered
+	price: string; // Price at time of order (snapshot)
 	createdAt: Date;
 	updatedAt: Date;
 }

@@ -1,244 +1,546 @@
-// Import necessary modules
-import { Request, Response } from 'express';
-import User from '../models/User';
-import Seller from '../models/Seller';
-import mongoose, { Types } from 'mongoose';
-import bcrypt from 'bcryptjs';
-import { UserRole } from '../enums/userEnums';
-import { UserInterface } from '../interfaces/User';
+import { Request, Response } from "express";
+import mongoose, { Types } from "mongoose";
+import bcrypt from "bcryptjs";
+import User from "../models/User";
+import Seller from "../models/Seller";
+import { UserRole } from "../enums/userEnums";
+import { EscalationStatus } from "../enums/flowEnums";
+import { SellerOnboardingStatus, ItemsOnboardingStatus } from "../enums/sellerEnums";
 
-// Helper function to create a seller document
-const createSellerDocument = async (userId: Types.ObjectId) => {
-  const seller = new Seller({
-    userId,
-    balance: "0", // Initial balance
-    itemIds: [], // Initial empty items list
-    IBAN: "", // Will be updated later by the seller
-    qrCode: "", // Will be generated when IBAN is provided
-    isDeactivated: false
-  });
-  return seller; // Return the document without saving it
+/* =========================
+   Helpers
+========================= */
+
+const formatSellerResponse = (seller: any) => {
+	// Always include these fields, even if they don't exist in the document
+	const response: any = { ...seller };
+
+	// Handle consentGiven - always include it explicitly
+	// Check if it exists and is true, otherwise set to empty string
+	if (
+		seller.consentGiven === true ||
+		seller.consentGiven === "true" ||
+		seller.consentGiven === 1
+	) {
+		response.consentGiven = "true";
+	} else {
+		// Always set to empty string if false, undefined, null, or missing
+		response.consentGiven = "";
+	}
+
+	// Handle preferredPickupDate - always include it explicitly
+	if (
+		seller.preferredPickupDate &&
+		seller.preferredPickupDate !== null &&
+		seller.preferredPickupDate !== undefined &&
+		String(seller.preferredPickupDate).trim() !== ""
+	) {
+		response.preferredPickupDate = String(seller.preferredPickupDate);
+	} else {
+		// Always set to empty string if missing, null, undefined, or empty
+		response.preferredPickupDate = "";
+	}
+
+	// Backfill onboarding statuses for old records that predate the fields
+	if (!response.onboardingStatus) {
+		response.onboardingStatus = SellerOnboardingStatus.InitialContact;
+	}
+	if (!response.itemsOnboardingStatus) {
+		response.itemsOnboardingStatus = ItemsOnboardingStatus.NoItems;
+	}
+
+	return response;
 };
+
+const createSeller = async (
+	userId: Types.ObjectId,
+	data?: {
+		consentGiven?: boolean;
+		preferredPickupDate?: string;
+	},
+	session?: mongoose.ClientSession,
+) => {
+	const sellerData = {
+		userId,
+		balance: "0",
+		itemIds: [],
+		IBAN: "",
+		qrCode: "",
+		isDeactivated: false,
+		consentGiven: data?.consentGiven !== undefined ? data.consentGiven : false,
+		preferredPickupDate:
+			data?.preferredPickupDate !== undefined ? data.preferredPickupDate : "",
+	};
+
+	const [sellerDoc] = await Seller.create([sellerData], { session });
+
+	// Explicitly mark fields as modified to ensure they're saved
+	sellerDoc.markModified("consentGiven");
+	sellerDoc.markModified("preferredPickupDate");
+
+	return [sellerDoc];
+};
+
+/* =========================
+   GET USERS
+========================= */
 
 const getUsers = async (req: Request, res: Response) => {
-  try {
-    const users = await User.find({ isDeleted: false });
-    res.status(200).json({ success: true, data: users });
-  } catch (error) {
-    console.error('Error in getUsers:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+	const { includeDeleted, role } = req.query;
+
+	// Build query - include deleted users if requested
+	const query: any = {};
+
+	// Only filter by isDeleted if includeDeleted is not explicitly "true"
+	if (includeDeleted === "true") {
+		// Include all users (deleted and non-deleted) - no filter
+	} else {
+		// Default: only show non-deleted users
+		query.isDeleted = false;
+	}
+
+	if (role) {
+		query.roles = role;
+	}
+
+	console.log("getUsers query:", query, "includeDeleted:", includeDeleted);
+
+	const users = await User.find(query).lean();
+
+	const result = await Promise.all(
+		users.map(async (user) => {
+			if (!user.roles.includes(UserRole.SELLER)) return user;
+
+			const seller = await Seller.findOne({ userId: user._id }).lean();
+			return {
+				...user,
+				seller: seller ? formatSellerResponse(seller) : null,
+			};
+		}),
+	);
+
+	res.json({
+		success: true,
+		data: result,
+		count: result.length,
+		includeDeleted: includeDeleted === "true",
+	});
 };
+
+/* =========================
+   GET USER BY ID
+========================= */
 
 const getUserById = async (req: Request, res: Response) => {
-  try {
-    const userId = req.params.id;
-    const user = await User.findOne({ _id: userId, isDeleted: false });
-    
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
-    }
+	const { id } = req.params;
 
-    // If user is a seller, fetch seller information
-    let sellerInfo = null;
-    if (user.roles.includes(UserRole.SELLER)) {
-      sellerInfo = await Seller.findOne({ userId: user._id });
-    }
+	if (!mongoose.Types.ObjectId.isValid(id)) {
+		res.status(400).json({ error: "Invalid ID" });
+		return;
+	}
 
-    res.status(200).json({ 
-      success: true, 
-      data: {
-        user,
-        seller: sellerInfo
-      }
-    });
-  } catch (error) {
-    console.error('Error in getUserById:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+	const user = await User.findById(id).lean();
+	if (!user) {
+		res.status(404).json({ error: "User not found" });
+		return;
+	}
+
+	let seller = null;
+	if (user.roles.includes(UserRole.SELLER)) {
+		const sellerDoc = await Seller.findOne({ userId: user._id }).lean();
+		if (sellerDoc) seller = formatSellerResponse(sellerDoc);
+	}
+
+	res.json({ success: true, data: { user, seller } });
 };
+
+/* =========================
+   CREATE USER
+========================= */
 
 const createUser = async (req: Request, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+	const session = await mongoose.startSession();
+	session.startTransaction();
 
-  try {
-    const { username, password, emailAddress, phoneNumber, address, roles } = req.body;
+	try {
+		const {
+			password,
+			emailAddress,
+			phoneNumber,
+			address,
+			roles,
+			consentGiven,
+			preferredPickupDate,
+		} = req.body;
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+		if (!password || !emailAddress || !phoneNumber || !address) {
+			res.status(400).json({
+				success: false,
+				error:
+					"Missing required fields: password, emailAddress, phoneNumber, address",
+			});
+			return;
+		}
 
-    // Create user
-    const user = new User({
-      username,
-      password: hashedPassword,
-      emailAddress,
-      phoneNumber,
-      address,
-      roles: roles || [UserRole.USER], // Default role is 'user'
-      cardIds: [],
-      isDeleted: false
-    });
+		// Normalize roles to lowercase so "SELLER" / "seller" both work
+		const normalizedRoles = Array.isArray(roles)
+			? roles.map((r: string) => (typeof r === "string" ? r.toLowerCase() : r))
+			: [UserRole.USER];
 
-    const savedUser = await user.save({ session }) as UserInterface & { _id: Types.ObjectId };
+		const hashedPassword = await bcrypt.hash(password, 10);
 
-    // If user has seller role, create seller document
-    let sellerDoc = null;
-    if (roles && roles.includes(UserRole.SELLER)) {
-      sellerDoc = await createSellerDocument(savedUser._id);
-      await sellerDoc.save({ session });
-    }
+		const user = await User.create(
+			[
+				{
+					password: hashedPassword,
+					emailAddress: emailAddress.trim(),
+					phoneNumber: String(phoneNumber)
+						.trim()
+						.replace(/[\s\-]/g, ""),
+					address,
+					roles: normalizedRoles,
+					isDeleted: false,
+				},
+			],
+			{ session },
+		);
 
-    await session.commitTransaction();
-    
-    res.status(201).json({ 
-      success: true,
-      data: {
-        user: savedUser,
-        seller: sellerDoc
-      }
-    });
-  } catch (error: any) {
-    await session.abortTransaction();
-    console.error('Error in createUser:', error);
-    
-    if (error.code === 11000) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Username or email already exists' 
-      });
-    }
-    
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  } finally {
-    session.endSession();
-  }
+		let seller = null;
+		if (normalizedRoles.includes(UserRole.SELLER)) {
+			// Handle consentGiven properly - only true if explicitly true or "true"
+			let consentBool = false;
+			if (consentGiven !== undefined && consentGiven !== null) {
+				if (typeof consentGiven === "string") {
+					consentBool = consentGiven.toLowerCase() === "true";
+				} else if (typeof consentGiven === "boolean") {
+					consentBool = consentGiven;
+				} else {
+					consentBool = consentGiven === true;
+				}
+			}
+
+			const [sellerDoc] = await createSeller(
+				user[0]._id as Types.ObjectId,
+				{
+					consentGiven: consentBool,
+					preferredPickupDate: preferredPickupDate ?? "",
+				},
+				session,
+			);
+			seller = formatSellerResponse(sellerDoc.toObject());
+		}
+
+		await session.commitTransaction();
+
+		res.status(201).json({
+			success: true,
+			data: {
+				user: user[0],
+				seller,
+			},
+		});
+	} catch (err: any) {
+		await session.abortTransaction();
+		console.error("createUser error:", err);
+		const message =
+			err?.message ||
+			err?.errors?.phoneNumber?.message ||
+			err?.errors?.emailAddress?.message ||
+			err?.errors?.address?.message ||
+			"Internal server error";
+		const status =
+			err?.name === "ValidationError" || err?.code === 11000 ? 400 : 500;
+		res.status(status).json({
+			success: false,
+			error: message,
+			...(err?.errors && { details: err.errors }),
+		});
+	} finally {
+		session.endSession();
+	}
 };
+
+/* =========================
+   UPDATE USER
+========================= */
 
 const updateUser = async (req: Request, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+	const { id } = req.params;
 
-  try {
-    const userId = req.params.id;
-    const updateData = req.body;
-    
-    // Don't allow direct role updates through this endpoint
-    delete updateData.roles;
-    
-    const user = await User.findOneAndUpdate(
-      { _id: userId, isDeleted: false },
-      updateData,
-      { new: true, session }
-    );
+	if (!mongoose.Types.ObjectId.isValid(id)) {
+		res.status(400).json({ error: "Invalid ID" });
+		return;
+	}
 
-    if (!user) {
-      await session.abortTransaction();
-      return res.status(404).json({ success: false, error: 'User not found' });
-    }
+	const update = { ...req.body };
+	delete update.roles;
 
-    await session.commitTransaction();
-    res.status(200).json({ success: true, data: user });
-  } catch (error) {
-    await session.abortTransaction();
-    console.error('Error in updateUser:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  } finally {
-    session.endSession();
-  }
+	if (update.password) {
+		update.password = await bcrypt.hash(update.password, 10);
+	}
+
+	// Sync seller's isDeactivated with user's isDeleted
+	// If user isDeleted is being updated and user is a seller, sync seller status
+	if ("isDeleted" in update && update.isDeleted !== undefined) {
+		const userBeforeUpdate = await User.findById(id);
+		if (userBeforeUpdate?.roles.includes(UserRole.SELLER)) {
+			await Seller.updateOne(
+				{ userId: id },
+				{ isDeactivated: update.isDeleted },
+			);
+		}
+	}
+
+	const user = await User.findByIdAndUpdate(id, update, {
+		new: true,
+		runValidators: true,
+	});
+
+	if (!user) {
+		res.status(404).json({ error: "User not found" });
+		return;
+	}
+
+	let seller = null;
+	if (user.roles.includes(UserRole.SELLER)) {
+		const sellerDoc = await Seller.findOne({ userId: user._id }).lean();
+		if (sellerDoc) seller = formatSellerResponse(sellerDoc);
+	}
+
+	res.json({ success: true, data: { user, seller } });
 };
 
-const deleteUser = async (req: Request, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const userId = req.params.id;
-    
-    // Soft delete the user
-    const user = await User.findOneAndUpdate(
-      { _id: userId, isDeleted: false },
-      { isDeleted: true },
-      { new: true, session }
-    );
-
-    if (!user) {
-      await session.abortTransaction();
-      return res.status(404).json({ success: false, error: 'User not found' });
-    }
-
-    // If user is a seller, deactivate seller account
-    if (user.roles.includes(UserRole.SELLER)) {
-      await Seller.findOneAndUpdate(
-        { userId: user._id },
-        { isDeactivated: true },
-        { session }
-      );
-    }
-
-    await session.commitTransaction();
-    res.status(200).json({ success: true, message: 'User deleted successfully' });
-  } catch (error) {
-    await session.abortTransaction();
-    console.error('Error in deleteUser:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  } finally {
-    session.endSession();
-  }
-};
+/* =========================
+   UPDATE SELLER (PATCH SAFE)
+========================= */
 
 const updateSellerInfo = async (req: Request, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+	const { id } = req.params;
 
-  try {
-    const userId = req.params.id;
-    const { IBAN } = req.body;
+	if (!mongoose.Types.ObjectId.isValid(id)) {
+		res.status(400).json({ success: false, error: "Invalid ID" });
+		return;
+	}
 
-    // Verify user exists and is a seller
-    const user = await User.findOne({ _id: userId, isDeleted: false });
-    if (!user) {
-      await session.abortTransaction();
-      return res.status(404).json({ success: false, error: 'User not found' });
-    }
+	// Match getSellerById / deleteSeller: :id may be Seller document _id or User id
+	let sellerDoc = await Seller.findById(id);
+	if (!sellerDoc) {
+		sellerDoc = await Seller.findOne({ userId: id });
+	}
+	if (!sellerDoc) {
+		res.status(404).json({ success: false, error: "Seller not found" });
+		return;
+	}
 
-    if (!user.roles.includes(UserRole.SELLER)) {
-      await session.abortTransaction();
-      return res.status(403).json({ success: false, error: 'User is not a seller' });
-    }
+	const user = await User.findById(sellerDoc.userId);
+	if (!user || !user.roles.includes(UserRole.SELLER)) {
+		res.status(404).json({ success: false, error: "Seller not found" });
+		return;
+	}
 
-    // Update seller information
-    const seller = await Seller.findOneAndUpdate(
-      { userId: user._id },
-      { 
-        IBAN,
-        qrCode: `QR_${IBAN}` // Generate QR code based on IBAN (implement proper QR generation)
-      },
-      { new: true, session }
-    );
+	const update: any = {};
 
-    if (!seller) {
-      await session.abortTransaction();
-      return res.status(404).json({ success: false, error: 'Seller information not found' });
-    }
+	// Handle isDeactivated (status)
+	if ("isDeactivated" in req.body) {
+		const val = req.body.isDeactivated;
+		let isDeactivatedValue: boolean;
+		if (typeof val === "boolean") {
+			isDeactivatedValue = val;
+		} else if (typeof val === "string") {
+			isDeactivatedValue = val.toLowerCase() === "true";
+		} else {
+			isDeactivatedValue = val === true;
+		}
+		update.isDeactivated = isDeactivatedValue;
+		
+		// Sync user's isDeleted with seller's isDeactivated
+		// If seller is deactivated, soft-delete the user
+		// If seller is activated, restore the user (set isDeleted to false)
+		await User.findByIdAndUpdate(
+			user._id,
+			{ isDeleted: isDeactivatedValue },
+			{ new: true },
+		);
+	}
 
-    await session.commitTransaction();
-    res.status(200).json({ success: true, data: seller });
-  } catch (error) {
-    await session.abortTransaction();
-    console.error('Error in updateSellerInfo:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  } finally {
-    session.endSession();
-  }
+	// Handle other seller fields
+	if ("fullName" in req.body) {
+		update.fullName = req.body.fullName ?? "";
+	}
+
+	if ("emailAddress" in req.body) {
+		update.emailAddress = req.body.emailAddress;
+	}
+
+	if ("phoneNumber" in req.body) {
+		update.phoneNumber = req.body.phoneNumber;
+	}
+
+	if ("addressText" in req.body) {
+		update.addressText = req.body.addressText ?? "";
+	}
+
+	if ("qrCode" in req.body) {
+		update.qrCode = req.body.qrCode;
+	}
+
+	if ("intakeTimestamp" in req.body) {
+		update.intakeTimestamp = req.body.intakeTimestamp;
+	}
+
+	if ("consentGiven" in req.body) {
+		const consentValue = req.body.consentGiven;
+		if (typeof consentValue === "string") {
+			update.consentGiven = consentValue.toLowerCase() === "true";
+		} else if (typeof consentValue === "boolean") {
+			update.consentGiven = consentValue;
+		} else {
+			// Only set to true if explicitly true, otherwise false
+			update.consentGiven = consentValue === true;
+		}
+	}
+
+	if ("preferredPickupDate" in req.body) {
+		update.preferredPickupDate = req.body.preferredPickupDate ?? "";
+	}
+
+	if ("IBAN" in req.body) {
+		update.IBAN = req.body.IBAN;
+		// Auto-generate qrCode if IBAN is provided and qrCode not explicitly set
+		if (!("qrCode" in req.body)) {
+		update.qrCode = `QR_${req.body.IBAN}`;
+		}
+	}
+
+	if ("balance" in req.body) {
+		update.balance = req.body.balance;
+	}
+
+	if ("sellerPolicyAcceptedAt" in req.body) {
+		const val = req.body.sellerPolicyAcceptedAt;
+		update.sellerPolicyAcceptedAt =
+			val == null || val === "" ? undefined : new Date(val);
+	}
+
+	if ("escalationStatus" in req.body) {
+		const val = req.body.escalationStatus;
+		if (
+			val != null &&
+			val !== "" &&
+			!Object.values(EscalationStatus).includes(val)
+		) {
+			res.status(400).json({
+				success: false,
+				error: `Invalid escalationStatus. Must be one of: ${Object.values(
+					EscalationStatus,
+				).join(", ")}`,
+			});
+			return;
+		}
+		update.escalationStatus = val == null || val === "" ? undefined : val;
+	}
+
+	if ("escalationNotes" in req.body) {
+		update.escalationNotes = req.body.escalationNotes ?? "";
+	}
+
+	if ("onboardingStatus" in req.body) {
+		const val = req.body.onboardingStatus;
+		if (val != null && val !== "" && !Object.values(SellerOnboardingStatus).includes(val)) {
+			res.status(400).json({
+				success: false,
+				error: `Invalid onboardingStatus. Must be one of: ${Object.values(SellerOnboardingStatus).join(", ")}`,
+			});
+			return;
+		}
+		update.onboardingStatus = val == null || val === "" ? undefined : val;
+	}
+
+	if ("itemsOnboardingStatus" in req.body) {
+		const val = req.body.itemsOnboardingStatus;
+		if (val != null && val !== "" && !Object.values(ItemsOnboardingStatus).includes(val)) {
+			res.status(400).json({
+				success: false,
+				error: `Invalid itemsOnboardingStatus. Must be one of: ${Object.values(ItemsOnboardingStatus).join(", ")}`,
+			});
+			return;
+		}
+		update.itemsOnboardingStatus = val == null || val === "" ? undefined : val;
+	}
+
+	const seller = await Seller.findOneAndUpdate(
+		{ userId: user._id },
+		{ $set: update },
+		{ new: true, upsert: true, runValidators: true },
+	);
+
+	res.json({
+		success: true,
+		data: formatSellerResponse(seller.toObject()),
+	});
 };
+
+/* =========================
+   DELETE USER (SOFT)
+========================= */
+
+const deleteUser = async (req: Request, res: Response) => {
+	const { id } = req.params;
+
+	const user = await User.findByIdAndUpdate(
+		id,
+		{ isDeleted: true },
+		{ new: true },
+	);
+
+	if (!user) {
+		res.status(404).json({ error: "User not found" });
+		return;
+	}
+
+	if (user.roles.includes(UserRole.SELLER)) {
+		await Seller.updateOne({ userId: user._id }, { isDeactivated: true });
+	}
+
+	res.json({ success: true });
+};
+
+/* =========================
+   UPDATE ROLES
+========================= */
+
+const updateUserRoles = async (req: Request, res: Response) => {
+	const { id } = req.params;
+	const { roles } = req.body;
+
+	const user = await User.findByIdAndUpdate(
+		id,
+		{ roles },
+		{ new: true, runValidators: true },
+	);
+
+	if (!user) {
+		res.status(404).json({ error: "User not found" });
+		return;
+	}
+
+	if (roles.includes(UserRole.SELLER)) {
+		await Seller.findOneAndUpdate({ userId: user._id }, {}, { upsert: true });
+	}
+
+	res.json({ success: true, data: user });
+};
+
+/* =========================
+   EXPORT
+========================= */
 
 export default {
-  getUsers,
-  getUserById,
-  createUser,
-  updateUser,
-  deleteUser,
-  updateSellerInfo
+	getUsers,
+	getUserById,
+	createUser,
+	updateUser,
+	deleteUser,
+	updateSellerInfo,
+	updateUserRoles,
 };
-  

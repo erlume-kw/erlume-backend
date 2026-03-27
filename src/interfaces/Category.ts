@@ -4,7 +4,7 @@ import { Document, Types } from "mongoose";
 export interface CategoryInterface extends Document {
 	name: string;
 	base_rate: string;
-	op_rate: string;
-	clean_rate: string;
+	op_rate?: string;
+	clean_rate?: string;
 	sub_category_id?: Types.ObjectId; // Optional: reference to a subcategory
 }

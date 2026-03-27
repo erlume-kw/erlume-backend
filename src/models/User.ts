@@ -3,23 +3,23 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { UserInterface } from "../interfaces/User"; // Import the UserInterface
 import Seller from "./Seller";
-import { AddressSchema } from './Address';
+import { AddressSchema } from "./Address";
 // _id = user._id // This is the user_id --> auto generated in mongodb
 // Create the User schema
 const UserSchema: Schema = new Schema(
 	{
-		username: { type: String, required: true, unique: true },
+		// username: { type: String, required: true }, // Deprecated: emailAddress is primary
 		password: { type: String, required: true },
-		emailAddress: { 
-			type: String, 
-			required: true, 
-			unique: true,
-			match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-		},
-		phoneNumber: { 
-			type: String, 
+		emailAddress: {
+			type: String,
 			required: true,
-			match: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/
+			match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+		},
+		phoneNumber: {
+			type: String,
+			required: true,
+			// Allow 7–15 digits, optional + prefix and spaces/dashes (e.g. Kuwait 98821155, +965 98821155)
+			match: /^[+]?[\s\-]?[0-9]{7,15}$/,
 		},
 		address: { type: AddressSchema, required: true }, // Assuming IAddress is an object
 		roles: [{ type: String, required: true }], // Array of roles
@@ -37,6 +37,17 @@ UserSchema.pre("findOneAndDelete", async function (next) {
 	}
 	next();
 });
+
+// Create partial unique indexes that only apply to non-deleted users
+// This allows deleted users to exist without blocking new users with the same email
+UserSchema.index(
+	{ emailAddress: 1 },
+	{
+		unique: true,
+		partialFilterExpression: { isDeleted: false },
+		name: "emailAddress_unique_not_deleted",
+	},
+);
 
 // Create the User model
 const User = mongoose.model<UserInterface>("User", UserSchema);
