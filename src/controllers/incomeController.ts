@@ -313,7 +313,9 @@ const updateIncome = async (req: Request, res: Response): Promise<void> => {
 					if (!seller) {
 						const user = await User.findById(update.seller_id);
 						if (!user) {
-							res.status(404).json({ success: false, error: "Seller not found" });
+							res
+								.status(404)
+								.json({ success: false, error: "Seller not found" });
 							return;
 						}
 					}
