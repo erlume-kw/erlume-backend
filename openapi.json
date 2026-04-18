@@ -1073,6 +1073,51 @@
         }
       ]
     },
+    "/api/orders/validate-cart": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Validate cart availability before checkout",
+        "description": "Pass all item_ids from the user's local cart. Returns which items are still available and which are not (sold/unavailable). Call this before showing the payment screen so the user can remove unavailable items first.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["item_ids"],
+                "properties": {
+                  "item_ids": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["64a1b2c3d4e5f6a7b8c9d0e1", "64a1b2c3d4e5f6a7b8c9d0e2"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK — check data.valid to know if all items are available",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "valid": false,
+                    "available": ["64a1b2c3d4e5f6a7b8c9d0e1"],
+                    "unavailable": [{ "item_id": "64a1b2c3d4e5f6a7b8c9d0e2", "reason": "Item is sold" }],
+                    "summary": "1 available, 1 unavailable"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid item_ids array" }
+        },
+        "x-usedBy": ["frontend"]
+      }
+    },
     "/api/orders": {
       "get": {
         "tags": [

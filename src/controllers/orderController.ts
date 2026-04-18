@@ -716,6 +716,79 @@ const deleteOrder = async (req: Request, res: Response): Promise<void> => {
 	}
 };
 
+/* ─── POST /api/orders/validate-cart ─────────────────────────────────────────
+   Pre-checkout availability check. Call this before showing the payment screen.
+   Body: { item_ids: string[] }
+   Returns which items are available and which are not, so the frontend can
+   remove unavailable ones before the user hits checkout.
+────────────────────────────────────────────────────────────────────────────── */
+
+const validateCart = async (req: Request, res: Response): Promise<void> => {
+	try {
+		const { item_ids } = req.body;
+
+		if (!Array.isArray(item_ids) || item_ids.length === 0) {
+			res.status(400).json({
+				success: false,
+				error: "item_ids must be a non-empty array",
+			});
+			return;
+		}
+
+		// Validate all IDs are valid ObjectIds
+		const invalidIds = item_ids.filter(
+			(id: any) => !mongoose.Types.ObjectId.isValid(id),
+		);
+		if (invalidIds.length > 0) {
+			res.status(400).json({
+				success: false,
+				error: `Invalid item IDs: ${invalidIds.join(", ")}`,
+			});
+			return;
+		}
+
+		// Fetch all items in one query
+		const items = await Item.find({ _id: { $in: item_ids } }).lean();
+
+		// Map results
+		const foundIds = new Set(items.map((i) => String(i._id)));
+
+		const available: string[] = [];
+		const unavailable: Array<{ item_id: string; reason: string }> = [];
+
+		for (const id of item_ids) {
+			if (!foundIds.has(id)) {
+				unavailable.push({ item_id: id, reason: "Item not found" });
+				continue;
+			}
+
+			const item = items.find((i) => String(i._id) === id)!;
+
+			if (item.itemStatus !== ItemStatus.Available) {
+				unavailable.push({
+					item_id: id,
+					reason: `Item is ${item.itemStatus}`,
+				});
+			} else {
+				available.push(id);
+			}
+		}
+
+		res.status(200).json({
+			success: true,
+			data: {
+				valid: unavailable.length === 0,
+				available,
+				unavailable,
+				summary: `${available.length} available, ${unavailable.length} unavailable`,
+			},
+		});
+	} catch (error) {
+		console.error("Error in validateCart:", error);
+		res.status(500).json({ success: false, error: "Internal server error" });
+	}
+};
+
 export default {
 	getOrders,
 	getOrdersByUserId,
@@ -724,4 +797,5 @@ export default {
 	updateOrderStatus,
 	updateOrder,
 	deleteOrder,
+	validateCart,
 };
