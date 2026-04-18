@@ -12,6 +12,10 @@ import {
 } from "../validations/schemas";
 
 // Define routes and map to controller methods
+
+// POST /api/orders/validate-cart — pre-checkout availability check (must be before /:id)
+router.post("/validate-cart", orderController.validateCart);
+
 router.get("/", validateQuery(dateFilterQuerySchema), orderController.getOrders);
 router.get(
 	"/user/:userId",
