@@ -103,6 +103,10 @@
     {
       "name": "Shipping",
       "description": "Shipping methods with flat rates per Kuwait governorate. Empty zones array = applies to all governorates."
+    },
+    {
+      "name": "Newsletter",
+      "description": "Email subscriber list. Subscribe/unsubscribe is public. Listing subscribers is admin only."
     }
   ],
   "paths": {
@@ -3184,6 +3188,70 @@
           }
         }
       ]
+    },
+    "/api/newsletter": {
+      "post": {
+        "tags": ["Newsletter"],
+        "summary": "Subscribe an email",
+        "description": "Idempotent — calling with an already-subscribed email returns 200 silently. Reactivates previously unsubscribed emails.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "customer@example.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Subscribed (new)" },
+          "200": { "description": "Already subscribed or reactivated" },
+          "400": { "description": "Missing or invalid email" }
+        },
+        "x-usedBy": ["frontend"]
+      },
+      "get": {
+        "tags": ["Newsletter"],
+        "summary": "List all subscribers (admin)",
+        "description": "Returns active subscribers by default. Pass ?includeInactive=true to include unsubscribed emails.",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["true", "false"] },
+            "description": "Include unsubscribed emails"
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" }
+        },
+        "x-usedBy": ["backoffice"]
+      }
+    },
+    "/api/newsletter/{email}": {
+      "parameters": [
+        {
+          "name": "email",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" },
+          "description": "Email address (URL-encoded)"
+        }
+      ],
+      "delete": {
+        "tags": ["Newsletter"],
+        "summary": "Unsubscribe an email",
+        "description": "Soft-deletes the subscription (keeps record for audit, sets isActive: false). Always returns 200 — does not reveal whether the email was in the list.",
+        "responses": {
+          "200": { "description": "Unsubscribed" }
+        },
+        "x-usedBy": ["frontend"]
+      }
     },
     "/api/shipping": {
       "get": {

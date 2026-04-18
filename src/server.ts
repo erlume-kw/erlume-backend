@@ -33,6 +33,7 @@ import expenseRoutes from "./routes/expenseRoutes";
 import employeeRoutes from "./routes/employeeRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import shippingRoutes from "./routes/shippingRoutes";
+import newsletterRoutes from "./routes/newsletterRoutes";
 
 dotenv.config();
 
@@ -177,6 +178,7 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/shipping", shippingRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 const PORT = process.env.PORT || 3000;
 
