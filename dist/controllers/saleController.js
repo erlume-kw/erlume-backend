@@ -173,7 +173,14 @@ const recalculateSaleCommissions = (req, res) => __awaiter(void 0, void 0, void 
             bulkOps.push({
                 updateOne: {
                     filter: { _id: sale._id },
-                    update: { $set: { erlumeCommission, sellerPayout } },
+                    update: {
+                        $set: {
+                            erlumeCommission,
+                            sellerPayout,
+                            erlumeCommissionAmount: erlumeCommission,
+                            sellerPayoutAmount: sellerPayout,
+                        },
+                    },
                 },
             });
             updatedCount += 1;
@@ -351,6 +358,8 @@ const createSale = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             listingPrice,
             erlumeCommission: computedErlumeCommission !== null && computedErlumeCommission !== void 0 ? computedErlumeCommission : erlumeCommission,
             sellerPayout: computedSellerPayout !== null && computedSellerPayout !== void 0 ? computedSellerPayout : sellerPayout,
+            erlumeCommissionAmount: computedErlumeCommission !== null && computedErlumeCommission !== void 0 ? computedErlumeCommission : erlumeCommission,
+            sellerPayoutAmount: computedSellerPayout !== null && computedSellerPayout !== void 0 ? computedSellerPayout : sellerPayout,
             buyer,
             status,
             sale_date: sale_date ? new Date(sale_date) : undefined,
@@ -461,15 +470,19 @@ const updateSale = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             update.listingPrice = listingPrice;
         if (computedErlumeCommission !== undefined) {
             update.erlumeCommission = computedErlumeCommission;
+            update.erlumeCommissionAmount = computedErlumeCommission;
         }
         else if (erlumeCommission !== undefined) {
             update.erlumeCommission = erlumeCommission;
+            update.erlumeCommissionAmount = erlumeCommission;
         }
         if (computedSellerPayout !== undefined) {
             update.sellerPayout = computedSellerPayout;
+            update.sellerPayoutAmount = computedSellerPayout;
         }
         else if (sellerPayout !== undefined) {
             update.sellerPayout = sellerPayout;
+            update.sellerPayoutAmount = sellerPayout;
         }
         if (buyer !== undefined)
             update.buyer = buyer;

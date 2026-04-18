@@ -178,7 +178,14 @@ const recalculateSaleCommissions = async (
 			bulkOps.push({
 				updateOne: {
 					filter: { _id: sale._id },
-					update: { $set: { erlumeCommission, sellerPayout } },
+					update: {
+						$set: {
+							erlumeCommission,
+							sellerPayout,
+							erlumeCommissionAmount: erlumeCommission,
+							sellerPayoutAmount: sellerPayout,
+						},
+					},
 				},
 			});
 			updatedCount += 1;
@@ -398,6 +405,8 @@ const createSale = async (req: Request, res: Response): Promise<void> => {
 			listingPrice,
 			erlumeCommission: computedErlumeCommission ?? erlumeCommission,
 			sellerPayout: computedSellerPayout ?? sellerPayout,
+			erlumeCommissionAmount: computedErlumeCommission ?? erlumeCommission,
+			sellerPayoutAmount: computedSellerPayout ?? sellerPayout,
 			buyer,
 			status,
 			sale_date: sale_date ? new Date(sale_date) : undefined,
@@ -533,13 +542,17 @@ const updateSale = async (req: Request, res: Response): Promise<void> => {
 		if (listingPrice !== undefined) update.listingPrice = listingPrice;
 		if (computedErlumeCommission !== undefined) {
 			update.erlumeCommission = computedErlumeCommission;
+			update.erlumeCommissionAmount = computedErlumeCommission;
 		} else if (erlumeCommission !== undefined) {
 			update.erlumeCommission = erlumeCommission;
+			update.erlumeCommissionAmount = erlumeCommission;
 		}
 		if (computedSellerPayout !== undefined) {
 			update.sellerPayout = computedSellerPayout;
+			update.sellerPayoutAmount = computedSellerPayout;
 		} else if (sellerPayout !== undefined) {
 			update.sellerPayout = sellerPayout;
+			update.sellerPayoutAmount = sellerPayout;
 		}
 		if (buyer !== undefined) update.buyer = buyer;
 		if (status !== undefined) update.status = status;

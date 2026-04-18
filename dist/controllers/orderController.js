@@ -84,6 +84,8 @@ const createDeliveredFinancials = (orderId) => __awaiter(void 0, void 0, void 0,
             amount: lineTotal,
             erlumeCommission,
             sellerPayout,
+            erlumeCommissionAmount: erlumeCommission,
+            sellerPayoutAmount: sellerPayout,
         });
     }
     const transaction = yield Transaction_1.default.findOne({ order_id: orderId });

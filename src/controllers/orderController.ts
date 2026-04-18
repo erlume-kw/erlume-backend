@@ -78,6 +78,8 @@ const createDeliveredFinancials = async (orderId: mongoose.Types.ObjectId | stri
 			amount: lineTotal,
 			erlumeCommission,
 			sellerPayout,
+			erlumeCommissionAmount: erlumeCommission,
+			sellerPayoutAmount: sellerPayout,
 		});
 	}
 
