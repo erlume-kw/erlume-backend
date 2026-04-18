@@ -31,6 +31,8 @@ import sellerRoutes from "./routes/sellerRoutes";
 import incomeRoutes from "./routes/incomeRoutes";
 import expenseRoutes from "./routes/expenseRoutes";
 import employeeRoutes from "./routes/employeeRoutes";
+import wishlistRoutes from "./routes/wishlistRoutes";
+import shippingRoutes from "./routes/shippingRoutes";
 
 dotenv.config();
 
@@ -173,6 +175,8 @@ app.use("/api/sellers", sellerRoutes);
 app.use("/api/incomes", incomeRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/employees", employeeRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/shipping", shippingRoutes);
 
 const PORT = process.env.PORT || 3000;
 
