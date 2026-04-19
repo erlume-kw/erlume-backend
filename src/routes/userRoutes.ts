@@ -2,40 +2,21 @@ import express, { Router, RequestHandler } from "express";
 const router: Router = express.Router();
 import userController from "../controllers/userController";
 import { validate, validateParams, validateQuery } from "../middleware/validation";
-import {
-	createUserSchema,
-	updateUserSchema,
-	updateUserRolesSchema,
-	idParamSchema,
-	userFilterQuerySchema,
-} from "../validations/schemas";
+import { createUserSchema, updateUserSchema, updateUserRolesSchema, idParamSchema, userFilterQuerySchema } from "../validations/schemas";
+import { authenticate, requireRole } from "../middleware/auth";
+import { UserRole } from "../enums/userEnums";
 
-// User routes
-router.get("/", validateQuery(userFilterQuerySchema), userController.getUsers as RequestHandler);
-router.get("/:id", validateParams(idParamSchema), userController.getUserById as RequestHandler);
-router.post("/", validate(createUserSchema), userController.createUser as RequestHandler);
+const adminOnly = [authenticate, requireRole(UserRole.ADMIN)];
 
-// Role management routes (must come before generic /:id routes)
-router.put(
-	"/:id/roles",
-	validateParams(idParamSchema),
-	validate(updateUserRolesSchema),
-	userController.updateUserRoles as RequestHandler,
-);
+// Admin only
+router.get("/", ...adminOnly, validateQuery(userFilterQuerySchema), userController.getUsers as RequestHandler);
+router.post("/", ...adminOnly, validate(createUserSchema), userController.createUser as RequestHandler);
+router.put("/:id/roles", ...adminOnly, validateParams(idParamSchema), validate(updateUserRolesSchema), userController.updateUserRoles as RequestHandler);
+router.delete("/:id", ...adminOnly, validateParams(idParamSchema), userController.deleteUser as RequestHandler);
 
-// Generic user routes (must come after specific routes)
-router.put(
-	"/:id",
-	validateParams(idParamSchema),
-	validate(updateUserSchema),
-	userController.updateUser as RequestHandler,
-);
-router.patch(
-	"/:id",
-	validateParams(idParamSchema),
-	validate(updateUserSchema),
-	userController.updateUser as RequestHandler,
-);
-router.delete("/:id", validateParams(idParamSchema), userController.deleteUser as RequestHandler);
+// Authenticated users (own profile)
+router.get("/:id", authenticate, validateParams(idParamSchema), userController.getUserById as RequestHandler);
+router.put("/:id", authenticate, validateParams(idParamSchema), validate(updateUserSchema), userController.updateUser as RequestHandler);
+router.patch("/:id", authenticate, validateParams(idParamSchema), validate(updateUserSchema), userController.updateUser as RequestHandler);
 
 export default router;

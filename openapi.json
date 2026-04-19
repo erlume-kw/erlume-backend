@@ -17,6 +17,10 @@
   ],
   "tags": [
     {
+      "name": "Auth",
+      "description": "Authentication endpoints"
+    },
+    {
       "name": "Users",
       "description": "User accounts (roles, soft-delete). For seller profile (bank, policy, escalation) use Sellers."
     },
@@ -1079,7 +1083,9 @@
     },
     "/api/orders/validate-cart": {
       "post": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "Validate cart availability before checkout",
         "description": "Pass all item_ids from the user's local cart. Returns which items are still available and which are not (sold/unavailable). Call this before showing the payment screen so the user can remove unavailable items first.",
         "requestBody": {
@@ -1088,12 +1094,19 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["item_ids"],
+                "required": [
+                  "item_ids"
+                ],
                 "properties": {
                   "item_ids": {
                     "type": "array",
-                    "items": { "type": "string" },
-                    "example": ["64a1b2c3d4e5f6a7b8c9d0e1", "64a1b2c3d4e5f6a7b8c9d0e2"]
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "64a1b2c3d4e5f6a7b8c9d0e1",
+                      "64a1b2c3d4e5f6a7b8c9d0e2"
+                    ]
                   }
                 }
               }
@@ -1109,17 +1122,28 @@
                   "success": true,
                   "data": {
                     "valid": false,
-                    "available": ["64a1b2c3d4e5f6a7b8c9d0e1"],
-                    "unavailable": [{ "item_id": "64a1b2c3d4e5f6a7b8c9d0e2", "reason": "Item is sold" }],
+                    "available": [
+                      "64a1b2c3d4e5f6a7b8c9d0e1"
+                    ],
+                    "unavailable": [
+                      {
+                        "item_id": "64a1b2c3d4e5f6a7b8c9d0e2",
+                        "reason": "Item is sold"
+                      }
+                    ],
                     "summary": "1 available, 1 unavailable"
                   }
                 }
               }
             }
           },
-          "400": { "description": "Invalid item_ids array" }
+          "400": {
+            "description": "Invalid item_ids array"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
       }
     },
     "/api/orders": {
@@ -3191,7 +3215,9 @@
     },
     "/api/newsletter": {
       "post": {
-        "tags": ["Newsletter"],
+        "tags": [
+          "Newsletter"
+        ],
         "summary": "Subscribe an email",
         "description": "Idempotent — calling with an already-subscribed email returns 200 silently. Reactivates previously unsubscribed emails.",
         "requestBody": {
@@ -3200,37 +3226,63 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email"],
+                "required": [
+                  "email"
+                ],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "customer@example.com" }
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "customer@example.com"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Subscribed (new)" },
-          "200": { "description": "Already subscribed or reactivated" },
-          "400": { "description": "Missing or invalid email" }
+          "200": {
+            "description": "Already subscribed or reactivated"
+          },
+          "201": {
+            "description": "Subscribed (new)"
+          },
+          "400": {
+            "description": "Missing or invalid email"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
       },
       "get": {
-        "tags": ["Newsletter"],
+        "tags": [
+          "Newsletter"
+        ],
         "summary": "List all subscribers (admin)",
         "description": "Returns active subscribers by default. Pass ?includeInactive=true to include unsubscribed emails.",
         "parameters": [
           {
             "name": "includeInactive",
             "in": "query",
-            "schema": { "type": "string", "enum": ["true", "false"] },
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
             "description": "Include unsubscribed emails"
           }
         ],
         "responses": {
-          "200": { "description": "OK" }
+          "200": {
+            "description": "OK"
+          }
         },
-        "x-usedBy": ["backoffice"]
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/newsletter/{email}": {
@@ -3239,23 +3291,33 @@
           "name": "email",
           "in": "path",
           "required": true,
-          "schema": { "type": "string" },
+          "schema": {
+            "type": "string"
+          },
           "description": "Email address (URL-encoded)"
         }
       ],
       "delete": {
-        "tags": ["Newsletter"],
+        "tags": [
+          "Newsletter"
+        ],
         "summary": "Unsubscribe an email",
         "description": "Soft-deletes the subscription (keeps record for audit, sets isActive: false). Always returns 200 — does not reveal whether the email was in the list.",
         "responses": {
-          "200": { "description": "Unsubscribed" }
+          "200": {
+            "description": "Unsubscribed"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
       }
     },
     "/api/shipping": {
       "get": {
-        "tags": ["Shipping"],
+        "tags": [
+          "Shipping"
+        ],
         "summary": "List all active shipping methods",
         "description": "Returns all active shipping methods. Use this to populate the shipping options in checkout.",
         "responses": {
@@ -3266,8 +3328,23 @@
                 "example": {
                   "success": true,
                   "data": [
-                    { "name": "Standard Delivery", "description": "2–3 business days", "price": 2.5, "zones": [], "isActive": true },
-                    { "name": "Express Delivery", "description": "Same day", "price": 5.0, "zones": ["Al Asimah", "Hawalli"], "isActive": true }
+                    {
+                      "name": "Standard Delivery",
+                      "description": "2–3 business days",
+                      "price": 2.5,
+                      "zones": [],
+                      "isActive": true
+                    },
+                    {
+                      "name": "Express Delivery",
+                      "description": "Same day",
+                      "price": 5,
+                      "zones": [
+                        "Al Asimah",
+                        "Hawalli"
+                      ],
+                      "isActive": true
+                    }
                   ],
                   "count": 2
                 }
@@ -3275,10 +3352,15 @@
             }
           }
         },
-        "x-usedBy": ["frontend", "backoffice"]
+        "x-usedBy": [
+          "frontend",
+          "backoffice"
+        ]
       },
       "post": {
-        "tags": ["Shipping"],
+        "tags": [
+          "Shipping"
+        ],
         "summary": "Create shipping method (admin)",
         "requestBody": {
           "required": true,
@@ -3286,28 +3368,51 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "price"],
+                "required": [
+                  "name",
+                  "price"
+                ],
                 "properties": {
-                  "name": { "type": "string", "example": "Standard Delivery" },
-                  "description": { "type": "string", "example": "2–3 business days" },
-                  "price": { "type": "number", "example": 2.5 },
+                  "name": {
+                    "type": "string",
+                    "example": "Standard Delivery"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "2–3 business days"
+                  },
+                  "price": {
+                    "type": "number",
+                    "example": 2.5
+                  },
                   "zones": {
                     "type": "array",
-                    "items": { "type": "string" },
+                    "items": {
+                      "type": "string"
+                    },
                     "description": "Kuwait governorates. Empty = all zones.",
                     "example": []
                   },
-                  "isActive": { "type": "boolean", "example": true }
+                  "isActive": {
+                    "type": "boolean",
+                    "example": true
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Created" },
-          "400": { "description": "Validation error" }
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
         },
-        "x-usedBy": ["backoffice"]
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/shipping/zone/{governorate}": {
@@ -3318,20 +3423,35 @@
           "required": true,
           "schema": {
             "type": "string",
-            "enum": ["Al Asimah", "Hawalli", "Farwaniya", "Ahmadi", "Jahra", "Mubarak Al-Kabeer"]
+            "enum": [
+              "Al Asimah",
+              "Hawalli",
+              "Farwaniya",
+              "Ahmadi",
+              "Jahra",
+              "Mubarak Al-Kabeer"
+            ]
           },
           "description": "Kuwait governorate name"
         }
       ],
       "get": {
-        "tags": ["Shipping"],
+        "tags": [
+          "Shipping"
+        ],
         "summary": "Get shipping methods available for a governorate",
         "description": "Returns methods whose zones include this governorate, plus any methods with empty zones (applies to all). Use this after the user selects their delivery address.",
         "responses": {
-          "200": { "description": "OK" },
-          "400": { "description": "Invalid governorate" }
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid governorate"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
       }
     },
     "/api/shipping/{id}": {
@@ -3340,38 +3460,68 @@
           "name": "id",
           "in": "path",
           "required": true,
-          "schema": { "type": "string" },
+          "schema": {
+            "type": "string"
+          },
           "description": "Shipping method ObjectId"
         }
       ],
       "get": {
-        "tags": ["Shipping"],
+        "tags": [
+          "Shipping"
+        ],
         "summary": "Get shipping method by ID",
         "responses": {
-          "200": { "description": "OK" },
-          "400": { "description": "Invalid ID" },
-          "404": { "description": "Not found" }
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid ID"
+          },
+          "404": {
+            "description": "Not found"
+          }
         },
-        "x-usedBy": ["backoffice"]
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "put": {
-        "tags": ["Shipping"],
+        "tags": [
+          "Shipping"
+        ],
         "summary": "Update shipping method (admin)",
         "responses": {
-          "200": { "description": "Updated" },
-          "400": { "description": "Validation error" },
-          "404": { "description": "Not found" }
+          "200": {
+            "description": "Updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Not found"
+          }
         },
-        "x-usedBy": ["backoffice"]
+        "x-usedBy": [
+          "backoffice"
+        ]
       },
       "delete": {
-        "tags": ["Shipping"],
+        "tags": [
+          "Shipping"
+        ],
         "summary": "Delete shipping method (admin)",
         "responses": {
-          "200": { "description": "Deleted" },
-          "404": { "description": "Not found" }
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
         },
-        "x-usedBy": ["backoffice"]
+        "x-usedBy": [
+          "backoffice"
+        ]
       }
     },
     "/api/wishlist/{userId}": {
@@ -3380,12 +3530,16 @@
           "name": "userId",
           "in": "path",
           "required": true,
-          "schema": { "type": "string" },
+          "schema": {
+            "type": "string"
+          },
           "description": "MongoDB ObjectId of the user"
         }
       ],
       "get": {
-        "tags": ["Wishlist"],
+        "tags": [
+          "Wishlist"
+        ],
         "summary": "Get user's wishlist",
         "description": "Returns the wishlist with full item objects populated. If the user has never added anything, returns an empty list (no 404).",
         "responses": {
@@ -3404,19 +3558,31 @@
               }
             }
           },
-          "400": { "description": "Invalid user ID" }
+          "400": {
+            "description": "Invalid user ID"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
       },
       "delete": {
-        "tags": ["Wishlist"],
+        "tags": [
+          "Wishlist"
+        ],
         "summary": "Clear entire wishlist",
         "description": "Removes all items from the user's wishlist in one call.",
         "responses": {
-          "200": { "description": "Wishlist cleared" },
-          "400": { "description": "Invalid user ID" }
+          "200": {
+            "description": "Wishlist cleared"
+          },
+          "400": {
+            "description": "Invalid user ID"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
       }
     },
     "/api/wishlist/{userId}/items": {
@@ -3425,12 +3591,16 @@
           "name": "userId",
           "in": "path",
           "required": true,
-          "schema": { "type": "string" },
+          "schema": {
+            "type": "string"
+          },
           "description": "MongoDB ObjectId of the user"
         }
       ],
       "post": {
-        "tags": ["Wishlist"],
+        "tags": [
+          "Wishlist"
+        ],
         "summary": "Add item to wishlist",
         "description": "Adds an item to the user's wishlist. Auto-creates the wishlist on first call. Duplicate adds are ignored (idempotent).",
         "requestBody": {
@@ -3439,7 +3609,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["item_id"],
+                "required": [
+                  "item_id"
+                ],
                 "properties": {
                   "item_id": {
                     "type": "string",
@@ -3451,11 +3623,19 @@
           }
         },
         "responses": {
-          "200": { "description": "Item added — returns updated wishlist" },
-          "400": { "description": "Invalid user ID or item_id" },
-          "404": { "description": "User or item not found" }
+          "200": {
+            "description": "Item added — returns updated wishlist"
+          },
+          "400": {
+            "description": "Invalid user ID or item_id"
+          },
+          "404": {
+            "description": "User or item not found"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
       }
     },
     "/api/wishlist/{userId}/items/{itemId}": {
@@ -3464,25 +3644,216 @@
           "name": "userId",
           "in": "path",
           "required": true,
-          "schema": { "type": "string" }
+          "schema": {
+            "type": "string"
+          }
         },
         {
           "name": "itemId",
           "in": "path",
           "required": true,
-          "schema": { "type": "string" }
+          "schema": {
+            "type": "string"
+          }
         }
       ],
       "delete": {
-        "tags": ["Wishlist"],
+        "tags": [
+          "Wishlist"
+        ],
         "summary": "Remove one item from wishlist",
         "responses": {
-          "200": { "description": "Item removed — returns updated wishlist" },
-          "400": { "description": "Invalid user ID or item ID" },
-          "404": { "description": "Wishlist not found" }
+          "200": {
+            "description": "Item removed — returns updated wishlist"
+          },
+          "400": {
+            "description": "Invalid user ID or item ID"
+          },
+          "404": {
+            "description": "Wishlist not found"
+          }
         },
-        "x-usedBy": ["frontend"]
+        "x-usedBy": [
+          "frontend"
+        ]
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a new user",
+        "x-usedBy": [
+          "frontend",
+          "backoffice"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "emailAddress",
+                  "password",
+                  "phoneNumber",
+                  "address"
+                ],
+                "properties": {
+                  "emailAddress": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "object",
+                    "required": [
+                      "street",
+                      "city",
+                      "block",
+                      "governorate",
+                      "house"
+                    ],
+                    "properties": {
+                      "street": {
+                        "type": "string"
+                      },
+                      "city": {
+                        "type": "string"
+                      },
+                      "block": {
+                        "type": "string"
+                      },
+                      "governorate": {
+                        "type": "string"
+                      },
+                      "house": {
+                        "type": "string"
+                      },
+                      "flat": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "seller",
+                        "admin"
+                      ]
+                    },
+                    "default": [
+                      "user"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered, returns JWT token"
+          },
+          "409": {
+            "description": "Email already in use"
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login and receive JWT token",
+        "x-usedBy": [
+          "frontend",
+          "backoffice"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "emailAddress",
+                  "password"
+                ],
+                "properties": {
+                  "emailAddress": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "secret123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns JWT token + user info"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get current logged-in user",
+        "x-usedBy": [
+          "frontend",
+          "backoffice"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current user profile"
+          },
+          "401": {
+            "description": "Missing or invalid token"
+          }
+        }
       }
     }
-  }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
 }

@@ -1,29 +1,22 @@
 // src/routes/shippingRoutes.ts
 
-import express from "express";
+import express, { RequestHandler } from "express";
 import shippingController from "../controllers/shippingController";
+import { authenticate, requireRole } from "../middleware/auth";
+import { UserRole } from "../enums/userEnums";
 
 const router = express.Router();
 
+const adminOnly = [authenticate, requireRole(UserRole.ADMIN)];
+
 // ── Public ────────────────────────────────────────────────────────────────────
-// GET /api/shipping               → all active methods
-router.get("/", shippingController.getShippingMethods);
-
-// GET /api/shipping/zone/:governorate  → methods for a specific Kuwait governorate
-// NOTE: must come before /:id to avoid "zone" being matched as an ObjectId
-router.get("/zone/:governorate", shippingController.getShippingByZone);
-
-// GET /api/shipping/:id           → single method by ID
-router.get("/:id", shippingController.getShippingMethodById);
+router.get("/", shippingController.getShippingMethods as RequestHandler);
+router.get("/zone/:governorate", shippingController.getShippingByZone as RequestHandler);
+router.get("/:id", shippingController.getShippingMethodById as RequestHandler);
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
-// POST /api/shipping              → create
-router.post("/", shippingController.createShippingMethod);
-
-// PUT /api/shipping/:id           → update
-router.put("/:id", shippingController.updateShippingMethod);
-
-// DELETE /api/shipping/:id        → delete
-router.delete("/:id", shippingController.deleteShippingMethod);
+router.post("/", ...adminOnly, shippingController.createShippingMethod as RequestHandler);
+router.put("/:id", ...adminOnly, shippingController.updateShippingMethod as RequestHandler);
+router.delete("/:id", ...adminOnly, shippingController.deleteShippingMethod as RequestHandler);
 
 export default router;

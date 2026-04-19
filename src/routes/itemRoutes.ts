@@ -1,20 +1,21 @@
-import express from "express";
+import express, { RequestHandler } from "express";
 const router = express.Router();
 import itemController from "../controllers/itemController";
 import { validate, validateParams, validateQuery } from "../middleware/validation";
-import {
-	createItemSchema,
-	updateItemSchema,
-	idParamSchema,
-	itemFilterQuerySchema,
-} from "../validations/schemas";
+import { createItemSchema, updateItemSchema, idParamSchema, itemFilterQuerySchema } from "../validations/schemas";
+import { authenticate, requireRole } from "../middleware/auth";
+import { UserRole } from "../enums/userEnums";
 
-// Define routes and map to controller methods
-router.get("/", validateQuery(itemFilterQuerySchema), itemController.getItems);
-router.get("/:id", validateParams(idParamSchema), itemController.getItemById);
-router.post("/", validate(createItemSchema), itemController.createItem);
-router.put("/:id", validateParams(idParamSchema), validate(updateItemSchema), itemController.updateItem);
-router.patch("/:id", validateParams(idParamSchema), validate(updateItemSchema), itemController.updateItem);
-router.delete("/:id", validateParams(idParamSchema), itemController.deleteItem);
+const adminOnly = [authenticate, requireRole(UserRole.ADMIN)];
 
-export default router; 
+// Public
+router.get("/", validateQuery(itemFilterQuerySchema), itemController.getItems as RequestHandler);
+router.get("/:id", validateParams(idParamSchema), itemController.getItemById as RequestHandler);
+
+// Admin only
+router.post("/", ...adminOnly, validate(createItemSchema), itemController.createItem as RequestHandler);
+router.put("/:id", ...adminOnly, validateParams(idParamSchema), validate(updateItemSchema), itemController.updateItem as RequestHandler);
+router.patch("/:id", ...adminOnly, validateParams(idParamSchema), validate(updateItemSchema), itemController.updateItem as RequestHandler);
+router.delete("/:id", ...adminOnly, validateParams(idParamSchema), itemController.deleteItem as RequestHandler);
+
+export default router;

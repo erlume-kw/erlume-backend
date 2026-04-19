@@ -518,3 +518,20 @@ export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type CreateReviewInput = z.infer<typeof createReviewSchema>;
 export type CreateDiscountCodeInput = z.infer<typeof createDiscountCodeSchema>;
 export type ValidateDiscountCodeInput = z.infer<typeof validateDiscountCodeSchema>;
+
+// ==================== AUTH SCHEMAS ====================
+export const loginSchema = z.object({
+	emailAddress: z.string().email("Invalid email address"),
+	password: z.string().min(1, "Password is required"),
+});
+
+export const registerSchema = z.object({
+	password: z.string().min(6, "Password must be at least 6 characters"),
+	emailAddress: z.string().email("Invalid email address"),
+	phoneNumber: z.string().regex(/^[+]?[\s\-]?[0-9]{7,15}$/, "Invalid phone number format"),
+	address: addressSchema,
+	roles: z.array(z.nativeEnum(UserRole)).optional().default([UserRole.USER]),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+export type RegisterInput = z.infer<typeof registerSchema>;

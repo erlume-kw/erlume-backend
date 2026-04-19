@@ -1,21 +1,21 @@
-import express from "express";
+import express, { RequestHandler } from "express";
 const router = express.Router();
 import creditCardController from "../controllers/creditCardController";
 import { validate, validateParams } from "../middleware/validation";
-import {
-	createCreditCardSchema,
-	updateCreditCardSchema,
-	idParamSchema,
-	userIdParamSchema,
-} from "../validations/schemas";
+import { createCreditCardSchema, updateCreditCardSchema, idParamSchema, userIdParamSchema } from "../validations/schemas";
+import { authenticate, requireRole } from "../middleware/auth";
+import { UserRole } from "../enums/userEnums";
 
-// Define routes and map to controller methods
-// More specific routes must come before generic ones
-router.get("/user/:userId", validateParams(userIdParamSchema), creditCardController.getCreditCardsByUserId);
-router.get("/", creditCardController.getCreditCards);
-router.get("/:id", validateParams(idParamSchema), creditCardController.getCreditCardById);
-router.post("/", validate(createCreditCardSchema), creditCardController.createCreditCard);
-router.put("/:id", validateParams(idParamSchema), validate(updateCreditCardSchema), creditCardController.updateCreditCard);
-router.delete("/:id", validateParams(idParamSchema), creditCardController.deleteCreditCard);
+const adminOnly = [authenticate, requireRole(UserRole.ADMIN)];
 
-export default router; 
+// Authenticated users (own cards)
+router.get("/user/:userId", authenticate, validateParams(userIdParamSchema), creditCardController.getCreditCardsByUserId as RequestHandler);
+router.get("/:id", authenticate, validateParams(idParamSchema), creditCardController.getCreditCardById as RequestHandler);
+router.post("/", authenticate, validate(createCreditCardSchema), creditCardController.createCreditCard as RequestHandler);
+router.put("/:id", authenticate, validateParams(idParamSchema), validate(updateCreditCardSchema), creditCardController.updateCreditCard as RequestHandler);
+router.delete("/:id", authenticate, validateParams(idParamSchema), creditCardController.deleteCreditCard as RequestHandler);
+
+// Admin only
+router.get("/", ...adminOnly, creditCardController.getCreditCards as RequestHandler);
+
+export default router;

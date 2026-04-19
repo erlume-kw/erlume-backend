@@ -1,20 +1,14 @@
 // src/routes/wishlistRoutes.ts
-
-import express from "express";
+import express, { RequestHandler } from "express";
 import wishlistController from "../controllers/wishlistController";
+import { authenticate } from "../middleware/auth";
 
 const router = express.Router();
 
-// GET  /api/wishlist/:userId         — fetch full wishlist (items populated)
-router.get("/:userId", wishlistController.getWishlist);
-
-// POST /api/wishlist/:userId/items   — add an item  { item_id }
-router.post("/:userId/items", wishlistController.addToWishlist);
-
-// DELETE /api/wishlist/:userId/items/:itemId  — remove one item
-router.delete("/:userId/items/:itemId", wishlistController.removeFromWishlist);
-
-// DELETE /api/wishlist/:userId       — clear the whole wishlist
-router.delete("/:userId", wishlistController.clearWishlist);
+// All wishlist routes require a logged-in user
+router.get("/:userId", authenticate, wishlistController.getWishlist as RequestHandler);
+router.post("/:userId/items", authenticate, wishlistController.addToWishlist as RequestHandler);
+router.delete("/:userId/items/:itemId", authenticate, wishlistController.removeFromWishlist as RequestHandler);
+router.delete("/:userId", authenticate, wishlistController.clearWishlist as RequestHandler);
 
 export default router;
