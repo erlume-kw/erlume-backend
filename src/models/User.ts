@@ -9,7 +9,7 @@ import { AddressSchema } from "./Address";
 const UserSchema: Schema = new Schema(
 	{
 		// username: { type: String, required: true }, // Deprecated: emailAddress is primary
-		password: { type: String, required: true },
+		password: { type: String, required: true, select: false },
 		emailAddress: {
 			type: String,
 			required: true,

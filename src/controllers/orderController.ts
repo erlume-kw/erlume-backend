@@ -13,6 +13,8 @@ import { TransactionStatus } from "../enums/transactionEnums";
 import { DeliveryStatus } from "../enums/flowEnums";
 import { getMonthYearDateRange } from "../utils/dateRange";
 import { ItemCondition } from "../enums/itemEnums";
+import { assertSelfOrAdmin, isAdmin } from "../utils/rls";
+import { sendOrderConfirmation, sendOrderStatusUpdate, type OrderItemSummary } from "../utils/notifications";
 
 const normalizeSaleRate = (value: unknown): number => {
 	const numeric = Number(value);
@@ -159,6 +161,8 @@ const getOrdersByUserId = async (
 			return;
 		}
 
+		if (!assertSelfOrAdmin(req, res, userId)) return;
+
 		const user = await User.findById(userId);
 		if (!user) {
 			res.status(404).json({ success: false, error: "User not found" });
@@ -208,6 +212,8 @@ const getOrderById = async (req: Request, res: Response): Promise<void> => {
 			res.status(404).json({ success: false, error: "Order not found" });
 			return;
 		}
+
+		if (!assertSelfOrAdmin(req, res, String(order.user_id))) return;
 
 		res.status(200).json({ success: true, data: order });
 	} catch (error) {
@@ -294,6 +300,7 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 
 		const createdOrderItemIds: mongoose.Types.ObjectId[] = [];
 		const itemIds: mongoose.Types.ObjectId[] = [];
+		const itemSummaries: OrderItemSummary[] = [];
 		let totalAmount = 0;
 
 		for (const orderItemInput of orderItems) {
@@ -381,6 +388,13 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 			const finalPrice = listingPrice.toFixed(2);
 			const orderQuantity = quantity || 1;
 
+			itemSummaries.push({
+				itemName: item.itemName,
+				brandName: item.brandName,
+				quantity: orderQuantity,
+				price: finalPrice,
+			});
+
 			const createdOrderItem = await OrderItem.create(
 				[
 					{
@@ -434,6 +448,14 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 		}
 
 		await session.commitTransaction();
+
+		void sendOrderConfirmation({
+			emailAddress: user.emailAddress,
+			phoneNumber: user.phoneNumber,
+			orderId: String(savedOrder._id),
+			items: itemSummaries,
+			totalAmount: totalAmount.toFixed(2),
+		});
 
 		res.status(201).json({
 			success: true,
@@ -529,6 +551,16 @@ const updateOrderStatus = async (
 				{ order_id: orderId },
 				{ status: TransactionStatus.Failed },
 			);
+		}
+
+		const orderUser = await User.findById(order.user_id);
+		if (orderUser) {
+			void sendOrderStatusUpdate({
+				emailAddress: orderUser.emailAddress,
+				phoneNumber: orderUser.phoneNumber,
+				orderId,
+				status,
+			});
 		}
 
 		res.status(200).json({
@@ -651,6 +683,19 @@ const updateOrder = async (req: Request, res: Response): Promise<void> => {
 				{ order_id: orderId },
 				{ status: TransactionStatus.Failed },
 			);
+		}
+
+		if (update.order_status) {
+			const orderUser = await User.findById(order.user_id);
+			if (orderUser) {
+				void sendOrderStatusUpdate({
+					emailAddress: orderUser.emailAddress,
+					phoneNumber: orderUser.phoneNumber,
+					orderId,
+					status: update.order_status as string,
+					trackingReference: update.trackingReference as string | undefined,
+				});
+			}
 		}
 
 		res.status(200).json({

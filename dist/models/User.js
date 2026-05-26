@@ -53,7 +53,7 @@ const Address_1 = require("./Address");
 // Create the User schema
 const UserSchema = new mongoose_1.Schema({
     // username: { type: String, required: true }, // Deprecated: emailAddress is primary
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false },
     emailAddress: {
         type: String,
         required: true,

@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import Wishlist from "../models/Wishlist";
 import Item from "../models/Item";
 import User from "../models/User";
+import { assertSelfOrAdmin } from "../utils/rls";
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -20,6 +21,8 @@ const getWishlist = async (req: Request, res: Response): Promise<void> => {
 			res.status(400).json({ success: false, error: "Invalid user ID" });
 			return;
 		}
+
+		if (!assertSelfOrAdmin(req, res, userId)) return;
 
 		// Return wishlist with full item details populated
 		const wishlist = await Wishlist.findOne({ user_id: userId })
@@ -56,6 +59,8 @@ const addToWishlist = async (req: Request, res: Response): Promise<void> => {
 			res.status(400).json({ success: false, error: "Invalid user ID" });
 			return;
 		}
+
+		if (!assertSelfOrAdmin(req, res, userId)) return;
 
 		if (!item_id || !isValidId(item_id)) {
 			res.status(400).json({ success: false, error: "Invalid item_id" });
@@ -105,6 +110,8 @@ const removeFromWishlist = async (req: Request, res: Response): Promise<void> =>
 			return;
 		}
 
+		if (!assertSelfOrAdmin(req, res, userId)) return;
+
 		if (!isValidId(itemId)) {
 			res.status(400).json({ success: false, error: "Invalid item ID" });
 			return;
@@ -142,6 +149,8 @@ const clearWishlist = async (req: Request, res: Response): Promise<void> => {
 			res.status(400).json({ success: false, error: "Invalid user ID" });
 			return;
 		}
+
+		if (!assertSelfOrAdmin(req, res, userId)) return;
 
 		await Wishlist.findOneAndUpdate(
 			{ user_id: userId },

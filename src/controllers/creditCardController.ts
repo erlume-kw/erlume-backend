@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import CreditCard from "../models/CreditCard";
 import User from "../models/User";
 import mongoose from "mongoose";
+import { assertSelfOrAdmin } from "../utils/rls";
 
 const getCreditCards = async (req: Request, res: Response): Promise<void> => {
 	try {
@@ -28,6 +29,8 @@ const getCreditCardsByUserId = async (
 			res.status(400).json({ success: false, error: "Invalid user ID" });
 			return;
 		}
+
+		if (!assertSelfOrAdmin(req, res, userId)) return;
 
 		const user = await User.findById(userId);
 		if (!user) {
@@ -70,6 +73,10 @@ const getCreditCardById = async (
 			return;
 		}
 
+		// Verify the card belongs to the requesting user (admins bypass)
+		const owner = await User.findOne({ cardIds: cardId });
+		if (!assertSelfOrAdmin(req, res, String(owner?._id))) return;
+
 		// Mask card number for security (show only last 4 digits)
 		const maskedCard = {
 			...creditCard.toObject(),
@@ -104,6 +111,8 @@ const createCreditCard = async (
 			res.status(400).json({ success: false, error: "Invalid user ID" });
 			return;
 		}
+
+		if (!assertSelfOrAdmin(req, res, userId)) return;
 
 		const user = await User.findById(userId);
 		if (!user) {
@@ -181,6 +190,9 @@ const updateCreditCard = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
+		const owner = await User.findOne({ cardIds: cardId });
+		if (!assertSelfOrAdmin(req, res, String(owner?._id))) return;
+
 		// Validate card number format if provided
 		if (updateData.cardNumber) {
 			const cleanedCardNumber = updateData.cardNumber
@@ -249,6 +261,9 @@ const deleteCreditCard = async (req: Request, res: Response): Promise<void> => {
 			res.status(404).json({ success: false, error: "Credit card not found" });
 			return;
 		}
+
+		const owner = await User.findOne({ cardIds: cardId });
+		if (!assertSelfOrAdmin(req, res, String(owner?._id))) return;
 
 		// Remove card ID from all users' cardIds arrays
 		await User.updateMany(

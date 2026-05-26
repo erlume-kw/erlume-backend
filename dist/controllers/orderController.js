@@ -26,6 +26,8 @@ const transactionEnums_1 = require("../enums/transactionEnums");
 const flowEnums_1 = require("../enums/flowEnums");
 const dateRange_1 = require("../utils/dateRange");
 const itemEnums_1 = require("../enums/itemEnums");
+const rls_1 = require("../utils/rls");
+const notifications_1 = require("../utils/notifications");
 const normalizeSaleRate = (value) => {
     const numeric = Number(value);
     if (Number.isNaN(numeric)) {
@@ -147,6 +149,8 @@ const getOrdersByUserId = (req, res) => __awaiter(void 0, void 0, void 0, functi
             res.status(400).json({ success: false, error: "Invalid user ID" });
             return;
         }
+        if (!(0, rls_1.assertSelfOrAdmin)(req, res, userId))
+            return;
         const user = yield User_1.default.findById(userId);
         if (!user) {
             res.status(404).json({ success: false, error: "User not found" });
@@ -190,6 +194,8 @@ const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             res.status(404).json({ success: false, error: "Order not found" });
             return;
         }
+        if (!(0, rls_1.assertSelfOrAdmin)(req, res, String(order.user_id)))
+            return;
         res.status(200).json({ success: true, data: order });
     }
     catch (error) {
@@ -263,6 +269,7 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const savedOrder = yield newOrder.save({ session });
         const createdOrderItemIds = [];
         const itemIds = [];
+        const itemSummaries = [];
         let totalAmount = 0;
         for (const orderItemInput of orderItems) {
             const { item_id, quantity, is_returned } = orderItemInput !== null && orderItemInput !== void 0 ? orderItemInput : {};
@@ -337,6 +344,12 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             }
             const finalPrice = listingPrice.toFixed(2);
             const orderQuantity = quantity || 1;
+            itemSummaries.push({
+                itemName: item.itemName,
+                brandName: item.brandName,
+                quantity: orderQuantity,
+                price: finalPrice,
+            });
             const createdOrderItem = yield OrderItem_1.default.create([
                 {
                     order_id: savedOrder._id,
@@ -373,6 +386,13 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             yield existingTransaction.save({ session });
         }
         yield session.commitTransaction();
+        void (0, notifications_1.sendOrderConfirmation)({
+            emailAddress: user.emailAddress,
+            phoneNumber: user.phoneNumber,
+            orderId: String(savedOrder._id),
+            items: itemSummaries,
+            totalAmount: totalAmount.toFixed(2),
+        });
         res.status(201).json({
             success: true,
             message: "Order created successfully",
@@ -443,6 +463,15 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 yield Item_1.default.updateMany({ _id: { $in: itemIds } }, { $unset: { orderId: "" }, itemStatus: statusEnums_1.ItemStatus.Available });
             }
             yield Transaction_1.default.findOneAndUpdate({ order_id: orderId }, { status: transactionEnums_1.TransactionStatus.Failed });
+        }
+        const orderUser = yield User_1.default.findById(order.user_id);
+        if (orderUser) {
+            void (0, notifications_1.sendOrderStatusUpdate)({
+                emailAddress: orderUser.emailAddress,
+                phoneNumber: orderUser.phoneNumber,
+                orderId,
+                status,
+            });
         }
         res.status(200).json({
             success: true,
@@ -536,6 +565,18 @@ const updateOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             }
             yield Transaction_1.default.findOneAndUpdate({ order_id: orderId }, { status: transactionEnums_1.TransactionStatus.Failed });
         }
+        if (update.order_status) {
+            const orderUser = yield User_1.default.findById(order.user_id);
+            if (orderUser) {
+                void (0, notifications_1.sendOrderStatusUpdate)({
+                    emailAddress: orderUser.emailAddress,
+                    phoneNumber: orderUser.phoneNumber,
+                    orderId,
+                    status: update.order_status,
+                    trackingReference: update.trackingReference,
+                });
+            }
+        }
         res.status(200).json({
             success: true,
             message: "Order updated successfully",
@@ -590,6 +631,68 @@ const deleteOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 });
+/* ─── POST /api/orders/validate-cart ─────────────────────────────────────────
+   Pre-checkout availability check. Call this before showing the payment screen.
+   Body: { item_ids: string[] }
+   Returns which items are available and which are not, so the frontend can
+   remove unavailable ones before the user hits checkout.
+────────────────────────────────────────────────────────────────────────────── */
+const validateCart = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { item_ids } = req.body;
+        if (!Array.isArray(item_ids) || item_ids.length === 0) {
+            res.status(400).json({
+                success: false,
+                error: "item_ids must be a non-empty array",
+            });
+            return;
+        }
+        // Validate all IDs are valid ObjectIds
+        const invalidIds = item_ids.filter((id) => !mongoose_1.default.Types.ObjectId.isValid(id));
+        if (invalidIds.length > 0) {
+            res.status(400).json({
+                success: false,
+                error: `Invalid item IDs: ${invalidIds.join(", ")}`,
+            });
+            return;
+        }
+        // Fetch all items in one query
+        const items = yield Item_1.default.find({ _id: { $in: item_ids } }).lean();
+        // Map results
+        const foundIds = new Set(items.map((i) => String(i._id)));
+        const available = [];
+        const unavailable = [];
+        for (const id of item_ids) {
+            if (!foundIds.has(id)) {
+                unavailable.push({ item_id: id, reason: "Item not found" });
+                continue;
+            }
+            const item = items.find((i) => String(i._id) === id);
+            if (item.itemStatus !== statusEnums_1.ItemStatus.Available) {
+                unavailable.push({
+                    item_id: id,
+                    reason: `Item is ${item.itemStatus}`,
+                });
+            }
+            else {
+                available.push(id);
+            }
+        }
+        res.status(200).json({
+            success: true,
+            data: {
+                valid: unavailable.length === 0,
+                available,
+                unavailable,
+                summary: `${available.length} available, ${unavailable.length} unavailable`,
+            },
+        });
+    }
+    catch (error) {
+        console.error("Error in validateCart:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+    }
+});
 exports.default = {
     getOrders,
     getOrdersByUserId,
@@ -598,4 +701,5 @@ exports.default = {
     updateOrderStatus,
     updateOrder,
     deleteOrder,
+    validateCart,
 };

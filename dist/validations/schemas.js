@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.codeParamSchema = exports.sellerIdParamSchema = exports.userIdParamSchema = exports.orderIdParamSchema = exports.idParamSchema = exports.updateEmployeeSchema = exports.createEmployeeSchema = exports.toggleOutfitItemFeaturedBodySchema = exports.updateOutfitItemSchema = exports.createOutfitItemSchema = exports.updateOutfitSchema = exports.createOutfitSchema = exports.updateCreditCardSchema = exports.createCreditCardSchema = exports.validateDiscountCodeSchema = exports.updateDiscountCodeSchema = exports.createDiscountCodeSchema = exports.updateExpenseSchema = exports.createExpenseSchema = exports.updateIncomeSchema = exports.createIncomeSchema = exports.recalculateSaleCommissionsBodySchema = exports.updateSaleSchema = exports.createSaleSchema = exports.updateTransactionSchema = exports.createTransactionSchema = exports.updateReviewSchema = exports.createReviewSchema = exports.updateDropSchema = exports.createDropSchema = exports.updateDemandSchema = exports.createDemandSchema = exports.updateSubCategorySchema = exports.createSubCategorySchema = exports.updateCategorySchema = exports.createCategorySchema = exports.updateSellerSchema = exports.createSellerSchema = exports.updateOrderItemSchema = exports.createOrderItemSchema = exports.updateOrderStatusSchema = exports.updateOrderSchema = exports.createOrderSchema = exports.updateItemSchema = exports.createItemSchema = exports.updateUserRolesSchema = exports.updateUserSchema = exports.createUserSchema = exports.addressSchema = exports.objectIdSchema = void 0;
-exports.userFilterQuerySchema = exports.itemFilterQuerySchema = exports.dateFilterQuerySchema = exports.paginationQuerySchema = exports.dropItemParamsSchema = exports.categoryParamSchema = void 0;
+exports.registerSchema = exports.loginSchema = exports.userFilterQuerySchema = exports.itemFilterQuerySchema = exports.dateFilterQuerySchema = exports.paginationQuerySchema = exports.dropItemParamsSchema = exports.categoryParamSchema = void 0;
 const zod_1 = require("zod");
 const itemEnums_1 = require("../enums/itemEnums");
 const statusEnums_1 = require("../enums/statusEnums");
@@ -431,3 +431,15 @@ exports.userFilterQuerySchema = zod_1.z.object({
     includeDeleted: zod_1.z.enum(["true", "false"]).optional(),
     role: zod_1.z.string().optional(),
 }).passthrough(); // Allow additional query params
+// ==================== AUTH SCHEMAS ====================
+exports.loginSchema = zod_1.z.object({
+    emailAddress: zod_1.z.string().email("Invalid email address"),
+    password: zod_1.z.string().min(1, "Password is required"),
+});
+exports.registerSchema = zod_1.z.object({
+    password: zod_1.z.string().min(6, "Password must be at least 6 characters"),
+    emailAddress: zod_1.z.string().email("Invalid email address"),
+    phoneNumber: zod_1.z.string().regex(/^[+]?[\s\-]?[0-9]{7,15}$/, "Invalid phone number format"),
+    address: exports.addressSchema,
+    roles: zod_1.z.array(zod_1.z.nativeEnum(userEnums_1.UserRole)).optional().default([userEnums_1.UserRole.USER]),
+});

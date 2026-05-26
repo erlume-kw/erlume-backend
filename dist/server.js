@@ -53,6 +53,9 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const db_1 = __importStar(require("./config/db"));
 const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const errorHandler_1 = require("./middleware/errorHandler");
 // Import routes
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const itemRoutes_1 = __importDefault(require("./routes/itemRoutes"));
@@ -74,6 +77,12 @@ const sellerRoutes_1 = __importDefault(require("./routes/sellerRoutes"));
 const incomeRoutes_1 = __importDefault(require("./routes/incomeRoutes"));
 const expenseRoutes_1 = __importDefault(require("./routes/expenseRoutes"));
 const employeeRoutes_1 = __importDefault(require("./routes/employeeRoutes"));
+const wishlistRoutes_1 = __importDefault(require("./routes/wishlistRoutes"));
+const shippingRoutes_1 = __importDefault(require("./routes/shippingRoutes"));
+const newsletterRoutes_1 = __importDefault(require("./routes/newsletterRoutes"));
+const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+const auth_1 = require("./middleware/auth");
+const userEnums_1 = require("./enums/userEnums");
 dotenv_1.default.config();
 // Add unhandled error handlers
 process.on("unhandledRejection", (reason, promise) => {
@@ -83,15 +92,35 @@ process.on("uncaughtException", (error) => {
     console.error("Uncaught Exception:", error);
 });
 const app = (0, express_1.default)();
+// Security headers
+app.use((0, helmet_1.default)());
 // CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+    : true; // dev: allow all
 const corsOptions = {
-    origin: true, // Allow all origins
+    origin: allowedOrigins,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
     optionsSuccessStatus: 204,
     allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use((0, cors_1.default)(corsOptions));
+// Global rate limit — 200 req / 15 min per IP
+const limiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(limiter);
+// Stricter rate limit for auth endpoints
+const authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 // JSON body parser - handle empty bodies gracefully
 app.use(express_1.default.json({
     limit: "10mb",
@@ -155,7 +184,13 @@ app.get("/api-docs/frontend.json", (_req, res) => {
     res.json(filterSpecByAudience(openApiSpec, "frontend"));
 });
 // Swagger UI: full, backoffice, frontend (each on its own Router to avoid conflicts)
-const swaggerUiOpts = { swaggerOptions: { docExpansion: "full", displayRequestDuration: true } };
+const swaggerUiOpts = {
+    swaggerOptions: {
+        docExpansion: "list",
+        displayRequestDuration: true,
+        persistAuthorization: true, // keeps the Bearer token across page refreshes
+    },
+};
 const backofficeSpec = filterSpecByAudience(openApiSpec, "backoffice");
 const frontendSpec = filterSpecByAudience(openApiSpec, "frontend");
 // Backoffice-only Swagger UI
@@ -174,47 +209,41 @@ fullRouter.use("/", swagger_ui_express_1.default.serveFiles(openApiSpec, swagger
 fullRouter.get("/", swagger_ui_express_1.default.setup(openApiSpec, swaggerUiOpts));
 app.use("/api-docs", fullRouter);
 // Routes
-app.use("/api/users", userRoutes_1.default);
+app.use("/api/auth", authLimiter, authRoutes_1.default);
+// Public routes
 app.use("/api/items", itemRoutes_1.default);
 app.use("/api/categories", categoryRoutes_1.default);
 app.use("/api/sub-categories", subCategoryRoutes_1.default);
 app.use("/api/reviews", reviewRoutes_1.default);
-app.use("/api/orders", orderRoutes_1.default);
-app.use("/api/orderitems", orderItemRoutes_1.default);
-app.use("/api/creditcards", creditCardRoutes_1.default);
-app.use("/api/transactions", transactionRoutes_1.default);
-app.use("/api/sales", saleRoutes_1.default);
-app.use("/api/outfits", outfitRoutes_1.default);
-app.use("/api/outfititems", outfitItemRoutes_1.default);
-app.use("/api/demands", demandRoutes_1.default);
-app.use("/api/discount-codes", discountCodeRoutes_1.default);
-app.use("/api/drops", dropRoutes_1.default);
 app.use("/api/enums", enumRoutes_1.default);
-app.use("/api/sellers", sellerRoutes_1.default);
-app.use("/api/incomes", incomeRoutes_1.default);
-app.use("/api/expenses", expenseRoutes_1.default);
-app.use("/api/employees", employeeRoutes_1.default);
+app.use("/api/shipping", shippingRoutes_1.default);
+app.use("/api/newsletter", newsletterRoutes_1.default);
+app.use("/api/discount-codes", discountCodeRoutes_1.default);
+// Mixed public/auth routes (auth handled per-route inside the router)
+app.use("/api/orders", orderRoutes_1.default);
+app.use("/api/users", userRoutes_1.default);
+app.use("/api/creditcards", creditCardRoutes_1.default);
+app.use("/api/wishlist", wishlistRoutes_1.default);
+// Admin-only route groups (entire router gated)
+const adminOnly = [auth_1.authenticate, (0, auth_1.requireRole)(userEnums_1.UserRole.ADMIN)];
+app.use("/api/transactions", ...adminOnly, transactionRoutes_1.default);
+app.use("/api/sales", ...adminOnly, saleRoutes_1.default);
+app.use("/api/outfits", ...adminOnly, outfitRoutes_1.default);
+app.use("/api/outfititems", ...adminOnly, outfitItemRoutes_1.default);
+app.use("/api/demands", ...adminOnly, demandRoutes_1.default);
+app.use("/api/drops", ...adminOnly, dropRoutes_1.default);
+app.use("/api/sellers", ...adminOnly, sellerRoutes_1.default);
+app.use("/api/orderitems", ...adminOnly, orderItemRoutes_1.default);
+app.use("/api/incomes", ...adminOnly, incomeRoutes_1.default);
+app.use("/api/expenses", ...adminOnly, expenseRoutes_1.default);
+app.use("/api/employees", ...adminOnly, employeeRoutes_1.default);
 const PORT = process.env.PORT || 3000;
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, db_1.default)();
     yield (0, db_1.ensureCollections)();
     yield (0, db_1.syncIndexes)();
-    // Error handling middleware for JSON parsing errors (must be after all routes)
-    app.use((err, req, res, next) => {
-        if (err instanceof SyntaxError && "body" in err) {
-            res.status(400).json({
-                success: false,
-                error: "Invalid JSON in request body",
-                message: err.message,
-            });
-            return;
-        }
-        // Pass other errors to default Express error handler
-        res.status(err.status || 500).json({
-            success: false,
-            error: err.message || "Internal server error",
-        });
-    });
+    // Centralised error handler (must be last)
+    app.use(errorHandler_1.errorHandler);
     // Start server
     app.listen(PORT, () => {
         console.log(`🚀 Server running on http://localhost:${PORT}`);

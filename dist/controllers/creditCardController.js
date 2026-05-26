@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const CreditCard_1 = __importDefault(require("../models/CreditCard"));
 const User_1 = __importDefault(require("../models/User"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const rls_1 = require("../utils/rls");
 const getCreditCards = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const creditCards = yield CreditCard_1.default.find({});
@@ -36,6 +37,8 @@ const getCreditCardsByUserId = (req, res) => __awaiter(void 0, void 0, void 0, f
             res.status(400).json({ success: false, error: "Invalid user ID" });
             return;
         }
+        if (!(0, rls_1.assertSelfOrAdmin)(req, res, userId))
+            return;
         const user = yield User_1.default.findById(userId);
         if (!user) {
             res.status(404).json({ success: false, error: "User not found" });
@@ -68,6 +71,10 @@ const getCreditCardById = (req, res) => __awaiter(void 0, void 0, void 0, functi
             res.status(404).json({ success: false, error: "Credit card not found" });
             return;
         }
+        // Verify the card belongs to the requesting user (admins bypass)
+        const owner = yield User_1.default.findOne({ cardIds: cardId });
+        if (!(0, rls_1.assertSelfOrAdmin)(req, res, String(owner === null || owner === void 0 ? void 0 : owner._id)))
+            return;
         // Mask card number for security (show only last 4 digits)
         const maskedCard = Object.assign(Object.assign({}, creditCard.toObject()), { cardNumber: `****-****-****-${creditCard.cardNumber.slice(-4)}` });
         res.status(200).json({ success: true, data: maskedCard });
@@ -93,6 +100,8 @@ const createCreditCard = (req, res) => __awaiter(void 0, void 0, void 0, functio
             res.status(400).json({ success: false, error: "Invalid user ID" });
             return;
         }
+        if (!(0, rls_1.assertSelfOrAdmin)(req, res, userId))
+            return;
         const user = yield User_1.default.findById(userId);
         if (!user) {
             res.status(404).json({ success: false, error: "User not found" });
@@ -155,6 +164,9 @@ const updateCreditCard = (req, res) => __awaiter(void 0, void 0, void 0, functio
             res.status(404).json({ success: false, error: "Credit card not found" });
             return;
         }
+        const owner = yield User_1.default.findOne({ cardIds: cardId });
+        if (!(0, rls_1.assertSelfOrAdmin)(req, res, String(owner === null || owner === void 0 ? void 0 : owner._id)))
+            return;
         // Validate card number format if provided
         if (updateData.cardNumber) {
             const cleanedCardNumber = updateData.cardNumber
@@ -208,6 +220,9 @@ const deleteCreditCard = (req, res) => __awaiter(void 0, void 0, void 0, functio
             res.status(404).json({ success: false, error: "Credit card not found" });
             return;
         }
+        const owner = yield User_1.default.findOne({ cardIds: cardId });
+        if (!(0, rls_1.assertSelfOrAdmin)(req, res, String(owner === null || owner === void 0 ? void 0 : owner._id)))
+            return;
         // Remove card ID from all users' cardIds arrays
         yield User_1.default.updateMany({ cardIds: cardId }, { $pull: { cardIds: cardId } });
         // Delete the credit card

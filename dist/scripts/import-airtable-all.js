@@ -160,7 +160,10 @@ function loadCsv(filePath) {
     return lines.slice(1).map((line) => {
         const cells = parseCsvLine(line);
         const row = {};
-        header.forEach((h, j) => { var _a; row[h.trim()] = ((_a = cells[j]) !== null && _a !== void 0 ? _a : "").trim(); });
+        header.forEach((h, j) => {
+            var _a;
+            row[h.trim()] = ((_a = cells[j]) !== null && _a !== void 0 ? _a : "").trim();
+        });
         return row;
     });
 }
@@ -289,13 +292,18 @@ function importSellerUsers() {
             const addressRaw = (r["Address"] || "").trim();
             const consentGiven = (r["Consent"] || "").toLowerCase().includes("yes") ||
                 (r["Consent"] || "") === "true";
-            const preferredPickup = (r["Pickup Date"] || "").replace(/^no need$/i, "").trim();
+            const preferredPickup = (r["Pickup Date"] || "")
+                .replace(/^no need$/i, "")
+                .trim();
             const intakeTimestamp = (r["Timestamp"] || "").trim();
             // Placeholder email for sellers who didn't provide one
             const safeEmail = rawEmail ||
                 `seller_${fullName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}@erlume.internal`;
             let userId;
-            const existing = yield User_1.default.findOne({ emailAddress: safeEmail, isDeleted: false });
+            const existing = yield User_1.default.findOne({
+                emailAddress: safeEmail,
+                isDeleted: false,
+            });
             if (existing) {
                 userId = existing._id;
             }
@@ -408,7 +416,9 @@ function importItems(nameToUserId) {
                 year: year || undefined,
                 imageUrls,
                 receiptPhotoUrls: receiptPhotoUrls.length ? receiptPhotoUrls : undefined,
-                priceEstimatorUrls: priceEstimatorUrls.length ? priceEstimatorUrls : undefined,
+                priceEstimatorUrls: priceEstimatorUrls.length
+                    ? priceEstimatorUrls
+                    : undefined,
                 quoteUrls: quoteUrls.length ? quoteUrls : undefined,
                 listingPrice: listingPrice || "0",
                 basePrice: listingPrice || "0",
@@ -530,7 +540,10 @@ function importIncome() {
             if (prelaunchBag) {
                 const firstRef = (_a = prelaunchBag.split(",")[0]) === null || _a === void 0 ? void 0 : _a.trim();
                 if (firstRef) {
-                    const parts = firstRef.split("-").map((p) => p.trim()).filter(Boolean);
+                    const parts = firstRef
+                        .split("-")
+                        .map((p) => p.trim())
+                        .filter(Boolean);
                     if (parts.length >= 2) {
                         const itemNamePart = parts[0];
                         const last = parts[parts.length - 1];
