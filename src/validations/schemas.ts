@@ -197,18 +197,43 @@ export const updateItemSchema = z.preprocess(
 );
 
 // ==================== ORDER SCHEMAS ====================
-export const createOrderSchema = z.object({
-	user_id: objectIdSchema,
-	orderItems: z.array(z.object({
-		item_id: objectIdSchema,
-		quantity: z.number().int().min(1).optional(),
-		is_returned: z.boolean().optional(),
-	})).min(1, "At least one order item is required"),
-	order_status: z.nativeEnum(OrderStatus).optional(),
-	// Note: orderitem_ids, deliveryDate, deliveryStatus, trackingReference are set by backend
+const orderItemsSchema = z.array(z.object({
+	item_id: objectIdSchema,
+	quantity: z.number().int().min(1).optional(),
+	is_returned: z.boolean().optional(),
+})).min(1, "At least one order item is required");
+
+const guestInfoSchema = z.object({
+	name: z.string().min(1, "Name is required"),
+	phoneNumber: z.string().regex(/^[+]?[\s\-]?[0-9]{7,15}$/, "Invalid phone number format"),
+	emailAddress: z.string().email("Invalid email address").optional(),
+	shippingAddress: addressSchema,
 });
 
-export const updateOrderSchema = createOrderSchema.partial();
+// Registered user path
+const registeredOrderSchema = z.object({
+	user_id: objectIdSchema,
+	guestInfo: z.undefined().optional(),
+	orderItems: orderItemsSchema,
+	order_status: z.nativeEnum(OrderStatus).optional(),
+});
+
+// Guest path
+const guestOrderSchema = z.object({
+	user_id: z.undefined().optional(),
+	guestInfo: guestInfoSchema,
+	orderItems: orderItemsSchema,
+	order_status: z.nativeEnum(OrderStatus).optional(),
+});
+
+export const createOrderSchema = z.union([registeredOrderSchema, guestOrderSchema]);
+
+export const updateOrderSchema = z.object({
+	order_status: z.nativeEnum(OrderStatus).optional(),
+	deliveryDate: dateSchema.optional(),
+	deliveryStatus: z.nativeEnum(DeliveryStatus).optional(),
+	trackingReference: z.string().optional(),
+});
 
 export const updateOrderStatusSchema = z.object({
 	order_status: z.nativeEnum(OrderStatus),
@@ -498,11 +523,18 @@ export const dateFilterQuerySchema = z.object({
 
 export const itemFilterQuerySchema = z.object({
 	itemStatus: z.nativeEnum(ItemStatus).optional(),
+	condition: z.nativeEnum(ItemCondition).optional(),
 	category_id: objectIdSchema.optional(),
 	sub_category_id: objectIdSchema.optional(),
 	drop_id: objectIdSchema.optional(),
 	seller_id: objectIdSchema.optional(),
-}).passthrough(); // Allow additional query params
+	brandName: z.string().optional(),
+	search: z.string().optional(),
+	minPrice: z.string().regex(/^\d+(\.\d+)?$/).optional(),
+	maxPrice: z.string().regex(/^\d+(\.\d+)?$/).optional(),
+	page: z.string().regex(/^\d+$/).transform(Number).optional(),
+	limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+}).passthrough();
 
 export const userFilterQuerySchema = z.object({
 	includeDeleted: z.enum(["true", "false"]).optional(),

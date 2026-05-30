@@ -2,8 +2,23 @@ import { Document, Types } from "mongoose";
 import { OrderStatus } from "../enums/orderEnums";
 import { DeliveryStatus } from "../enums/flowEnums";
 
+export interface GuestInfo {
+	name: string;
+	phoneNumber: string;
+	emailAddress?: string;
+	shippingAddress: {
+		street: string;
+		city: string;
+		block: string;
+		governorate: string;
+		house: string;
+		flat?: string;
+	};
+}
+
 export interface OrderInterface extends Document {
-	user_id: Types.ObjectId; // Reference to User
+	user_id?: Types.ObjectId; // Reference to User (absent for guest orders)
+	guestInfo?: GuestInfo;    // Present for guest orders
 	orderitem_ids: Types.ObjectId[];
 	order_status: OrderStatus;
 	/** Optional delivery date. */

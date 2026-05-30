@@ -18,6 +18,8 @@ const adminOnly = [authenticate, requireRole(UserRole.ADMIN)];
 // Public
 router.post("/validate-cart", orderController.validateCart as RequestHandler);
 router.post("/", validate(createOrderSchema), orderController.createOrder as RequestHandler);
+// Guest order lookup — verifies phone number before returning order
+router.get("/guest/:orderId", orderController.getGuestOrder as RequestHandler);
 
 // Authenticated users
 router.get("/user/:userId", authenticate, validateParams(userIdParamSchema), validateQuery(dateFilterQuerySchema), orderController.getOrdersByUserId as RequestHandler);

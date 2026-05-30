@@ -4,14 +4,32 @@ import { OrderStatus } from "../enums/orderEnums";
 import { DeliveryStatus } from "../enums/flowEnums";
 import OrderItem from "./OrderItem";
 
+const GuestInfoSchema = new Schema(
+	{
+		name: { type: String, required: true },
+		phoneNumber: { type: String, required: true },
+		emailAddress: { type: String, required: false },
+		shippingAddress: {
+			street: { type: String, required: true },
+			city: { type: String, required: true },
+			block: { type: String, required: true },
+			governorate: { type: String, required: true },
+			house: { type: String, required: true },
+			flat: { type: String, required: false },
+		},
+	},
+	{ _id: false },
+);
+
 const OrderSchema: Schema = new Schema(
 	{
 		user_id: {
 			type: Schema.Types.ObjectId,
 			ref: "User",
-			required: true,
+			required: false,
 			index: true,
 		},
+		guestInfo: { type: GuestInfoSchema, required: false },
 		orderitem_ids: [
 			{ type: Schema.Types.ObjectId, ref: "OrderItem", index: true },
 		],

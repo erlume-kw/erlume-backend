@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mega\\\\Documents\\\\GitHub\\\\erlume-backoffice\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(grep -r \"localStorage\\\\|sessionStorage\\\\|token\\\\|auth\\\\|context\" /c/Users/mega/Documents/GitHub/erlume-backoffice/src --include=\"*.tsx\" --include=\"*.ts\" | head -30)",
+      "Bash(mkdir \"C:\\\\Users\\\\mega\\\\Documents\\\\GitHub\\\\erlume-backoffice\\\\src\\\\context\" 2>/dev/null; echo \"done\")",
+      "Bash(cd \"C:\\\\Users\\\\mega\\\\Documents\\\\GitHub\\\\erlume-backoffice\" && npm run build 2>&1)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

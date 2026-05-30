@@ -227,27 +227,29 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 	session.startTransaction();
 
 	try {
-		const { user_id, orderItems, order_status } = req.body;
+		const { user_id, guestInfo, orderItems, order_status } = req.body;
 
-		// Validate required fields
-		if (!user_id) {
+		// Must have either a registered user_id or guest info
+		if (!user_id && !guestInfo) {
 			res.status(400).json({
 				success: false,
-				error: "Missing required field: user_id",
+				error: "Either user_id or guestInfo is required",
 			});
 			return;
 		}
 
-		// Validate user_id
-		if (!mongoose.Types.ObjectId.isValid(user_id)) {
-			res.status(400).json({ success: false, error: "Invalid user_id" });
-			return;
-		}
-
-		const user = await User.findById(user_id).session(session);
-		if (!user) {
-			res.status(404).json({ success: false, error: "User not found" });
-			return;
+		// Registered user path — validate and fetch user
+		let user: InstanceType<typeof User> | null = null;
+		if (user_id) {
+			if (!mongoose.Types.ObjectId.isValid(user_id)) {
+				res.status(400).json({ success: false, error: "Invalid user_id" });
+				return;
+			}
+			user = await User.findById(user_id).session(session);
+			if (!user) {
+				res.status(404).json({ success: false, error: "User not found" });
+				return;
+			}
 		}
 
 		// Validate order_status if provided
@@ -291,7 +293,8 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 
 		// Create order
 		const newOrder = new Order({
-			user_id,
+			...(user_id ? { user_id } : {}),
+			...(guestInfo ? { guestInfo } : {}),
 			orderitem_ids: [],
 			order_status: order_status || OrderStatus.Pending,
 		});
@@ -449,13 +452,17 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 
 		await session.commitTransaction();
 
-		void sendOrderConfirmation({
-			emailAddress: user.emailAddress,
-			phoneNumber: user.phoneNumber,
-			orderId: String(savedOrder._id),
-			items: itemSummaries,
-			totalAmount: totalAmount.toFixed(2),
-		});
+		const notifPhone = user ? user.phoneNumber : guestInfo?.phoneNumber;
+		const notifEmail = user ? user.emailAddress : (guestInfo?.emailAddress ?? "");
+		if (notifPhone) {
+			void sendOrderConfirmation({
+				emailAddress: notifEmail,
+				phoneNumber: notifPhone,
+				orderId: String(savedOrder._id),
+				items: itemSummaries,
+				totalAmount: totalAmount.toFixed(2),
+			});
+		}
 
 		res.status(201).json({
 			success: true,
@@ -834,10 +841,53 @@ const validateCart = async (req: Request, res: Response): Promise<void> => {
 	}
 };
 
+const getGuestOrder = async (req: Request, res: Response): Promise<void> => {
+	try {
+		const { orderId } = req.params;
+		const { phone } = req.query;
+
+		if (!mongoose.Types.ObjectId.isValid(orderId)) {
+			res.status(400).json({ success: false, error: "Invalid order ID" });
+			return;
+		}
+
+		if (!phone || typeof phone !== "string") {
+			res.status(400).json({ success: false, error: "Phone number is required" });
+			return;
+		}
+
+		const order = await Order.findById(orderId).populate({
+			path: "orderitem_ids",
+			populate: {
+				path: "item_id",
+				select: "itemName brandName imageUrls listingPrice condition",
+			},
+		});
+
+		if (!order || !order.guestInfo) {
+			res.status(404).json({ success: false, error: "Order not found" });
+			return;
+		}
+
+		// Verify phone matches — normalise by stripping spaces and dashes
+		const normalise = (p: string) => p.replace(/[\s\-]/g, "");
+		if (normalise(phone) !== normalise(order.guestInfo.phoneNumber)) {
+			res.status(403).json({ success: false, error: "Phone number does not match this order" });
+			return;
+		}
+
+		res.status(200).json({ success: true, data: order });
+	} catch (error) {
+		console.error("Error in getGuestOrder:", error);
+		res.status(500).json({ success: false, error: "Internal server error" });
+	}
+};
+
 export default {
 	getOrders,
 	getOrdersByUserId,
 	getOrderById,
+	getGuestOrder,
 	createOrder,
 	updateOrderStatus,
 	updateOrder,

@@ -10,75 +10,111 @@ import { ItemStatus } from "../enums/statusEnums";
 import { AuthenticationStatus, ReturnStatus } from "../enums/flowEnums";
 import { getMonthYearDateRange } from "../utils/dateRange";
 
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
 const getItems = async (req: Request, res: Response): Promise<void> => {
 	try {
 		const {
-			dropId,
+			// IDs (snake_case — matches schema)
+			drop_id,
+			category_id,
+			sub_category_id,
+			seller_id,
+			// Enums
 			itemStatus,
-			categoryId,
-			sellerId,
 			authenticationStatus,
 			returnStatus,
+			condition,
+			// Text search
+			search,
+			brandName,
+			// Price range
+			minPrice,
+			maxPrice,
+			// Date filter
 			year,
 			month,
+			// Pagination
+			page,
+			limit,
 		} = req.query;
 
-		console.log("getItems called, dropId:", dropId);
+		// --- Pagination ---
+		const pageNum = Math.max(1, parseInt(page as string) || 1);
+		const limitNum = Math.min(
+			MAX_PAGE_SIZE,
+			Math.max(1, parseInt(limit as string) || DEFAULT_PAGE_SIZE),
+		);
+		const skip = (pageNum - 1) * limitNum;
 
-		// Build filters from query params
+		// --- Build filter ---
 		const filter: any = {};
+
+		// Date range
 		const { range, error } = getMonthYearDateRange(year, month);
 		if (error) {
 			res.status(400).json({ success: false, error });
 			return;
 		}
-		if (range) {
-			filter.uploadedAt = range;
-		}
-		if (dropId) {
-			if (!mongoose.Types.ObjectId.isValid(dropId as string)) {
-				res.status(400).json({ success: false, error: "Invalid drop ID" });
+		if (range) filter.uploadedAt = range;
+
+		// ObjectId filters
+		if (drop_id) {
+			if (!mongoose.Types.ObjectId.isValid(drop_id as string)) {
+				res.status(400).json({ success: false, error: "Invalid drop_id" });
 				return;
 			}
-			filter.drop_id = dropId;
+			filter.drop_id = drop_id;
 		}
-		if (categoryId) {
-			if (!mongoose.Types.ObjectId.isValid(categoryId as string)) {
-				res.status(400).json({ success: false, error: "Invalid category ID" });
+		if (category_id) {
+			if (!mongoose.Types.ObjectId.isValid(category_id as string)) {
+				res.status(400).json({ success: false, error: "Invalid category_id" });
 				return;
 			}
-			filter.category_id = categoryId;
+			filter.category_id = category_id;
 		}
-		if (sellerId) {
-			if (!mongoose.Types.ObjectId.isValid(sellerId as string)) {
-				res.status(400).json({ success: false, error: "Invalid sellerId" });
+		if (sub_category_id) {
+			if (!mongoose.Types.ObjectId.isValid(sub_category_id as string)) {
+				res.status(400).json({ success: false, error: "Invalid sub_category_id" });
 				return;
 			}
-			filter.seller_id = sellerId;
+			filter.sub_category_id = sub_category_id;
 		}
+		if (seller_id) {
+			if (!mongoose.Types.ObjectId.isValid(seller_id as string)) {
+				res.status(400).json({ success: false, error: "Invalid seller_id" });
+				return;
+			}
+			filter.seller_id = seller_id;
+		}
+
+		// Enum filters
 		if (itemStatus) {
 			if (!Object.values(ItemStatus).includes(itemStatus as ItemStatus)) {
 				res.status(400).json({
 					success: false,
-					error: `Invalid itemStatus. Must be one of: ${Object.values(
-						ItemStatus,
-					).join(", ")}`,
+					error: `Invalid itemStatus. Must be one of: ${Object.values(ItemStatus).join(", ")}`,
 				});
 				return;
 			}
 			filter.itemStatus = itemStatus;
 		}
-		if (authenticationStatus) {
-			if (
-				!Object.values(AuthenticationStatus).includes(
-					authenticationStatus as AuthenticationStatus,
-				)
-			) {
+		if (condition) {
+			if (!Object.values(ItemCondition).includes(condition as ItemCondition)) {
 				res.status(400).json({
 					success: false,
-					error: `Invalid authenticationStatus. Must be one of: ${Object.values(
-						AuthenticationStatus,
-					).join(", ")}`,
+					error: `Invalid condition. Must be one of: ${Object.values(ItemCondition).join(", ")}`,
+				});
+				return;
+			}
+			filter.condition = condition;
+		}
+		if (authenticationStatus) {
+			if (!Object.values(AuthenticationStatus).includes(authenticationStatus as AuthenticationStatus)) {
+				res.status(400).json({
+					success: false,
+					error: `Invalid authenticationStatus. Must be one of: ${Object.values(AuthenticationStatus).join(", ")}`,
 				});
 				return;
 			}
@@ -88,35 +124,59 @@ const getItems = async (req: Request, res: Response): Promise<void> => {
 			if (!Object.values(ReturnStatus).includes(returnStatus as ReturnStatus)) {
 				res.status(400).json({
 					success: false,
-					error: `Invalid returnStatus. Must be one of: ${Object.values(
-						ReturnStatus,
-					).join(", ")}`,
+					error: `Invalid returnStatus. Must be one of: ${Object.values(ReturnStatus).join(", ")}`,
 				});
 				return;
 			}
 			filter.returnStatus = returnStatus;
 		}
 
-		// If any filter provided, use it
-		if (Object.keys(filter).length > 0) {
-			const items = await Item.find(filter).lean();
-			const data = items.map((item) => ({
-				...item,
-				sellerId: item.seller_id ?? null,
-			}));
-			console.log(`Found ${items.length} items with filters`);
-			res.status(200).json({ success: true, data, count: items.length });
-			return;
+		// Text search — matches itemName or brandName (case-insensitive)
+		if (search) {
+			const regex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+			filter.$or = [{ itemName: regex }, { brandName: regex }];
 		}
 
-		// Otherwise, get all items
-		const items = await Item.find({}).lean();
-		const data = items.map((item) => ({
-			...item,
-			sellerId: item.seller_id ?? null,
-		}));
-		console.log(`Found ${items.length} total items`);
-		res.status(200).json({ success: true, data, count: items.length });
+		// Exact brand filter (case-insensitive) — for brand page on frontend
+		if (brandName && !search) {
+			filter.brandName = { $regex: new RegExp(`^${String(brandName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") };
+		}
+
+		// Price range — listingPrice is stored as String so use $expr + $toDouble
+		const priceConditions: any[] = [];
+		if (minPrice) {
+			const min = parseFloat(minPrice as string);
+			if (!isNaN(min)) priceConditions.push({ $gte: [{ $toDouble: "$listingPrice" }, min] });
+		}
+		if (maxPrice) {
+			const max = parseFloat(maxPrice as string);
+			if (!isNaN(max)) priceConditions.push({ $lte: [{ $toDouble: "$listingPrice" }, max] });
+		}
+		if (priceConditions.length > 0) {
+			filter.$expr = { $and: priceConditions };
+		}
+
+		// --- Query with pagination ---
+		const [items, totalCount] = await Promise.all([
+			Item.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+			Item.countDocuments(filter),
+		]);
+
+		const totalPages = Math.ceil(totalCount / limitNum);
+		const data = items.map((item) => ({ ...item, sellerId: item.seller_id ?? null }));
+
+		res.status(200).json({
+			success: true,
+			data,
+			pagination: {
+				page: pageNum,
+				limit: limitNum,
+				totalCount,
+				totalPages,
+				hasNextPage: pageNum < totalPages,
+				hasPrevPage: pageNum > 1,
+			},
+		});
 	} catch (error) {
 		console.error("Error in getItems:", error);
 		res.status(500).json({

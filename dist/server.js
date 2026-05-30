@@ -81,6 +81,7 @@ const wishlistRoutes_1 = __importDefault(require("./routes/wishlistRoutes"));
 const shippingRoutes_1 = __importDefault(require("./routes/shippingRoutes"));
 const newsletterRoutes_1 = __importDefault(require("./routes/newsletterRoutes"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const auth_1 = require("./middleware/auth");
 const userEnums_1 = require("./enums/userEnums");
 dotenv_1.default.config();
@@ -142,6 +143,138 @@ if (isDebug) {
 // Base route
 app.get("/", (req, res) => {
     res.send("API is working");
+});
+// Backoffice login page
+app.get("/backoffice", (_req, res) => {
+    res.setHeader("Content-Type", "text/html");
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Erlume Backoffice</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    .card {
+      background: #1a1a1a;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .logo {
+      display: block;
+      color: #fff;
+      font-size: 20px;
+      letter-spacing: 5px;
+      font-weight: 300;
+      margin-bottom: 36px;
+    }
+    label {
+      display: block;
+      color: #666;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    input {
+      display: block;
+      width: 100%;
+      background: #111;
+      border: 1px solid #2e2e2e;
+      color: #fff;
+      padding: 11px 13px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 20px;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #555; }
+    button {
+      width: 100%;
+      background: #fff;
+      color: #111;
+      border: none;
+      padding: 13px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 4px;
+      transition: background 0.2s;
+    }
+    button:hover:not(:disabled) { background: #e0e0e0; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error {
+      color: #e05c5c;
+      font-size: 12px;
+      margin-top: 14px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="logo">ERLUME</span>
+    <form id="form">
+      <label>Email</label>
+      <input id="email" type="email" autocomplete="email" required />
+      <label>Password</label>
+      <input id="password" type="password" autocomplete="current-password" required />
+      <button id="btn" type="submit">Sign in</button>
+      <p id="error" class="error"></p>
+    </form>
+  </div>
+  <script>
+    // If already authenticated, go straight to backoffice
+    try {
+      const stored = JSON.parse(localStorage.getItem('authorized') || '{}');
+      if (stored.bearerAuth?.value) window.location.replace('/api-docs/backoffice');
+    } catch (_) {}
+
+    document.getElementById('form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn');
+      const errorEl = document.getElementById('error');
+      btn.textContent = 'Signing in…';
+      btn.disabled = true;
+      errorEl.style.display = 'none';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            emailAddress: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.token) throw new Error(data.error || 'Invalid credentials');
+        const roles = (data.user && data.user.roles) || [];
+        if (!roles.includes('admin')) throw new Error('Access restricted to admins');
+        localStorage.setItem('authorized', JSON.stringify({
+          bearerAuth: { name: 'bearerAuth', schema: { type: 'http', scheme: 'bearer' }, value: data.token }
+        }));
+        window.location.href = '/api-docs/backoffice';
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Sign in';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>`);
 });
 // Swagger / OpenAPI
 const openApiPath = path_1.default.join(__dirname, "..", "openapi.json");
@@ -224,6 +357,8 @@ app.use("/api/orders", orderRoutes_1.default);
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/creditcards", creditCardRoutes_1.default);
 app.use("/api/wishlist", wishlistRoutes_1.default);
+// Upload route (auth + admin checked inside the router)
+app.use("/api/upload", uploadRoutes_1.default);
 // Admin-only route groups (entire router gated)
 const adminOnly = [auth_1.authenticate, (0, auth_1.requireRole)(userEnums_1.UserRole.ADMIN)];
 app.use("/api/transactions", ...adminOnly, transactionRoutes_1.default);
