@@ -10,12 +10,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const cloudinary_1 = require("../utils/cloudinary");
-const VALID_FOLDERS = ["items", "receipts", "price-estimators", "quotes"];
+const VALID_FOLDERS = ["items", "receipts", "price-estimators", "quotes", "drops", "outfits"];
 const ALLOWED_MIME_TYPES = [
     "image/jpeg",
     "image/png",
     "image/webp",
     "image/gif",
+    "image/heic", // iPhone photos
+    "image/heif",
     "application/pdf",
 ];
 const MAX_SIZE_MB = 10;
@@ -37,7 +39,7 @@ const uploadFile = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         if (!ALLOWED_MIME_TYPES.includes(mimetype)) {
             res.status(400).json({
                 success: false,
-                error: `Unsupported file type: ${mimetype}. Allowed: JPEG, PNG, WebP, GIF, PDF`,
+                error: `Unsupported file type: ${mimetype}. Allowed: JPEG, PNG, WebP, GIF, HEIC, PDF`,
             });
             return;
         }

@@ -34,18 +34,17 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const dropEnums_1 = require("../enums/dropEnums");
-const DropSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    description: { type: String },
-    releaseDate: { type: Date, required: true },
-    status: {
+const PayoutSchema = new mongoose_1.Schema({
+    seller_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Seller", required: true, index: true },
+    amount: { type: String, required: true },
+    method: {
         type: String,
-        enum: Object.values(dropEnums_1.DropStatus),
-        required: true,
-        default: dropEnums_1.DropStatus.Upcoming,
+        enum: ["bank_transfer", "cash", "knet", "other"],
+        default: "bank_transfer",
     },
-    bannerImageUrl: { type: String, required: false },
+    iban: { type: String },
+    notes: { type: String },
+    paid_at: { type: Date, required: true, default: Date.now },
 }, { timestamps: true });
-const Drop = mongoose_1.default.model("Drop", DropSchema);
-exports.default = Drop;
+const Payout = mongoose_1.default.model("Payout", PayoutSchema);
+exports.default = Payout;

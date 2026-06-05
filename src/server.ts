@@ -34,6 +34,7 @@ import sellerRoutes from "./routes/sellerRoutes";
 import incomeRoutes from "./routes/incomeRoutes";
 import expenseRoutes from "./routes/expenseRoutes";
 import employeeRoutes from "./routes/employeeRoutes";
+import payoutRoutes from "./routes/payoutRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import shippingRoutes from "./routes/shippingRoutes";
 import newsletterRoutes from "./routes/newsletterRoutes";
@@ -360,6 +361,7 @@ app.use("/api/orderitems", ...adminOnly, orderItemRoutes);
 app.use("/api/incomes", ...adminOnly, incomeRoutes);
 app.use("/api/expenses", ...adminOnly, expenseRoutes);
 app.use("/api/employees", ...adminOnly, employeeRoutes);
+app.use("/api/payouts", ...adminOnly, payoutRoutes);
 
 const PORT = process.env.PORT || 3000;
 

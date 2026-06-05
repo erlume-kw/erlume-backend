@@ -9,6 +9,7 @@ import { ItemCondition } from "../enums/itemEnums";
 import { ItemStatus } from "../enums/statusEnums";
 import { AuthenticationStatus, ReturnStatus } from "../enums/flowEnums";
 import { getMonthYearDateRange } from "../utils/dateRange";
+import { sendSellerReturnNotification } from "../utils/notifications";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -246,7 +247,8 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			category_id,
 			sub_category_id,
 			drop_id,
-			sellerId,
+			sellerId: sellerIdParam,
+			seller_id: sellerIdAlt,
 			authenticationStatus,
 			authenticatedAt,
 			returnDate,
@@ -412,17 +414,27 @@ const createItem = async (req: Request, res: Response): Promise<void> => {
 			}
 		}
 
-		// Validate sellerId if provided (sellerId is the userId of the seller)
-		if (sellerId) {
-			if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+		// Validate sellerId / seller_id if provided — accept either Seller doc _id or User id
+		let sellerId: string | undefined;
+		const sellerIdRaw = sellerIdParam ?? sellerIdAlt;
+		if (sellerIdRaw) {
+			const idStr = String(sellerIdRaw).trim();
+			if (!mongoose.Types.ObjectId.isValid(idStr)) {
 				res.status(400).json({ success: false, error: "Invalid sellerId" });
 				return;
 			}
-
-			const seller = await Seller.findOne({ userId: sellerId });
-			if (!seller) {
-				res.status(404).json({ success: false, error: "Seller not found" });
-				return;
+			// Try Seller doc _id first; if found, resolve to its userId (User _id)
+			let sellerDoc = await Seller.findById(idStr);
+			if (sellerDoc) {
+				sellerId = String(sellerDoc.userId);
+			} else {
+				sellerDoc = await Seller.findOne({ userId: idStr });
+				if (sellerDoc) {
+					sellerId = idStr; // already a User _id
+				} else {
+					res.status(404).json({ success: false, error: "Seller not found" });
+					return;
+				}
 			}
 		}
 
@@ -799,6 +811,35 @@ const updateItem = async (req: Request, res: Response): Promise<void> => {
 					{ userId: sellerId },
 					{ $addToSet: { itemIds: itemId } },
 				);
+			}
+		}
+
+		// ── Seller return notification ────────────────────────────────────────────
+		const prevReturnStatus = existingItem.returnStatus;
+		const newReturnStatus = updateData.returnStatus as string | undefined;
+		const isReturnTrigger =
+			newReturnStatus &&
+			newReturnStatus !== prevReturnStatus &&
+			(newReturnStatus === ReturnStatus.Scheduled || newReturnStatus === ReturnStatus.Returned);
+
+		if (isReturnTrigger && updatedItem.seller_id) {
+			const seller = await Seller.findOne({ userId: updatedItem.seller_id }).lean();
+			if (seller?.phoneNumber) {
+				const returnDateStr = updatedItem.returnDate
+					? new Date(updatedItem.returnDate).toLocaleDateString("en-GB", {
+							day: "numeric",
+							month: "long",
+							year: "numeric",
+					  })
+					: undefined;
+				void sendSellerReturnNotification({
+					phoneNumber: seller.phoneNumber,
+					sellerName: seller.fullName || "there",
+					brandName: updatedItem.brandName,
+					itemName: updatedItem.itemName,
+					returnStatus: newReturnStatus as "scheduled" | "returned",
+					returnDate: returnDateStr,
+				});
 			}
 		}
 

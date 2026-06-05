@@ -77,6 +77,7 @@ const sellerRoutes_1 = __importDefault(require("./routes/sellerRoutes"));
 const incomeRoutes_1 = __importDefault(require("./routes/incomeRoutes"));
 const expenseRoutes_1 = __importDefault(require("./routes/expenseRoutes"));
 const employeeRoutes_1 = __importDefault(require("./routes/employeeRoutes"));
+const payoutRoutes_1 = __importDefault(require("./routes/payoutRoutes"));
 const wishlistRoutes_1 = __importDefault(require("./routes/wishlistRoutes"));
 const shippingRoutes_1 = __importDefault(require("./routes/shippingRoutes"));
 const newsletterRoutes_1 = __importDefault(require("./routes/newsletterRoutes"));
@@ -372,6 +373,7 @@ app.use("/api/orderitems", ...adminOnly, orderItemRoutes_1.default);
 app.use("/api/incomes", ...adminOnly, incomeRoutes_1.default);
 app.use("/api/expenses", ...adminOnly, expenseRoutes_1.default);
 app.use("/api/employees", ...adminOnly, employeeRoutes_1.default);
+app.use("/api/payouts", ...adminOnly, payoutRoutes_1.default);
 const PORT = process.env.PORT || 3000;
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, db_1.default)();

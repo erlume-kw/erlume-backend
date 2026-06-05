@@ -1,35 +1,71 @@
 # Erlume Backend
 
-Express.js + TypeScript + MongoDB REST API.
+Express.js + TypeScript + MongoDB REST API for the Erlume luxury resale marketplace.
 
 ---
 
-## Setup
+## Prerequisites
+
+- **Node.js** v18 or higher
+- **MongoDB** running locally or a MongoDB Atlas connection string
+- A **Cloudinary** account (free tier is fine)
+- A **Twilio** account with WhatsApp sandbox enabled (for order notifications)
+
+---
+
+## 1. Install dependencies
 
 ```sh
 npm install
 ```
 
-Create a `.env` file in the root:
+---
+
+## 2. Create `.env`
+
+Create a `.env` file in the root of the project:
 
 ```env
-MONGODB_URI=mongodb://localhost:27017/erlumedb
-PORT=3000
-JWT_SECRET=change_me_in_production_use_a_long_random_string
-JWT_EXPIRES_IN=7d
+# MongoDB — pick one and comment out the other
 
-# Twilio — WhatsApp order notifications
+# Local (development):
+MONGODB_URI=mongodb://localhost:27017/erlumedb
+
+# Cloud / Atlas (production):
+# Get the full connection string (with credentials) from the team Discord
+# MONGODB_URI=mongodb+srv://USERNAME:PASSWORD@erlume.fuwodvo.mongodb.net/?appName=erlume
+
+# Server
+PORT=3000
+
+# Auth — use long random strings in production
+JWT_SECRET=change_me_in_production_use_a_long_random_string
+REFRESH_TOKEN_SECRET=change_me_refresh_secret_use_a_different_long_random_string
+
+# Cloudinary — image uploads (get from cloudinary.com dashboard)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Twilio — WhatsApp notifications (get from twilio.com console)
 TWILIO_ACCOUNT_SID=your_account_sid
 TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_WHATSAPP_FROM=+14155238886
+TWILIO_WHATSAPP_FROM=+14155238886            # Sandbox number (free)
+TWILIO_MESSAGING_SERVICE_SID=your_msg_sid   # Only needed for business sender
 ```
 
+> **WhatsApp sandbox:** buyers must send `join <keyword>` to `+1 415 523 8886` on WhatsApp before they can receive sandbox messages. Check your Twilio console for the keyword.
+
+---
+
+## 3. Run the server
+
 ```sh
-# Build and start
+# Build TypeScript → dist/ then start
 npm run build
 npm start
 
-# Dev mode with hot reload
+# Development mode (hot reload — no build needed)
 npm run start:dev
 ```
 
@@ -37,9 +73,9 @@ API is available at `http://localhost:3000`.
 
 ---
 
-## Create an admin account
+## 4. Create the first admin account
 
-No admin is created on first run. Use this one-liner (replace the placeholders):
+No admin is created on first run. Run this script once (replace placeholders):
 
 ```sh
 node -e "
@@ -65,44 +101,48 @@ mongoose.connect(process.env.MONGODB_URI).then(async () => {
 "
 ```
 
-> Role values are lowercase: `admin`, `user`, `seller`.
+> Role values are lowercase: `admin`, `user`, `seller`
 
 ---
 
-## Backoffice login
+## 5. Backoffice login page
 
-A login page is served by the backend at:
+Served directly by the backend at:
 
 ```
 http://localhost:3000/backoffice
 ```
 
-It authenticates, checks for the `admin` role, and auto-injects the Bearer token into Swagger.
+Authenticates, checks for the `admin` role, and auto-injects the Bearer token into Swagger UI.
 
 ---
 
-## API docs (Swagger)
+## 6. API docs (Swagger)
 
 | URL | Audience |
 |-----|----------|
 | `http://localhost:3000/api-docs` | Full — all endpoints |
 | `http://localhost:3000/api-docs/backoffice` | Admin endpoints only |
-| `http://localhost:3000/api-docs/frontend` | Public + auth endpoints |
+| `http://localhost:3000/api-docs/frontend` | Public + buyer endpoints |
 | `http://localhost:3000/api-docs.json` | Raw OpenAPI JSON |
 
-To test protected endpoints manually in Swagger:
-1. Call `POST /api/auth/login` and copy the `token` from the response.
-2. Click **Authorize** (top right), paste the token (**no** `Bearer` prefix), click **Authorize**.
+**To test protected endpoints in Swagger:**
+1. Call `POST /api/auth/login` → copy `accessToken` from the response
+2. Click **Authorize** (top right) → paste token (**no** `Bearer` prefix) → click **Authorize**
 
 ---
 
-## Auth
+## Auth endpoints
 
 | Method | Path | Access | Description |
 |--------|------|--------|-------------|
-| POST | `/api/auth/register` | Public | Create account |
-| POST | `/api/auth/login` | Public | Returns JWT token |
-| GET | `/api/auth/me` | Auth | Current user info |
+| POST | `/api/auth/register` | Public | Create account, returns `accessToken` + `refreshToken` |
+| POST | `/api/auth/login` | Public | Returns `accessToken` (15 min) + `refreshToken` (30 days) |
+| POST | `/api/auth/refresh` | Public | Exchange refresh token for new pair |
+| POST | `/api/auth/logout` | Public | Revoke refresh token |
+| POST | `/api/auth/forgot-password` | Public | Send OTP via WhatsApp (5/hour rate limit) |
+| POST | `/api/auth/reset-password` | Public | Verify OTP and set new password |
+| GET  | `/api/auth/me` | JWT | Current user profile |
 
 ---
 
@@ -112,16 +152,27 @@ To test protected endpoints manually in Swagger:
 |---|---|
 | `/api/auth` | Public |
 | `/api/items`, `/api/categories`, `/api/sub-categories` | Public |
-| `/api/reviews`, `/api/enums` | Public |
-| `/api/shipping` | Public (read) / Admin (write) |
-| `/api/newsletter` | Public (subscribe/unsubscribe) / Admin (list) |
+| `/api/reviews`, `/api/enums`, `/api/shipping` | Public (read) |
+| `/api/newsletter` | Public (subscribe) / Admin (list) |
 | `/api/discount-codes` | Public (validate) / Admin (CRUD) |
-| `/api/orders` | Auth — own orders / Admin — all orders |
-| `/api/users` | Auth — own profile / Admin — all users |
-| `/api/creditcards`, `/api/wishlist` | Auth |
+| `/api/orders` | Public (create + guest lookup) / JWT (own orders) / Admin (all) |
+| `/api/users` | JWT (own profile) / Admin (all users) |
+| `/api/creditcards`, `/api/wishlist` | JWT |
+| `/api/sellers`, `/api/payouts` | Admin only |
 | `/api/transactions`, `/api/sales`, `/api/incomes` | Admin only |
-| `/api/expenses`, `/api/employees`, `/api/sellers` | Admin only |
-| `/api/drops`, `/api/demands`, `/api/outfits`, `/api/outfititems` | Admin only |
+| `/api/expenses`, `/api/employees`, `/api/demands` | Admin only |
+| `/api/drops`, `/api/outfits`, `/api/outfititems` | Admin only |
+| `/api/upload` | Admin only |
+
+---
+
+## Rate limits
+
+| Scope | Limit |
+|---|---|
+| Global | 200 requests / 15 min per IP |
+| Auth endpoints | 20 requests / 15 min per IP |
+| OTP (forgot/reset password) | 5 requests / hour per IP |
 
 ---
 
@@ -132,6 +183,7 @@ To test protected endpoints manually in Swagger:
 | `npm run build` | Compile TypeScript → `dist/` |
 | `npm start` | Run compiled server (`dist/server.js`) |
 | `npm run start:dev` | Dev mode with hot reload |
-| `npm run sync-db` | Sync collections and indexes |
+| `npm run sync-db` | Sync MongoDB collections and indexes |
 | `npm run bulk-import-sellers` | Bulk import sellers from file |
 | `npm run bulk-import-items` | Bulk import items from file |
+| `node scripts/update-openapi.js` | Regenerate `openapi.json` after API changes |

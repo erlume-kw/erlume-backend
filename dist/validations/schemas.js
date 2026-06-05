@@ -174,17 +174,38 @@ exports.updateItemSchema = zod_1.z.preprocess(preprocessItemUpdateBody, baseItem
     quoteUrls: itemUpdateImageArray,
 }));
 // ==================== ORDER SCHEMAS ====================
-exports.createOrderSchema = zod_1.z.object({
-    user_id: exports.objectIdSchema,
-    orderItems: zod_1.z.array(zod_1.z.object({
-        item_id: exports.objectIdSchema,
-        quantity: zod_1.z.number().int().min(1).optional(),
-        is_returned: zod_1.z.boolean().optional(),
-    })).min(1, "At least one order item is required"),
-    order_status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus).optional(),
-    // Note: orderitem_ids, deliveryDate, deliveryStatus, trackingReference are set by backend
+const orderItemsSchema = zod_1.z.array(zod_1.z.object({
+    item_id: exports.objectIdSchema,
+    quantity: zod_1.z.number().int().min(1).optional(),
+    is_returned: zod_1.z.boolean().optional(),
+})).min(1, "At least one order item is required");
+const guestInfoSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1, "Name is required"),
+    phoneNumber: zod_1.z.string().regex(/^[+]?[\s\-]?[0-9]{7,15}$/, "Invalid phone number format"),
+    emailAddress: zod_1.z.string().email("Invalid email address").optional(),
+    shippingAddress: exports.addressSchema,
 });
-exports.updateOrderSchema = exports.createOrderSchema.partial();
+// Registered user path
+const registeredOrderSchema = zod_1.z.object({
+    user_id: exports.objectIdSchema,
+    guestInfo: zod_1.z.undefined().optional(),
+    orderItems: orderItemsSchema,
+    order_status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus).optional(),
+});
+// Guest path
+const guestOrderSchema = zod_1.z.object({
+    user_id: zod_1.z.undefined().optional(),
+    guestInfo: guestInfoSchema,
+    orderItems: orderItemsSchema,
+    order_status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus).optional(),
+});
+exports.createOrderSchema = zod_1.z.union([registeredOrderSchema, guestOrderSchema]);
+exports.updateOrderSchema = zod_1.z.object({
+    order_status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus).optional(),
+    deliveryDate: dateSchema.optional(),
+    deliveryStatus: zod_1.z.nativeEnum(flowEnums_1.DeliveryStatus).optional(),
+    trackingReference: zod_1.z.string().optional(),
+});
 exports.updateOrderStatusSchema = zod_1.z.object({
     order_status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus),
 });
@@ -263,6 +284,7 @@ exports.createDropSchema = zod_1.z.object({
     description: zod_1.z.string().optional(),
     releaseDate: dateSchema,
     status: zod_1.z.nativeEnum(dropEnums_1.DropStatus),
+    bannerImageUrl: zod_1.z.string().url("Invalid banner image URL").optional(),
 });
 exports.updateDropSchema = exports.createDropSchema.partial();
 // ==================== REVIEW SCHEMAS ====================
@@ -363,6 +385,7 @@ exports.createOutfitSchema = zod_1.z.object({
     item_ids: zod_1.z.array(exports.objectIdSchema).min(1, "At least one item ID is required"),
     outfit_title: zod_1.z.string().min(1, "Outfit title is required"),
     outfit_tags: zod_1.z.string().min(1, "Outfit tags is required"),
+    coverImageUrl: zod_1.z.string().url("Invalid cover image URL").optional(),
 });
 exports.updateOutfitSchema = exports.createOutfitSchema.partial();
 // ==================== OUTFIT ITEM SCHEMAS ====================
@@ -422,11 +445,18 @@ exports.dateFilterQuerySchema = zod_1.z.object({
 }).passthrough(); // Allow additional query params
 exports.itemFilterQuerySchema = zod_1.z.object({
     itemStatus: zod_1.z.nativeEnum(statusEnums_1.ItemStatus).optional(),
+    condition: zod_1.z.nativeEnum(itemEnums_1.ItemCondition).optional(),
     category_id: exports.objectIdSchema.optional(),
     sub_category_id: exports.objectIdSchema.optional(),
     drop_id: exports.objectIdSchema.optional(),
     seller_id: exports.objectIdSchema.optional(),
-}).passthrough(); // Allow additional query params
+    brandName: zod_1.z.string().optional(),
+    search: zod_1.z.string().optional(),
+    minPrice: zod_1.z.string().regex(/^\d+(\.\d+)?$/).optional(),
+    maxPrice: zod_1.z.string().regex(/^\d+(\.\d+)?$/).optional(),
+    page: zod_1.z.string().regex(/^\d+$/).transform(Number).optional(),
+    limit: zod_1.z.string().regex(/^\d+$/).transform(Number).optional(),
+}).passthrough();
 exports.userFilterQuerySchema = zod_1.z.object({
     includeDeleted: zod_1.z.enum(["true", "false"]).optional(),
     role: zod_1.z.string().optional(),

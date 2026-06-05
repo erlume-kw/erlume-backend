@@ -13,6 +13,7 @@ const DropSchema: Schema = new Schema(
 			required: true,
 			default: DropStatus.Upcoming,
 		},
+		bannerImageUrl: { type: String, required: false },
 	},
 	{ timestamps: true },
 );

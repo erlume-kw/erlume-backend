@@ -16,6 +16,7 @@ const Order_1 = __importDefault(require("../models/Order"));
 const OrderItem_1 = __importDefault(require("../models/OrderItem"));
 const User_1 = __importDefault(require("../models/User"));
 const Item_1 = __importDefault(require("../models/Item"));
+const Seller_1 = __importDefault(require("../models/Seller"));
 const Income_1 = __importDefault(require("../models/Income"));
 const Transaction_1 = __importDefault(require("../models/Transaction"));
 const Sale_1 = __importDefault(require("../models/Sale"));
@@ -53,10 +54,12 @@ const getConditionDeductionRate = (condition) => {
     }
 };
 const createDeliveredFinancials = (orderId) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const orderItems = yield OrderItem_1.default.find({ order_id: orderId }).lean();
     const incomeDocs = [];
     const saleDocs = [];
+    // Accumulate total payout per seller — key is seller_id string
+    const sellerPayoutMap = new Map();
     for (const orderItem of orderItems) {
         const item = yield Item_1.default.findById(orderItem.item_id).lean();
         if (!item)
@@ -89,6 +92,11 @@ const createDeliveredFinancials = (orderId) => __awaiter(void 0, void 0, void 0,
             erlumeCommissionAmount: erlumeCommission,
             sellerPayoutAmount: sellerPayout,
         });
+        // Accumulate payout for this seller
+        if (item.seller_id) {
+            const sellerId = String(item.seller_id);
+            sellerPayoutMap.set(sellerId, ((_b = sellerPayoutMap.get(sellerId)) !== null && _b !== void 0 ? _b : 0) + parseFloat(sellerPayout));
+        }
     }
     const transaction = yield Transaction_1.default.findOne({ order_id: orderId });
     if (incomeDocs.length > 0) {
@@ -102,6 +110,15 @@ const createDeliveredFinancials = (orderId) => __awaiter(void 0, void 0, void 0,
         yield Transaction_1.default.findByIdAndUpdate(transaction._id, {
             status: transactionEnums_1.TransactionStatus.Completed,
         });
+    }
+    // Update each seller's balance
+    for (const [sellerId, payoutAmount] of sellerPayoutMap.entries()) {
+        const seller = yield Seller_1.default.findOne({ userId: sellerId }).lean();
+        if (!seller)
+            continue;
+        const currentBalance = parseFloat(String(seller.balance)) || 0;
+        const newBalance = (currentBalance + payoutAmount).toFixed(3);
+        yield Seller_1.default.findByIdAndUpdate(seller._id, { balance: newBalance });
     }
 });
 const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -128,7 +145,13 @@ const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         const orders = yield Order_1.default.find(query)
             .populate("user_id")
-            .populate("orderitem_ids")
+            .populate({
+            path: "orderitem_ids",
+            populate: {
+                path: "item_id",
+                select: "itemName brandName imageUrls listingPrice condition",
+            },
+        })
             .sort({ createdAt: -1 });
         res.status(200).json({
             success: true,
@@ -167,7 +190,13 @@ const getOrdersByUserId = (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         const orders = yield Order_1.default.find(query)
             .populate("user_id")
-            .populate("orderitem_ids")
+            .populate({
+            path: "orderitem_ids",
+            populate: {
+                path: "item_id",
+                select: "itemName brandName imageUrls listingPrice condition",
+            },
+        })
             .sort({ createdAt: -1 });
         res.status(200).json({
             success: true,
@@ -189,12 +218,19 @@ const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         }
         const order = yield Order_1.default.findById(orderId)
             .populate("user_id")
-            .populate("orderitem_ids");
+            .populate({
+            path: "orderitem_ids",
+            populate: {
+                path: "item_id",
+                select: "itemName brandName imageUrls listingPrice condition",
+            },
+        });
         if (!order) {
             res.status(404).json({ success: false, error: "Order not found" });
             return;
         }
-        if (!(0, rls_1.assertSelfOrAdmin)(req, res, String(order.user_id)))
+        // Allow access for the order owner (registered) or guest orders
+        if (order.user_id && !(0, rls_1.assertSelfOrAdmin)(req, res, String(order.user_id)))
             return;
         res.status(200).json({ success: true, data: order });
     }
@@ -204,28 +240,47 @@ const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const session = yield mongoose_1.default.startSession();
     session.startTransaction();
     try {
-        const { user_id, orderItems, order_status } = req.body;
-        // Validate required fields
-        if (!user_id) {
+        const { user_id, guestInfo, orderItems, order_status } = req.body;
+        // Must have either a registered user_id or guest info
+        if (!user_id && !guestInfo) {
             res.status(400).json({
                 success: false,
-                error: "Missing required field: user_id",
+                error: "Either user_id or guestInfo is required",
             });
             return;
         }
-        // Validate user_id
-        if (!mongoose_1.default.Types.ObjectId.isValid(user_id)) {
-            res.status(400).json({ success: false, error: "Invalid user_id" });
-            return;
+        // Guest phone must not belong to a registered account
+        if (guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.phoneNumber) {
+            const existingUser = yield User_1.default.findOne({
+                phoneNumber: guestInfo.phoneNumber,
+                isDeleted: false,
+            }).session(session);
+            if (existingUser) {
+                yield session.abortTransaction();
+                res.status(409).json({
+                    success: false,
+                    error: "This phone number is linked to an existing account. Please log in to place your order.",
+                    code: "ACCOUNT_EXISTS",
+                });
+                return;
+            }
         }
-        const user = yield User_1.default.findById(user_id).session(session);
-        if (!user) {
-            res.status(404).json({ success: false, error: "User not found" });
-            return;
+        // Registered user path — validate and fetch user
+        let user = null;
+        if (user_id) {
+            if (!mongoose_1.default.Types.ObjectId.isValid(user_id)) {
+                res.status(400).json({ success: false, error: "Invalid user_id" });
+                return;
+            }
+            user = yield User_1.default.findById(user_id).session(session);
+            if (!user) {
+                res.status(404).json({ success: false, error: "User not found" });
+                return;
+            }
         }
         // Validate order_status if provided
         if (order_status && !Object.values(orderEnums_1.OrderStatus).includes(order_status)) {
@@ -261,11 +316,7 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         // Create order
-        const newOrder = new Order_1.default({
-            user_id,
-            orderitem_ids: [],
-            order_status: order_status || orderEnums_1.OrderStatus.Pending,
-        });
+        const newOrder = new Order_1.default(Object.assign(Object.assign(Object.assign({}, (user_id ? { user_id } : {})), (guestInfo ? { guestInfo } : {})), { orderitem_ids: [], order_status: order_status || orderEnums_1.OrderStatus.Pending }));
         const savedOrder = yield newOrder.save({ session });
         const createdOrderItemIds = [];
         const itemIds = [];
@@ -386,13 +437,17 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             yield existingTransaction.save({ session });
         }
         yield session.commitTransaction();
-        void (0, notifications_1.sendOrderConfirmation)({
-            emailAddress: user.emailAddress,
-            phoneNumber: user.phoneNumber,
-            orderId: String(savedOrder._id),
-            items: itemSummaries,
-            totalAmount: totalAmount.toFixed(2),
-        });
+        const notifPhone = user ? user.phoneNumber : guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.phoneNumber;
+        const notifEmail = user ? user.emailAddress : ((_a = guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.emailAddress) !== null && _a !== void 0 ? _a : "");
+        if (notifPhone) {
+            void (0, notifications_1.sendOrderConfirmation)({
+                emailAddress: notifEmail,
+                phoneNumber: notifPhone,
+                orderId: String(savedOrder._id),
+                items: itemSummaries,
+                totalAmount: totalAmount.toFixed(2),
+            });
+        }
         res.status(201).json({
             success: true,
             message: "Order created successfully",
@@ -412,7 +467,7 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         // Handle duplicate transaction error (unique constraint violation)
-        if (error.code === 11000 || ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes("duplicate"))) {
+        if (error.code === 11000 || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes("duplicate"))) {
             res.status(400).json({
                 success: false,
                 error: "Transaction already exists for this order",
@@ -426,6 +481,7 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e, _f;
     try {
         const orderId = req.params.id;
         const { status } = req.body;
@@ -464,14 +520,14 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
             }
             yield Transaction_1.default.findOneAndUpdate({ order_id: orderId }, { status: transactionEnums_1.TransactionStatus.Failed });
         }
-        const orderUser = yield User_1.default.findById(order.user_id);
-        if (orderUser) {
-            void (0, notifications_1.sendOrderStatusUpdate)({
-                emailAddress: orderUser.emailAddress,
-                phoneNumber: orderUser.phoneNumber,
-                orderId,
-                status,
-            });
+        const notifPhone = order.user_id
+            ? (_a = (yield User_1.default.findById(order.user_id))) === null || _a === void 0 ? void 0 : _a.phoneNumber
+            : (_b = order.guestInfo) === null || _b === void 0 ? void 0 : _b.phoneNumber;
+        const notifEmail = order.user_id
+            ? (_d = (_c = (yield User_1.default.findById(order.user_id))) === null || _c === void 0 ? void 0 : _c.emailAddress) !== null && _d !== void 0 ? _d : ""
+            : (_f = (_e = order.guestInfo) === null || _e === void 0 ? void 0 : _e.emailAddress) !== null && _f !== void 0 ? _f : "";
+        if (notifPhone) {
+            void (0, notifications_1.sendOrderStatusUpdate)({ emailAddress: notifEmail, phoneNumber: notifPhone, orderId, status });
         }
         res.status(200).json({
             success: true,
@@ -495,6 +551,7 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
 });
 /** Partial update: order_status, deliveryDate, deliveryStatus, trackingReference */
 const updateOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e;
     try {
         const orderId = req.params.id;
         const body = req.body;
@@ -566,11 +623,13 @@ const updateOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             yield Transaction_1.default.findOneAndUpdate({ order_id: orderId }, { status: transactionEnums_1.TransactionStatus.Failed });
         }
         if (update.order_status) {
-            const orderUser = yield User_1.default.findById(order.user_id);
-            if (orderUser) {
+            const orderUser = order.user_id ? yield User_1.default.findById(order.user_id) : null;
+            const notifPhone = (_a = orderUser === null || orderUser === void 0 ? void 0 : orderUser.phoneNumber) !== null && _a !== void 0 ? _a : (_b = order.guestInfo) === null || _b === void 0 ? void 0 : _b.phoneNumber;
+            const notifEmail = (_e = (_c = orderUser === null || orderUser === void 0 ? void 0 : orderUser.emailAddress) !== null && _c !== void 0 ? _c : (_d = order.guestInfo) === null || _d === void 0 ? void 0 : _d.emailAddress) !== null && _e !== void 0 ? _e : "";
+            if (notifPhone) {
                 void (0, notifications_1.sendOrderStatusUpdate)({
-                    emailAddress: orderUser.emailAddress,
-                    phoneNumber: orderUser.phoneNumber,
+                    emailAddress: notifEmail,
+                    phoneNumber: notifPhone,
                     orderId,
                     status: update.order_status,
                     trackingReference: update.trackingReference,
@@ -693,10 +752,47 @@ const validateCart = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 });
+const getGuestOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { orderId } = req.params;
+        const { phone } = req.query;
+        if (!mongoose_1.default.Types.ObjectId.isValid(orderId)) {
+            res.status(400).json({ success: false, error: "Invalid order ID" });
+            return;
+        }
+        if (!phone || typeof phone !== "string") {
+            res.status(400).json({ success: false, error: "Phone number is required" });
+            return;
+        }
+        const order = yield Order_1.default.findById(orderId).populate({
+            path: "orderitem_ids",
+            populate: {
+                path: "item_id",
+                select: "itemName brandName imageUrls listingPrice condition",
+            },
+        });
+        if (!order || !order.guestInfo) {
+            res.status(404).json({ success: false, error: "Order not found" });
+            return;
+        }
+        // Verify phone matches — normalise by stripping spaces and dashes
+        const normalise = (p) => p.replace(/[\s\-]/g, "");
+        if (normalise(phone) !== normalise(order.guestInfo.phoneNumber)) {
+            res.status(403).json({ success: false, error: "Phone number does not match this order" });
+            return;
+        }
+        res.status(200).json({ success: true, data: order });
+    }
+    catch (error) {
+        console.error("Error in getGuestOrder:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+    }
+});
 exports.default = {
     getOrders,
     getOrdersByUserId,
     getOrderById,
+    getGuestOrder,
     createOrder,
     updateOrderStatus,
     updateOrder,

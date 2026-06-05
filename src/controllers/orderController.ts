@@ -3,6 +3,7 @@ import Order from "../models/Order";
 import OrderItem from "../models/OrderItem";
 import User from "../models/User";
 import Item from "../models/Item";
+import Seller from "../models/Seller";
 import Income from "../models/Income";
 import Transaction from "../models/Transaction";
 import Sale from "../models/Sale";
@@ -48,6 +49,9 @@ const createDeliveredFinancials = async (orderId: mongoose.Types.ObjectId | stri
 	const incomeDocs: Array<Record<string, unknown>> = [];
 	const saleDocs: Array<Record<string, unknown>> = [];
 
+	// Accumulate total payout per seller — key is seller_id string
+	const sellerPayoutMap = new Map<string, number>();
+
 	for (const orderItem of orderItems) {
 		const item = await Item.findById(orderItem.item_id).lean();
 		if (!item) continue;
@@ -83,6 +87,12 @@ const createDeliveredFinancials = async (orderId: mongoose.Types.ObjectId | stri
 			erlumeCommissionAmount: erlumeCommission,
 			sellerPayoutAmount: sellerPayout,
 		});
+
+		// Accumulate payout for this seller
+		if (item.seller_id) {
+			const sellerId = String(item.seller_id);
+			sellerPayoutMap.set(sellerId, (sellerPayoutMap.get(sellerId) ?? 0) + parseFloat(sellerPayout));
+		}
 	}
 
 	const transaction = await Transaction.findOne({ order_id: orderId });
@@ -103,6 +113,17 @@ const createDeliveredFinancials = async (orderId: mongoose.Types.ObjectId | stri
 		await Transaction.findByIdAndUpdate(transaction._id, {
 			status: TransactionStatus.Completed,
 		});
+	}
+
+	// Update each seller's balance
+	for (const [sellerId, payoutAmount] of sellerPayoutMap.entries()) {
+		const seller = await Seller.findOne({ userId: sellerId }).lean();
+		if (!seller) continue;
+
+		const currentBalance = parseFloat(String(seller.balance)) || 0;
+		const newBalance = (currentBalance + payoutAmount).toFixed(3);
+
+		await Seller.findByIdAndUpdate(seller._id, { balance: newBalance });
 	}
 };
 
@@ -134,7 +155,13 @@ const getOrders = async (req: Request, res: Response): Promise<void> => {
 
 		const orders = await Order.find(query)
 			.populate("user_id")
-			.populate("orderitem_ids")
+			.populate({
+				path: "orderitem_ids",
+				populate: {
+					path: "item_id",
+					select: "itemName brandName imageUrls listingPrice condition",
+				},
+			})
 			.sort({ createdAt: -1 });
 
 		res.status(200).json({
@@ -181,7 +208,13 @@ const getOrdersByUserId = async (
 
 		const orders = await Order.find(query)
 			.populate("user_id")
-			.populate("orderitem_ids")
+			.populate({
+				path: "orderitem_ids",
+				populate: {
+					path: "item_id",
+					select: "itemName brandName imageUrls listingPrice condition",
+				},
+			})
 			.sort({ createdAt: -1 });
 
 		res.status(200).json({
@@ -206,14 +239,21 @@ const getOrderById = async (req: Request, res: Response): Promise<void> => {
 
 		const order = await Order.findById(orderId)
 			.populate("user_id")
-			.populate("orderitem_ids");
+			.populate({
+				path: "orderitem_ids",
+				populate: {
+					path: "item_id",
+					select: "itemName brandName imageUrls listingPrice condition",
+				},
+			});
 
 		if (!order) {
 			res.status(404).json({ success: false, error: "Order not found" });
 			return;
 		}
 
-		if (!assertSelfOrAdmin(req, res, String(order.user_id))) return;
+		// Allow access for the order owner (registered) or guest orders
+		if (order.user_id && !assertSelfOrAdmin(req, res, String(order.user_id))) return;
 
 		res.status(200).json({ success: true, data: order });
 	} catch (error) {
@@ -236,6 +276,23 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 				error: "Either user_id or guestInfo is required",
 			});
 			return;
+		}
+
+		// Guest phone must not belong to a registered account
+		if (guestInfo?.phoneNumber) {
+			const existingUser = await User.findOne({
+				phoneNumber: guestInfo.phoneNumber,
+				isDeleted: false,
+			}).session(session);
+			if (existingUser) {
+				await session.abortTransaction();
+				res.status(409).json({
+					success: false,
+					error: "This phone number is linked to an existing account. Please log in to place your order.",
+					code: "ACCOUNT_EXISTS",
+				});
+				return;
+			}
 		}
 
 		// Registered user path — validate and fetch user
@@ -560,14 +617,14 @@ const updateOrderStatus = async (
 			);
 		}
 
-		const orderUser = await User.findById(order.user_id);
-		if (orderUser) {
-			void sendOrderStatusUpdate({
-				emailAddress: orderUser.emailAddress,
-				phoneNumber: orderUser.phoneNumber,
-				orderId,
-				status,
-			});
+		const notifPhone = order.user_id
+			? (await User.findById(order.user_id))?.phoneNumber
+			: (order as any).guestInfo?.phoneNumber;
+		const notifEmail = order.user_id
+			? (await User.findById(order.user_id))?.emailAddress ?? ""
+			: (order as any).guestInfo?.emailAddress ?? "";
+		if (notifPhone) {
+			void sendOrderStatusUpdate({ emailAddress: notifEmail, phoneNumber: notifPhone, orderId, status });
 		}
 
 		res.status(200).json({
@@ -693,11 +750,13 @@ const updateOrder = async (req: Request, res: Response): Promise<void> => {
 		}
 
 		if (update.order_status) {
-			const orderUser = await User.findById(order.user_id);
-			if (orderUser) {
+			const orderUser = order.user_id ? await User.findById(order.user_id) : null;
+			const notifPhone = orderUser?.phoneNumber ?? (order as any).guestInfo?.phoneNumber;
+			const notifEmail = orderUser?.emailAddress ?? (order as any).guestInfo?.emailAddress ?? "";
+			if (notifPhone) {
 				void sendOrderStatusUpdate({
-					emailAddress: orderUser.emailAddress,
-					phoneNumber: orderUser.phoneNumber,
+					emailAddress: notifEmail,
+					phoneNumber: notifPhone,
 					orderId,
 					status: update.order_status as string,
 					trackingReference: update.trackingReference as string | undefined,

@@ -10,7 +10,9 @@ export type UploadFolder =
 	| "items"
 	| "receipts"
 	| "price-estimators"
-	| "quotes";
+	| "quotes"
+	| "drops"
+	| "outfits";
 
 /**
  * Upload a file buffer to Cloudinary.

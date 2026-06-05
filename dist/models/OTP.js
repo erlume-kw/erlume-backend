@@ -34,18 +34,13 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const dropEnums_1 = require("../enums/dropEnums");
-const DropSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    description: { type: String },
-    releaseDate: { type: Date, required: true },
-    status: {
-        type: String,
-        enum: Object.values(dropEnums_1.DropStatus),
-        required: true,
-        default: dropEnums_1.DropStatus.Upcoming,
-    },
-    bannerImageUrl: { type: String, required: false },
+const OTPSchema = new mongoose_1.Schema({
+    phoneNumber: { type: String, required: true, index: true },
+    otp: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+    used: { type: Boolean, default: false },
 }, { timestamps: true });
-const Drop = mongoose_1.default.model("Drop", DropSchema);
-exports.default = Drop;
+// Auto-delete expired OTPs
+OTPSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const OTP = mongoose_1.default.model("OTP", OTPSchema);
+exports.default = OTP;

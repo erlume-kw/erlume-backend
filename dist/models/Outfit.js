@@ -53,6 +53,7 @@ const OutfitSchema = new mongoose_1.Schema({
     ],
     outfit_title: { type: String, required: true },
     outfit_tags: { type: String, required: true },
+    coverImageUrl: { type: String, required: false },
 }, { timestamps: true });
 // Cascade delete OutfitItems when an Outfit is deleted
 OutfitSchema.pre("findOneAndDelete", function (next) {

@@ -5,4 +5,5 @@ export interface OutfitInterface extends Document {
 	item_ids: Types.ObjectId[]; // List of items in the outfit
 	outfit_title: string;
 	outfit_tags: string;
+	coverImageUrl?: string;
 }

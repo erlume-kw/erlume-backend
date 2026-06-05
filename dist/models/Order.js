@@ -49,13 +49,27 @@ const mongoose_1 = __importStar(require("mongoose"));
 const orderEnums_1 = require("../enums/orderEnums");
 const flowEnums_1 = require("../enums/flowEnums");
 const OrderItem_1 = __importDefault(require("./OrderItem"));
+const GuestInfoSchema = new mongoose_1.Schema({
+    name: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
+    emailAddress: { type: String, required: false },
+    shippingAddress: {
+        street: { type: String, required: true },
+        city: { type: String, required: true },
+        block: { type: String, required: true },
+        governorate: { type: String, required: true },
+        house: { type: String, required: true },
+        flat: { type: String, required: false },
+    },
+}, { _id: false });
 const OrderSchema = new mongoose_1.Schema({
     user_id: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        required: false,
         index: true,
     },
+    guestInfo: { type: GuestInfoSchema, required: false },
     orderitem_ids: [
         { type: mongoose_1.Schema.Types.ObjectId, ref: "OrderItem", index: true },
     ],

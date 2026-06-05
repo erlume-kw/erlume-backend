@@ -9,6 +9,7 @@ const OutfitSchema: Schema = new Schema(
 		],
 		outfit_title: { type: String, required: true },
 		outfit_tags: { type: String, required: true },
+		coverImageUrl: { type: String, required: false },
 	},
 	{ timestamps: true },
 );

@@ -1,13 +1,15 @@
 import { Request, Response } from "express";
 import { uploadToCloudinary, type UploadFolder } from "../utils/cloudinary";
 
-const VALID_FOLDERS: UploadFolder[] = ["items", "receipts", "price-estimators", "quotes"];
+const VALID_FOLDERS: UploadFolder[] = ["items", "receipts", "price-estimators", "quotes", "drops", "outfits"];
 
 const ALLOWED_MIME_TYPES = [
 	"image/jpeg",
 	"image/png",
 	"image/webp",
 	"image/gif",
+	"image/heic",   // iPhone photos
+	"image/heif",
 	"application/pdf",
 ];
 
@@ -33,7 +35,7 @@ const uploadFile = async (req: Request, res: Response): Promise<void> => {
 		if (!ALLOWED_MIME_TYPES.includes(mimetype)) {
 			res.status(400).json({
 				success: false,
-				error: `Unsupported file type: ${mimetype}. Allowed: JPEG, PNG, WebP, GIF, PDF`,
+				error: `Unsupported file type: ${mimetype}. Allowed: JPEG, PNG, WebP, GIF, HEIC, PDF`,
 			});
 			return;
 		}

@@ -324,6 +324,7 @@ export const createDropSchema = z.object({
 	description: z.string().optional(),
 	releaseDate: dateSchema,
 	status: z.nativeEnum(DropStatus),
+	bannerImageUrl: z.string().url("Invalid banner image URL").optional(),
 });
 
 export const updateDropSchema = createDropSchema.partial();
@@ -445,6 +446,7 @@ export const createOutfitSchema = z.object({
 	item_ids: z.array(objectIdSchema).min(1, "At least one item ID is required"),
 	outfit_title: z.string().min(1, "Outfit title is required"),
 	outfit_tags: z.string().min(1, "Outfit tags is required"),
+	coverImageUrl: z.string().url("Invalid cover image URL").optional(),
 });
 
 export const updateOutfitSchema = createOutfitSchema.partial();

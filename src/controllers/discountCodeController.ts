@@ -327,7 +327,7 @@ const validateDiscountCode = async (
 	res: Response,
 ): Promise<void> => {
 	try {
-		const { code } = req.body;
+		const { code, orderTotal } = req.body;
 
 		if (!code || code.trim() === "") {
 			res.status(400).json({
@@ -356,7 +356,6 @@ const validateDiscountCode = async (
 				success: false,
 				error: "Discount code is not active",
 				valid: false,
-				data: discountCode,
 			});
 			return;
 		}
@@ -368,16 +367,36 @@ const validateDiscountCode = async (
 				success: false,
 				error: "Discount code has expired",
 				valid: false,
-				data: discountCode,
 			});
 			return;
 		}
 
+		// Calculate discount amounts if orderTotal provided
+		const percentage = parseFloat(discountCode.discount_percentage);
+		let discountAmount: string | undefined;
+		let finalTotal: string | undefined;
+
+		if (orderTotal !== undefined) {
+			const total = parseFloat(String(orderTotal));
+			if (!isNaN(total) && total >= 0) {
+				const discount = (total * percentage) / 100;
+				discountAmount = discount.toFixed(3);
+				finalTotal = Math.max(0, total - discount).toFixed(3);
+			}
+		}
+
 		res.status(200).json({
 			success: true,
-			message: "Discount code is valid",
 			valid: true,
-			data: discountCode,
+			discountPercentage: percentage,
+			...(discountAmount !== undefined && { discountAmount }),
+			...(finalTotal !== undefined && { finalTotal }),
+			data: {
+				_id: discountCode._id,
+				code: discountCode.code,
+				discount_percentage: discountCode.discount_percentage,
+				expiry_date: discountCode.expiry_date,
+			},
 		});
 	} catch (error) {
 		console.error("Error in validateDiscountCode:", error);

@@ -22,41 +22,68 @@ const itemEnums_1 = require("../enums/itemEnums");
 const statusEnums_1 = require("../enums/statusEnums");
 const flowEnums_1 = require("../enums/flowEnums");
 const dateRange_1 = require("../utils/dateRange");
+const notifications_1 = require("../utils/notifications");
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 const getItems = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { dropId, itemStatus, categoryId, sellerId, authenticationStatus, returnStatus, year, month, } = req.query;
-        console.log("getItems called, dropId:", dropId);
-        // Build filters from query params
+        const { 
+        // IDs (snake_case — matches schema)
+        drop_id, category_id, sub_category_id, seller_id, 
+        // Enums
+        itemStatus, authenticationStatus, returnStatus, condition, 
+        // Text search
+        search, brandName, 
+        // Price range
+        minPrice, maxPrice, 
+        // Date filter
+        year, month, 
+        // Pagination
+        page, limit, } = req.query;
+        // --- Pagination ---
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(limit) || DEFAULT_PAGE_SIZE));
+        const skip = (pageNum - 1) * limitNum;
+        // --- Build filter ---
         const filter = {};
+        // Date range
         const { range, error } = (0, dateRange_1.getMonthYearDateRange)(year, month);
         if (error) {
             res.status(400).json({ success: false, error });
             return;
         }
-        if (range) {
+        if (range)
             filter.uploadedAt = range;
-        }
-        if (dropId) {
-            if (!mongoose_1.default.Types.ObjectId.isValid(dropId)) {
-                res.status(400).json({ success: false, error: "Invalid drop ID" });
+        // ObjectId filters
+        if (drop_id) {
+            if (!mongoose_1.default.Types.ObjectId.isValid(drop_id)) {
+                res.status(400).json({ success: false, error: "Invalid drop_id" });
                 return;
             }
-            filter.drop_id = dropId;
+            filter.drop_id = drop_id;
         }
-        if (categoryId) {
-            if (!mongoose_1.default.Types.ObjectId.isValid(categoryId)) {
-                res.status(400).json({ success: false, error: "Invalid category ID" });
+        if (category_id) {
+            if (!mongoose_1.default.Types.ObjectId.isValid(category_id)) {
+                res.status(400).json({ success: false, error: "Invalid category_id" });
                 return;
             }
-            filter.category_id = categoryId;
+            filter.category_id = category_id;
         }
-        if (sellerId) {
-            if (!mongoose_1.default.Types.ObjectId.isValid(sellerId)) {
-                res.status(400).json({ success: false, error: "Invalid sellerId" });
+        if (sub_category_id) {
+            if (!mongoose_1.default.Types.ObjectId.isValid(sub_category_id)) {
+                res.status(400).json({ success: false, error: "Invalid sub_category_id" });
                 return;
             }
-            filter.seller_id = sellerId;
+            filter.sub_category_id = sub_category_id;
         }
+        if (seller_id) {
+            if (!mongoose_1.default.Types.ObjectId.isValid(seller_id)) {
+                res.status(400).json({ success: false, error: "Invalid seller_id" });
+                return;
+            }
+            filter.seller_id = seller_id;
+        }
+        // Enum filters
         if (itemStatus) {
             if (!Object.values(statusEnums_1.ItemStatus).includes(itemStatus)) {
                 res.status(400).json({
@@ -66,6 +93,16 @@ const getItems = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 return;
             }
             filter.itemStatus = itemStatus;
+        }
+        if (condition) {
+            if (!Object.values(itemEnums_1.ItemCondition).includes(condition)) {
+                res.status(400).json({
+                    success: false,
+                    error: `Invalid condition. Must be one of: ${Object.values(itemEnums_1.ItemCondition).join(", ")}`,
+                });
+                return;
+            }
+            filter.condition = condition;
         }
         if (authenticationStatus) {
             if (!Object.values(flowEnums_1.AuthenticationStatus).includes(authenticationStatus)) {
@@ -87,25 +124,49 @@ const getItems = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             }
             filter.returnStatus = returnStatus;
         }
-        // If any filter provided, use it
-        if (Object.keys(filter).length > 0) {
-            const items = yield Item_1.default.find(filter).lean();
-            const data = items.map((item) => {
-                var _a;
-                return (Object.assign(Object.assign({}, item), { sellerId: (_a = item.seller_id) !== null && _a !== void 0 ? _a : null }));
-            });
-            console.log(`Found ${items.length} items with filters`);
-            res.status(200).json({ success: true, data, count: items.length });
-            return;
+        // Text search — matches itemName or brandName (case-insensitive)
+        if (search) {
+            const regex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+            filter.$or = [{ itemName: regex }, { brandName: regex }];
         }
-        // Otherwise, get all items
-        const items = yield Item_1.default.find({}).lean();
-        const data = items.map((item) => {
-            var _a;
-            return (Object.assign(Object.assign({}, item), { sellerId: (_a = item.seller_id) !== null && _a !== void 0 ? _a : null }));
+        // Exact brand filter (case-insensitive) — for brand page on frontend
+        if (brandName && !search) {
+            filter.brandName = { $regex: new RegExp(`^${String(brandName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") };
+        }
+        // Price range — listingPrice is stored as String so use $expr + $toDouble
+        const priceConditions = [];
+        if (minPrice) {
+            const min = parseFloat(minPrice);
+            if (!isNaN(min))
+                priceConditions.push({ $gte: [{ $toDouble: "$listingPrice" }, min] });
+        }
+        if (maxPrice) {
+            const max = parseFloat(maxPrice);
+            if (!isNaN(max))
+                priceConditions.push({ $lte: [{ $toDouble: "$listingPrice" }, max] });
+        }
+        if (priceConditions.length > 0) {
+            filter.$expr = { $and: priceConditions };
+        }
+        // --- Query with pagination ---
+        const [items, totalCount] = yield Promise.all([
+            Item_1.default.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+            Item_1.default.countDocuments(filter),
+        ]);
+        const totalPages = Math.ceil(totalCount / limitNum);
+        const data = items.map((item) => { var _a; return (Object.assign(Object.assign({}, item), { sellerId: (_a = item.seller_id) !== null && _a !== void 0 ? _a : null })); });
+        res.status(200).json({
+            success: true,
+            data,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                totalCount,
+                totalPages,
+                hasNextPage: pageNum < totalPages,
+                hasPrevPage: pageNum > 1,
+            },
         });
-        console.log(`Found ${items.length} total items`);
-        res.status(200).json({ success: true, data, count: items.length });
     }
     catch (error) {
         console.error("Error in getItems:", error);
@@ -143,7 +204,7 @@ const getItemById = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName, itemModel, year, quantity, brandName, imageUrls, bag, photoUrls, receiptPhotoUrls, priceEstimatorUrls, quoteUrls, approved, approvedNextDrop, orderId, authNeeded, cleaningNeeded, listingPrice, photographed, category_id, sub_category_id, drop_id, sellerId, authenticationStatus, authenticatedAt, returnDate, returnStatus, } = req.body;
+        const { basePrice, condition, uploadedAt, saleRate, itemStatus, color, size, itemName, itemModel, year, quantity, brandName, imageUrls, bag, photoUrls, receiptPhotoUrls, priceEstimatorUrls, quoteUrls, approved, approvedNextDrop, orderId, authNeeded, cleaningNeeded, listingPrice, photographed, category_id, sub_category_id, drop_id, sellerId: sellerIdParam, seller_id: sellerIdAlt, authenticationStatus, authenticatedAt, returnDate, returnStatus, } = req.body;
         const resolvedItemName = itemName !== null && itemName !== void 0 ? itemName : bag;
         const imageUrlsArray = Array.isArray(imageUrls) ? imageUrls : undefined;
         const photoUrlsArray = Array.isArray(photoUrls) ? photoUrls : undefined;
@@ -272,16 +333,29 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 return;
             }
         }
-        // Validate sellerId if provided (sellerId is the userId of the seller)
-        if (sellerId) {
-            if (!mongoose_1.default.Types.ObjectId.isValid(sellerId)) {
+        // Validate sellerId / seller_id if provided — accept either Seller doc _id or User id
+        let sellerId;
+        const sellerIdRaw = sellerIdParam !== null && sellerIdParam !== void 0 ? sellerIdParam : sellerIdAlt;
+        if (sellerIdRaw) {
+            const idStr = String(sellerIdRaw).trim();
+            if (!mongoose_1.default.Types.ObjectId.isValid(idStr)) {
                 res.status(400).json({ success: false, error: "Invalid sellerId" });
                 return;
             }
-            const seller = yield Seller_1.default.findOne({ userId: sellerId });
-            if (!seller) {
-                res.status(404).json({ success: false, error: "Seller not found" });
-                return;
+            // Try Seller doc _id first; if found, resolve to its userId (User _id)
+            let sellerDoc = yield Seller_1.default.findById(idStr);
+            if (sellerDoc) {
+                sellerId = String(sellerDoc.userId);
+            }
+            else {
+                sellerDoc = yield Seller_1.default.findOne({ userId: idStr });
+                if (sellerDoc) {
+                    sellerId = idStr; // already a User _id
+                }
+                else {
+                    res.status(404).json({ success: false, error: "Seller not found" });
+                    return;
+                }
             }
         }
         // Create new item
@@ -590,6 +664,32 @@ const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                     yield Seller_1.default.updateOne({ userId: previousSellerId }, { $pull: { itemIds: itemId } });
                 }
                 yield Seller_1.default.updateOne({ userId: sellerId }, { $addToSet: { itemIds: itemId } });
+            }
+        }
+        // ── Seller return notification ────────────────────────────────────────────
+        const prevReturnStatus = existingItem.returnStatus;
+        const newReturnStatus = updateData.returnStatus;
+        const isReturnTrigger = newReturnStatus &&
+            newReturnStatus !== prevReturnStatus &&
+            (newReturnStatus === flowEnums_1.ReturnStatus.Scheduled || newReturnStatus === flowEnums_1.ReturnStatus.Returned);
+        if (isReturnTrigger && updatedItem.seller_id) {
+            const seller = yield Seller_1.default.findOne({ userId: updatedItem.seller_id }).lean();
+            if (seller === null || seller === void 0 ? void 0 : seller.phoneNumber) {
+                const returnDateStr = updatedItem.returnDate
+                    ? new Date(updatedItem.returnDate).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                    })
+                    : undefined;
+                void (0, notifications_1.sendSellerReturnNotification)({
+                    phoneNumber: seller.phoneNumber,
+                    sellerName: seller.fullName || "there",
+                    brandName: updatedItem.brandName,
+                    itemName: updatedItem.itemName,
+                    returnStatus: newReturnStatus,
+                    returnDate: returnDateStr,
+                });
             }
         }
         res.status(200).json({
