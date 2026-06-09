@@ -65,7 +65,7 @@ TWILIO_MESSAGING_SERVICE_SID=your_msg_sid   # Only needed for business sender
 npm run build
 npm start
 
-# Development mode (hot reload — no build needed)
+# Development mode with hot reload (no build needed)
 npm run start:dev
 ```
 
