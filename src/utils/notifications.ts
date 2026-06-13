@@ -143,12 +143,29 @@ export const sendOrderConfirmation = async (params: {
 	phoneNumber: string;
 	orderId: string;
 	items: OrderItemSummary[];
-	totalAmount: string;
+	totalAmount: string;       // full price before discount
+	discountRate?: number;     // e.g. 30
+	discountedTotal?: string;  // final amount after discount
+	invoiceUrl?: string;
 }): Promise<void> => {
 	const shortId = params.orderId.slice(-8).toUpperCase();
 	const itemLines = params.items
 		.map((i) => `▸ *${i.brandName}* ${i.itemName} — ${i.quantity} × KWD ${i.price}`)
 		.join("\n");
+
+	const hasDiscount = params.discountRate && params.discountedTotal;
+	const discountAmt = hasDiscount
+		? (parseFloat(params.totalAmount) - parseFloat(params.discountedTotal!)).toFixed(2)
+		: null;
+
+	const totalLines = hasDiscount
+		? [
+			`Subtotal: KWD ${params.totalAmount}`,
+			`Discount (${params.discountRate}%): −KWD ${discountAmt}`,
+			`━━━━━━━━━━━━━━━━━━`,
+			`*Total: KWD ${params.discountedTotal}*`,
+		  ]
+		: [`*Total: KWD ${params.totalAmount}*`];
 
 	const fallback = [
 		`🛍️ *Order Confirmed!*`,
@@ -158,12 +175,13 @@ export const sendOrderConfirmation = async (params: {
 		`━━━━━━━━━━━━━━━━━━`,
 		itemLines,
 		`━━━━━━━━━━━━━━━━━━`,
-		`*Total: KWD ${params.totalAmount}*`,
+		...totalLines,
 		``,
 		`Your order is being prepared. We'll notify you once it's on its way. 📦`,
+		params.invoiceUrl ? `\n🧾 *Invoice:* ${params.invoiceUrl}` : null,
 		``,
 		`_Questions? Simply reply to this message._`,
-	].join("\n");
+	].filter((l) => l !== null).join("\n");
 
 	await sendWhatsAppTemplate(params.phoneNumber, TEMPLATES.orderConfirmation, {
 		"1": shortId,
@@ -214,6 +232,18 @@ export const sendOrderStatusUpdate = async (params: {
 
 	const body = freeFormMessages[status] ?? `📋 *Order Update* — Ref #${shortId}\nStatus: *${params.status}*`;
 	await sendWhatsApp(params.phoneNumber, body);
+};
+
+export const sendInvoiceReady = async (phoneNumber: string, invoiceUrl: string): Promise<void> => {
+	const body = [
+		`🧾 *Your Invoice is Ready — Erlume*`,
+		``,
+		`View and download your invoice here:`,
+		invoiceUrl,
+		``,
+		`_Questions? Simply reply to this message._`,
+	].join("\n");
+	await sendWhatsApp(phoneNumber, body);
 };
 
 export const sendOTP = async (phoneNumber: string, otp: string): Promise<void> => {

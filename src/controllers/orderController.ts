@@ -511,15 +511,12 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 
 		const notifPhone = user ? user.phoneNumber : guestInfo?.phoneNumber;
 		const notifEmail = user ? user.emailAddress : (guestInfo?.emailAddress ?? "");
-		if (notifPhone) {
-			void sendOrderConfirmation({
-				emailAddress: notifEmail,
-				phoneNumber: notifPhone,
-				orderId: String(savedOrder._id),
-				items: itemSummaries,
-				totalAmount: totalAmount.toFixed(2),
-			});
-		}
+		const customerName = user
+			? (user.emailAddress ?? notifPhone ?? "Customer")
+			: (guestInfo?.name ?? guestInfo?.phoneNumber ?? "Guest");
+
+		// WhatsApp + Zoho invoice are sent from createTransaction
+		// so the customer gets the correct (discounted) total and invoice link in one flow
 
 		res.status(201).json({
 			success: true,
