@@ -278,6 +278,16 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
+		// Guest must provide at least phone or email
+		if (!user_id && !guestInfo?.phoneNumber && !guestInfo?.emailAddress) {
+			await session.abortTransaction();
+			res.status(400).json({
+				success: false,
+				error: "Guest orders require at least a phone number or email address.",
+			});
+			return;
+		}
+
 		// Guest phone must not belong to a registered account
 		if (guestInfo?.phoneNumber) {
 			const existingUser = await User.findOne({
@@ -900,15 +910,15 @@ const validateCart = async (req: Request, res: Response): Promise<void> => {
 const getGuestOrder = async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { orderId } = req.params;
-		const { phone } = req.query;
+		const { phone, email } = req.query;
 
 		if (!mongoose.Types.ObjectId.isValid(orderId)) {
 			res.status(400).json({ success: false, error: "Invalid order ID" });
 			return;
 		}
 
-		if (!phone || typeof phone !== "string") {
-			res.status(400).json({ success: false, error: "Phone number is required" });
+		if (!phone && !email) {
+			res.status(400).json({ success: false, error: "Phone number or email address is required" });
 			return;
 		}
 
@@ -925,11 +935,18 @@ const getGuestOrder = async (req: Request, res: Response): Promise<void> => {
 			return;
 		}
 
-		// Verify phone matches — normalise by stripping spaces and dashes
-		const normalise = (p: string) => p.replace(/[\s\-]/g, "");
-		if (normalise(phone) !== normalise(order.guestInfo.phoneNumber)) {
-			res.status(403).json({ success: false, error: "Phone number does not match this order" });
-			return;
+		const normalise = (s: string) => s.replace(/[\s\-]/g, "").toLowerCase();
+
+		if (phone && typeof phone === "string") {
+			if (!order.guestInfo.phoneNumber || normalise(phone) !== normalise(order.guestInfo.phoneNumber)) {
+				res.status(403).json({ success: false, error: "Phone number does not match this order" });
+				return;
+			}
+		} else if (email && typeof email === "string") {
+			if (!order.guestInfo.emailAddress || normalise(email) !== normalise(order.guestInfo.emailAddress)) {
+				res.status(403).json({ success: false, error: "Email address does not match this order" });
+				return;
+			}
 		}
 
 		res.status(200).json({ success: true, data: order });

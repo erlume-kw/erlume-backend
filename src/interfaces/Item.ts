@@ -19,6 +19,7 @@ export interface ItemInterface extends Document {
 	quantity: string; // Quantity available
 	brandName: string; // Brand name of the item
 	imageUrls: string[]; // List of URLs of the item's images
+	mainImageUrl?: string; // Pinned main/cover image (falls back to imageUrls[0])
 	receiptPhotoUrls?: string[]; // Receipt photo URLs
 	priceEstimatorUrls?: string[]; // Price estimator file URLs
 	quoteUrls?: string[]; // Quote file URLs

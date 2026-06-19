@@ -7,7 +7,7 @@ import OrderItem from "./OrderItem";
 const GuestInfoSchema = new Schema(
 	{
 		name: { type: String, required: true },
-		phoneNumber: { type: String, required: true },
+		phoneNumber: { type: String, required: false },
 		emailAddress: { type: String, required: false },
 		shippingAddress: {
 			street: { type: String, required: true },

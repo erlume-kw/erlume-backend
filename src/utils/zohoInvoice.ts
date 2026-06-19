@@ -140,6 +140,67 @@ async function getOrCreateContact(
 	}
 }
 
+// ─── Email template ──────────────────────────────────────────────────────────
+
+function buildInvoiceEmail(customerName: string, invoiceNumber: string, invoiceUrl: string): string {
+	const year = new Date().getFullYear();
+	return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#f0ede3;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:48px 16px;">
+    <tr><td align="center">
+      <table role="presentation" style="max-width:520px;width:100%;background:#faf9f5;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(17,29,17,0.07);">
+
+        <!-- Brand name -->
+        <tr>
+          <td style="padding:36px 40px 28px;border-bottom:1px solid #e4e8e4;">
+            <span style="font-size:22px;font-weight:300;letter-spacing:5px;color:#111d11;text-transform:uppercase;">ERLUME</span>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:36px 40px 28px;">
+            <p style="margin:0 0 20px;font-size:16px;font-weight:500;color:#111d11;">Hi ${customerName},</p>
+            <p style="margin:0 0 8px;font-size:14px;line-height:1.75;color:#5a6b5a;">
+              Thank you for your order! Your invoice <strong style="color:#111d11;">${invoiceNumber}</strong> is attached to this email.
+            </p>
+            <p style="margin:0 0 28px;font-size:14px;line-height:1.75;color:#5a6b5a;">
+              You can also view and download it anytime using the link below.
+            </p>
+
+            <a href="${invoiceUrl}" style="display:inline-block;background:#111d11;color:#faf9f5;text-decoration:none;font-size:13px;font-weight:500;letter-spacing:0.5px;padding:13px 30px;border-radius:6px;">View Invoice</a>
+          </td>
+        </tr>
+
+        <!-- Contact -->
+        <tr>
+          <td style="padding:24px 40px;background:#f0ede3;border-top:1px solid #e4e8e4;">
+            <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#111d11;">Need help?</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#5a6b5a;">
+              📧 <a href="mailto:info@erlume.com.kw" style="color:#3d6b3d;text-decoration:none;">info@erlume.com.kw</a>
+            </p>
+            <p style="margin:0;font-size:13px;color:#5a6b5a;">
+              💬 <a href="https://wa.me/96597226735" style="color:#3d6b3d;text-decoration:none;">WhatsApp +965 97226735</a>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:18px 40px;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#c3ccc3;">&copy; ${year} Erlume · erlume.com.kw</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 // ─── Main: create invoice ─────────────────────────────────────────────────────
 
 const PORTAL_BASE = "https://invoice.zohosecure.com/portal/erlume/invoices";
@@ -216,28 +277,37 @@ export async function createZohoInvoice(params: CreateInvoiceParams): Promise<{ 
 			const invoiceUrl = invoice_url ?? `${PORTAL_BASE}/${invoice_id}`;
 			console.log(`[zohoInvoice] Created ${invoice_number} → ${invoiceUrl}`);
 
-			// Send invoice email via Zoho if the customer has an email address
+			// Send invoice PDF via Resend
 			if (params.email) {
 				try {
-					const emailRes = await fetch(`${ZOHO_API_BASE}/invoices/${invoice_id}/email`, {
-						method:  "POST",
+					const { Resend } = await import("resend");
+					const resend = new Resend(process.env.RESEND_API_KEY);
+					const from   = process.env.RESEND_FROM ?? "orders@erlume.com.kw";
+
+					// Download PDF from Zoho
+					const pdfRes = await fetch(`${ZOHO_API_BASE}/invoices/${invoice_id}?accept=pdf`, {
 						headers: HEADERS(token, orgId),
-						body:    JSON.stringify({
-							to_mail_ids:             [params.email],
-							subject:                 `Your Invoice from Erlume — ${invoice_number}`,
-							body:                    `Dear ${params.customerName},\n\nPlease find your invoice ${invoice_number} attached.\n\nThank you for shopping with Erlume.\n\nWarm regards,\nErlume Team`,
-							send_customer_statement: false,
-							send_attachment:         true,
-						}),
 					});
-					const emailData = await emailRes.json() as { code: number; message: string };
-					if (emailData.code === 0) {
-						console.log(`[zohoInvoice] Invoice emailed to ${params.email}`);
+					const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+
+					const { error } = await resend.emails.send({
+						from,
+						to:      [params.email],
+						subject: `Your Invoice from Erlume — ${invoice_number}`,
+						html: buildInvoiceEmail(params.customerName, invoice_number, invoiceUrl),
+						attachments: [{
+							filename: `${invoice_number}.pdf`,
+							content:  pdfBuffer,
+						}],
+					});
+
+					if (error) {
+						console.warn("[zohoInvoice] Resend email failed:", error.message);
 					} else {
-						console.warn(`[zohoInvoice] Email send failed:`, emailData.message);
+						console.log(`[zohoInvoice] Invoice emailed via Resend to ${params.email}`);
 					}
 				} catch (err) {
-					console.error("[zohoInvoice] Email send error:", err);
+					console.error("[zohoInvoice] Resend email error:", err);
 				}
 			}
 

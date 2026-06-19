@@ -32,6 +32,7 @@ const ItemSchema: Schema = new Schema(
 		quantity: { type: String, required: true },
 		brandName: { type: String, required: true },
 		imageUrls: [{ type: String, required: true }], // List of URLs of the item's images
+		mainImageUrl: { type: String, required: false }, // Pinned main/cover image
 		receiptPhotoUrls: [{ type: String, required: false }],
 		priceEstimatorUrls: [{ type: String, required: false }],
 		quoteUrls: [{ type: String, required: false }],

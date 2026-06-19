@@ -193,6 +193,7 @@ export const updateItemSchema = z.preprocess(
 			receiptPhotoUrls: itemUpdateImageArray,
 			priceEstimatorUrls: itemUpdateImageArray,
 			quoteUrls: itemUpdateImageArray,
+			mainImageUrl: z.string().url("mainImageUrl must be a valid URL").optional(),
 		}),
 );
 
