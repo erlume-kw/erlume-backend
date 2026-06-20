@@ -146,6 +146,130 @@ const createSeller = async (req: Request, res: Response): Promise<void> => {
 	}
 };
 
+const registerFromForm = async (req: Request, res: Response): Promise<void> => {
+	const session = await mongoose.startSession();
+	session.startTransaction();
+
+	try {
+		const { fullName, emailAddress, phoneNumber, preferredPickupAddress, consent } = req.body;
+
+		if (!fullName || !phoneNumber) {
+			res.status(400).json({ success: false, error: "fullName and phoneNumber are required" });
+			return;
+		}
+
+		// Reject if T&C not accepted
+		const normalizeConsent = (v: unknown): boolean => {
+			if (typeof v === "string") {
+				const s = v.trim().toLowerCase();
+				return s === "true" || s === "yes" || s === "yes / نعم" || s === "نعم";
+			}
+			return v === true;
+		};
+
+		if (!normalizeConsent(consent)) {
+			res.status(400).json({ success: false, error: "Seller did not accept Terms & Conditions" });
+			return;
+		}
+
+		// Check for duplicate email
+		if (emailAddress) {
+			const existing = await User.findOne({ emailAddress, isDeleted: false });
+			if (existing) {
+				res.status(409).json({ success: false, error: "A seller with this email already exists" });
+				return;
+			}
+		}
+
+		// Generate a random temp password — not shared with seller, team sets it later
+		const tempPassword = await bcrypt.hash(
+			Math.random().toString(36).slice(2) + Date.now(),
+			10,
+		);
+
+		const [user] = await User.create(
+			[{
+				password:     tempPassword,
+				emailAddress: emailAddress ?? `form-${Date.now()}@erlume.placeholder`,
+				phoneNumber,
+				roles:        [UserRole.SELLER],
+				isDeleted:    false,
+				address: {
+					street:      preferredPickupAddress ?? "TBD",
+					city:        "Kuwait",
+					block:       "TBD",
+					governorate: "Kuwait",
+					house:       "TBD",
+				},
+			}],
+			{ session },
+		);
+
+		const [seller] = await Seller.create(
+			[{
+				userId:                 user._id,
+				fullName:               fullName ?? "",
+				emailAddress:           emailAddress ?? "",
+				phoneNumber,
+				addressText:            preferredPickupAddress ?? "",
+				balance:                "0",
+				consentGiven:           true,
+				sellerPolicyAcceptedAt: new Date(),
+				onboardingStatus:       "initial_contact",
+				isDeactivated:          false,
+			}],
+			{ session },
+		);
+
+		await session.commitTransaction();
+
+		// Notify info@erlume.com.kw
+		try {
+			const { Resend } = await import("resend");
+			const resend = new Resend(process.env.RESEND_API_KEY);
+			await resend.emails.send({
+				from:    process.env.RESEND_FROM ?? "orders@erlume.com.kw",
+				to:      ["info@erlume.com.kw"],
+				subject: `New seller registration — ${fullName}`,
+				html: `
+					<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;">
+						<h2 style="color:#111d11;margin:0 0 20px;">New Seller Registered</h2>
+						<table style="width:100%;border-collapse:collapse;font-size:14px;">
+							<tr><td style="padding:8px 0;color:#666;width:140px;">Name</td><td style="padding:8px 0;font-weight:600;">${fullName}</td></tr>
+							<tr><td style="padding:8px 0;color:#666;">Phone</td><td style="padding:8px 0;">${phoneNumber}</td></tr>
+							<tr><td style="padding:8px 0;color:#666;">Email</td><td style="padding:8px 0;">${emailAddress ?? "—"}</td></tr>
+							<tr><td style="padding:8px 0;color:#666;">Pickup Address</td><td style="padding:8px 0;">${preferredPickupAddress ?? "—"}</td></tr>
+							<tr><td style="padding:8px 0;color:#666;">T&C Accepted</td><td style="padding:8px 0;">✅ Yes</td></tr>
+							<tr><td style="padding:8px 0;color:#666;">Seller ID</td><td style="padding:8px 0;font-family:monospace;font-size:12px;">${String(seller._id)}</td></tr>
+						</table>
+						<div style="margin-top:28px;">
+							<a href="${process.env.BACKOFFICE_URL ?? "http://localhost:5173"}/sellers/${String(seller._id)}" style="background:#111d11;color:#fff;padding:11px 24px;border-radius:5px;text-decoration:none;font-size:13px;">Complete Profile in Backoffice</a>
+						</div>
+						<p style="margin-top:24px;font-size:12px;color:#aaa;">Submitted via Google Form · ${new Date().toLocaleString("en-KW", { timeZone: "Asia/Kuwait" })}</p>
+					</div>`,
+			});
+		} catch (emailErr) {
+			console.error("[registerFromForm] Notification email failed:", emailErr);
+		}
+
+		res.status(201).json({
+			success:  true,
+			sellerId: String(seller._id),
+			message:  "Seller registered. Erlume team notified to complete the profile.",
+		});
+	} catch (error: any) {
+		await session.abortTransaction();
+		console.error("Error in registerFromForm:", error);
+		if (error.code === 11000) {
+			res.status(409).json({ success: false, error: "A seller with this email already exists" });
+		} else {
+			res.status(500).json({ success: false, error: "Internal server error" });
+		}
+	} finally {
+		session.endSession();
+	}
+};
+
 const deleteSeller = async (req: Request, res: Response): Promise<void> => {
 	try {
 		const id = req.params.id;
@@ -188,5 +312,6 @@ export default {
 	getSellers,
 	getSellerById,
 	createSeller,
+	registerFromForm,
 	deleteSeller,
 };

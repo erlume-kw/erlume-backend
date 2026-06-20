@@ -179,10 +179,10 @@ function buildInvoiceEmail(customerName: string, invoiceNumber: string, invoiceU
           <td style="padding:24px 40px;background:#f0ede3;border-top:1px solid #e4e8e4;">
             <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#111d11;">Need help?</p>
             <p style="margin:0 0 6px;font-size:13px;color:#5a6b5a;">
-              📧 <a href="mailto:info@erlume.com.kw" style="color:#3d6b3d;text-decoration:none;">info@erlume.com.kw</a>
+              <a href="mailto:info@erlume.com.kw" style="color:#3d6b3d;text-decoration:none;">info@erlume.com.kw</a>
             </p>
             <p style="margin:0;font-size:13px;color:#5a6b5a;">
-              💬 <a href="https://wa.me/96597226735" style="color:#3d6b3d;text-decoration:none;">WhatsApp +965 97226735</a>
+              <a href="https://wa.me/${(process.env.WHATSAPP_NUMBER ?? "96597226735").replace(/[^0-9]/g, "")}" style="color:#3d6b3d;text-decoration:none;">WhatsApp ${process.env.WHATSAPP_NUMBER ?? "+965 97226735"}</a>
             </p>
           </td>
         </tr>
@@ -203,9 +203,9 @@ function buildInvoiceEmail(customerName: string, invoiceNumber: string, invoiceU
 
 // ─── Main: create invoice ─────────────────────────────────────────────────────
 
-const PORTAL_BASE = "https://invoice.zohosecure.com/portal/erlume/invoices";
+const PORTAL_BASE = process.env.ZOHO_PORTAL_BASE ?? "https://invoice.zohosecure.com/portal/erlume/invoices";
 
-export async function createZohoInvoice(params: CreateInvoiceParams): Promise<{ invoiceId: string; invoiceUrl: string } | null> {
+export async function createZohoInvoice(params: CreateInvoiceParams): Promise<{ invoiceId: string; invoiceUrl: string; invoiceNumber: string; pdfBuffer?: Buffer } | null> {
 	console.log("[zohoInvoice] createZohoInvoice called for order:", params.orderId);
 	if (process.env.NODE_ENV === "test") return null;
 
@@ -277,18 +277,23 @@ export async function createZohoInvoice(params: CreateInvoiceParams): Promise<{ 
 			const invoiceUrl = invoice_url ?? `${PORTAL_BASE}/${invoice_id}`;
 			console.log(`[zohoInvoice] Created ${invoice_number} → ${invoiceUrl}`);
 
-			// Send invoice PDF via Resend
-			if (params.email) {
+			// Download PDF from Zoho (used for buyer email + returned for team email)
+			let pdfBuffer: Buffer | undefined;
+			try {
+				const pdfRes = await fetch(`${ZOHO_API_BASE}/invoices/${invoice_id}?accept=pdf`, {
+					headers: HEADERS(token, orgId),
+				});
+				pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+			} catch (err) {
+				console.error("[zohoInvoice] PDF download error:", err);
+			}
+
+			// Send invoice PDF via Resend to buyer
+			if (params.email && pdfBuffer) {
 				try {
 					const { Resend } = await import("resend");
 					const resend = new Resend(process.env.RESEND_API_KEY);
 					const from   = process.env.RESEND_FROM ?? "orders@erlume.com.kw";
-
-					// Download PDF from Zoho
-					const pdfRes = await fetch(`${ZOHO_API_BASE}/invoices/${invoice_id}?accept=pdf`, {
-						headers: HEADERS(token, orgId),
-					});
-					const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
 
 					const { error } = await resend.emails.send({
 						from,
@@ -311,7 +316,7 @@ export async function createZohoInvoice(params: CreateInvoiceParams): Promise<{ 
 				}
 			}
 
-			return { invoiceId: invoice_id, invoiceUrl };
+			return { invoiceId: invoice_id, invoiceUrl, invoiceNumber: invoice_number, pdfBuffer };
 		}
 
 		console.error("[zohoInvoice] Create invoice failed:", data);

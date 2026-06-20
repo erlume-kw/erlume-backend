@@ -101,16 +101,16 @@ const sellerReturnScheduledText = (
 	returnDate?: string,
 ): string =>
 	[
-		`📦 *Return Scheduled — Erlume*`,
+		`*Return Scheduled — Erlume*`,
 		``,
 		`Hi ${sellerName},`,
 		``,
 		`Your item has been scheduled for return.`,
 		``,
 		`▸ *${brandName}* ${itemName}`,
-		returnDate ? `📅 *Return date:* ${returnDate}` : null,
+		returnDate ? `*Return date:* ${returnDate}` : null,
 		``,
-		`We'll be in touch to arrange the handover. Thank you for consigning with Erlume! 🌿`,
+		`We'll be in touch to arrange the handover. Thank you for consigning with Erlume!`,
 		``,
 		`_Questions? Simply reply to this message._`,
 	]
@@ -123,7 +123,7 @@ const sellerReturnedText = (
 	itemName: string,
 ): string =>
 	[
-		`✅ *Item Returned — Erlume*`,
+		`*Item Returned — Erlume*`,
 		``,
 		`Hi ${sellerName},`,
 		``,
@@ -131,7 +131,7 @@ const sellerReturnedText = (
 		``,
 		`▸ *${brandName}* ${itemName}`,
 		``,
-		`Thank you for consigning with Erlume. We hope to work with you again! 🌿`,
+		`Thank you for consigning with Erlume. We hope to work with you again!`,
 		``,
 		`_Questions? Simply reply to this message._`,
 	].join("\n");
@@ -168,7 +168,7 @@ export const sendOrderConfirmation = async (params: {
 		: [`*Total: KWD ${params.totalAmount}*`];
 
 	const fallback = [
-		`🛍️ *Order Confirmed!*`,
+		`*Order Confirmed!*`,
 		`_Thank you for shopping with Erlume._`,
 		``,
 		`*Ref:* #${shortId}`,
@@ -177,8 +177,8 @@ export const sendOrderConfirmation = async (params: {
 		`━━━━━━━━━━━━━━━━━━`,
 		...totalLines,
 		``,
-		`Your order is being prepared. We'll notify you once it's on its way. 📦`,
-		params.invoiceUrl ? `\n🧾 *Invoice:* ${params.invoiceUrl}` : null,
+		`Your order is being prepared. We'll notify you once it's on its way.`,
+		params.invoiceUrl ? `\nInvoice: ${params.invoiceUrl}` : null,
 		``,
 		`_Questions? Simply reply to this message._`,
 	].filter((l) => l !== null).join("\n");
@@ -205,7 +205,7 @@ export const sendOrderStatusUpdate = async (params: {
 			params.phoneNumber,
 			TEMPLATES.orderShipped,
 			{ "1": shortId },
-			`📦 *Your Order is On Its Way!*\n\nRef #${shortId} has been shipped and will arrive soon.\n\n_Questions? Reply to this message._`,
+			`*Your Order is On Its Way!*\n\nRef #${shortId} has been shipped and will arrive soon.\n\n_Questions? Reply to this message._`,
 		);
 		return;
 	}
@@ -215,7 +215,7 @@ export const sendOrderStatusUpdate = async (params: {
 			params.phoneNumber,
 			TEMPLATES.orderDelivered,
 			{ "1": shortId },
-			`🎉 *Order Delivered!*\n\nRef #${shortId} has been delivered.\n\nThank you for choosing Erlume. We hope you love your purchase! 🌿`,
+			`*Order Delivered!*\n\nRef #${shortId} has been delivered.\n\nThank you for choosing Erlume. We hope you love your purchase!`,
 		);
 		return;
 	}
@@ -224,19 +224,19 @@ export const sendOrderStatusUpdate = async (params: {
 	// use free-form — these only fire after the buyer has already received the order confirmation
 	// so a conversation window is likely open
 	const freeFormMessages: Record<string, string> = {
-		pending:    `🕐 *Order Received* — Ref #${shortId}\n\nYour order is awaiting confirmation.\n\n_We'll update you shortly._`,
-		processing: `⚙️ *Order in Progress* — Ref #${shortId}\n\nYour order is being prepared.\n\n_We'll notify you once it ships._`,
-		cancelled:  `❌ *Order Cancelled* — Ref #${shortId}\n\nYour order has been cancelled.\n\n_Reply if you have any questions._`,
-		returned:   `🔄 *Return in Progress* — Ref #${shortId}\n\nYour return is being processed.\n\n_We'll confirm once complete._`,
+		pending:    `*Order Received* — Ref #${shortId}\n\nYour order is awaiting confirmation.\n\n_We'll update you shortly._`,
+		processing: `*Order in Progress* — Ref #${shortId}\n\nYour order is being prepared.\n\n_We'll notify you once it ships._`,
+		cancelled:  `*Order Cancelled* — Ref #${shortId}\n\nYour order has been cancelled.\n\n_Reply if you have any questions._`,
+		returned:   `*Return in Progress* — Ref #${shortId}\n\nYour return is being processed.\n\n_We'll confirm once complete._`,
 	};
 
-	const body = freeFormMessages[status] ?? `📋 *Order Update* — Ref #${shortId}\nStatus: *${params.status}*`;
+	const body = freeFormMessages[status] ?? `*Order Update* — Ref #${shortId}\nStatus: *${params.status}*`;
 	await sendWhatsApp(params.phoneNumber, body);
 };
 
 export const sendInvoiceReady = async (phoneNumber: string, invoiceUrl: string): Promise<void> => {
 	const body = [
-		`🧾 *Your Invoice is Ready — Erlume*`,
+		`*Your Invoice is Ready — Erlume*`,
 		``,
 		`View and download your invoice here:`,
 		invoiceUrl,
@@ -248,7 +248,7 @@ export const sendInvoiceReady = async (phoneNumber: string, invoiceUrl: string):
 
 export const sendOTP = async (phoneNumber: string, otp: string): Promise<void> => {
 	const body = [
-		`🔐 *Erlume — Password Reset*`,
+		`*Erlume — Password Reset*`,
 		``,
 		`Your verification code is:`,
 		``,

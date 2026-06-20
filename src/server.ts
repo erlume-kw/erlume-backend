@@ -31,6 +31,7 @@ import discountCodeRoutes from "./routes/discountCodeRoutes";
 import dropRoutes from "./routes/dropRoutes";
 import enumRoutes from "./routes/enumRoutes";
 import sellerRoutes from "./routes/sellerRoutes";
+import sellerController from "./controllers/sellerController";
 import incomeRoutes from "./routes/incomeRoutes";
 import expenseRoutes from "./routes/expenseRoutes";
 import employeeRoutes from "./routes/employeeRoutes";
@@ -347,6 +348,9 @@ app.use("/api/wishlist", wishlistRoutes);
 
 // Upload route (auth + admin checked inside the router)
 app.use("/api/upload", uploadRoutes);
+
+// Public: Google Form seller registration (no auth)
+app.post("/api/sellers/from-form", sellerController.registerFromForm as express.RequestHandler);
 
 // Admin-only route groups (entire router gated)
 const adminOnly = [authenticate, requireRole(UserRole.ADMIN)];

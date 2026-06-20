@@ -94,6 +94,49 @@ async function fireZohoInvoice(
 				invoiceUrl: zohoResult?.invoiceUrl,
 			});
 		}
+
+		// Notify Erlume team
+		try {
+			const { Resend } = await import("resend");
+			const resend = new Resend(process.env.RESEND_API_KEY);
+			const itemRows = itemSummaries.map(i =>
+				`<tr>
+					<td style="padding:6px 0;border-bottom:1px solid #eee;">${i.brandName} — ${i.itemName}</td>
+					<td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;">KD ${i.price}</td>
+				</tr>`
+			).join("");
+			const total = discountRate > 0
+				? `<s style="color:#999;">KD ${fullTotal.toFixed(2)}</s> → <strong>KD ${discountedAmount.toFixed(2)}</strong> (${discountRate}% off)`
+				: `<strong>KD ${fullTotal.toFixed(2)}</strong>`;
+
+			await resend.emails.send({
+				from:    process.env.RESEND_FROM ?? "orders@erlume.com.kw",
+				to:      ["info@erlume.com.kw"],
+				subject: `New Order — ${customerName} · #${orderId.slice(-8).toUpperCase()}`,
+				html: `
+					<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;">
+						<h2 style="color:#111d11;margin:0 0 4px;">New Order Received</h2>
+						<p style="margin:0 0 24px;color:#888;font-size:13px;">Order #${orderId.slice(-8).toUpperCase()}</p>
+						<table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
+							<tr><td style="padding:6px 0;color:#666;width:130px;">Customer</td><td style="padding:6px 0;font-weight:600;">${customerName}</td></tr>
+							${notifPhone ? `<tr><td style="padding:6px 0;color:#666;">Phone</td><td style="padding:6px 0;">${notifPhone}</td></tr>` : ""}
+							${notifEmail ? `<tr><td style="padding:6px 0;color:#666;">Email</td><td style="padding:6px 0;">${notifEmail}</td></tr>` : ""}
+						</table>
+						<table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
+							${itemRows}
+							<tr>
+								<td style="padding:10px 0;font-weight:600;">Total</td>
+								<td style="padding:10px 0;text-align:right;">${total}</td>
+							</tr>
+						</table>
+						${zohoResult?.invoiceNumber ? `<p style="margin:0 0 16px;font-size:14px;color:#444;">Invoice: <strong>${zohoResult.invoiceNumber}</strong></p>` : ""}
+						${zohoResult?.invoiceId ? `<a href="https://invoice.zoho.com/app/${process.env.ZOHO_ORG_ID}/invoices/${zohoResult.invoiceId}" style="background:#111d11;color:#fff;padding:11px 24px;border-radius:5px;text-decoration:none;font-size:13px;">Open in Zoho Invoice</a>` : ""}
+						<p style="margin-top:24px;font-size:11px;color:#bbb;">${new Date().toLocaleString("en-KW", { timeZone: "Asia/Kuwait" })}</p>
+					</div>`,
+			});
+		} catch (emailErr) {
+			console.error("[transactionController] Team notification email failed:", emailErr);
+		}
 	} catch (err) {
 		console.error("[transactionController] Zoho invoice error:", err);
 	}

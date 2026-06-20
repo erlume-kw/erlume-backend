@@ -568,7 +568,7 @@ const updateOrderStatus = async (
 ): Promise<void> => {
 	try {
 		const orderId = req.params.id;
-		const { status } = req.body;
+		const status = req.body.status ?? req.body.order_status;
 
 		if (!mongoose.Types.ObjectId.isValid(orderId)) {
 			res.status(400).json({ success: false, error: "Invalid order ID" });
@@ -578,7 +578,7 @@ const updateOrderStatus = async (
 		if (!status) {
 			res.status(400).json({
 				success: false,
-				error: "Missing required field: status",
+				error: "Missing required field: status or order_status",
 			});
 			return;
 		}
