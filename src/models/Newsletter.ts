@@ -15,6 +15,13 @@ const NewsletterSchema: Schema = new Schema(
 		},
 		subscribedAt: { type: Date, default: Date.now },
 		isActive: { type: Boolean, default: true },
+		verificationStatus: {
+			type: String,
+			enum: ["pending", "valid", "invalid"],
+			default: "pending",
+		},
+		verifiedAt: { type: Date, default: null },
+		verifialiaDiagnostics: { type: String, default: null },
 	},
 	{ timestamps: true },
 );

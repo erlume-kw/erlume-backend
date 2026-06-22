@@ -81,10 +81,13 @@ const payoutRoutes_1 = __importDefault(require("./routes/payoutRoutes"));
 const wishlistRoutes_1 = __importDefault(require("./routes/wishlistRoutes"));
 const shippingRoutes_1 = __importDefault(require("./routes/shippingRoutes"));
 const newsletterRoutes_1 = __importDefault(require("./routes/newsletterRoutes"));
+const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const auth_1 = require("./middleware/auth");
 const userEnums_1 = require("./enums/userEnums");
+const node_schedule_1 = __importDefault(require("node-schedule"));
+const verificationService_1 = require("./services/verificationService");
 dotenv_1.default.config();
 // Add unhandled error handlers
 process.on("unhandledRejection", (reason, promise) => {
@@ -352,6 +355,7 @@ app.use("/api/reviews", reviewRoutes_1.default);
 app.use("/api/enums", enumRoutes_1.default);
 app.use("/api/shipping", shippingRoutes_1.default);
 app.use("/api/newsletter", newsletterRoutes_1.default);
+app.use("/api/notify", notificationRoutes_1.default);
 app.use("/api/discount-codes", discountCodeRoutes_1.default);
 // Mixed public/auth routes (auth handled per-route inside the router)
 app.use("/api/orders", orderRoutes_1.default);
@@ -381,10 +385,22 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, db_1.syncIndexes)();
     // Centralised error handler (must be last)
     app.use(errorHandler_1.errorHandler);
+    // Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
+    // Only verifies emails from the last 24 hours
+    node_schedule_1.default.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, () => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
+            yield (0, verificationService_1.batchVerifyEmails)();
+        }
+        catch (error) {
+            console.error("[Scheduler] Error during batch verification:", error);
+        }
+    }));
     // Start server
     app.listen(PORT, () => {
         console.log(`🚀 Server running on http://localhost:${PORT}`);
         console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
+        console.log(`📧 Email verification scheduled daily at 5 PM`);
     });
 });
 startServer();

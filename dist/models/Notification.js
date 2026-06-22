@@ -1,5 +1,5 @@
 "use strict";
-// src/models/Newsletter.ts
+// src/models/Notification.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,14 +35,26 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const NewsletterSchema = new mongoose_1.Schema({
+const NotificationSchema = new mongoose_1.Schema({
     email: {
         type: String,
         required: true,
-        unique: true,
         lowercase: true,
         trim: true,
         match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email address"],
+    },
+    itemId: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        required: true,
+        ref: "Item",
+    },
+    itemName: {
+        type: String,
+        required: true,
+    },
+    brandName: {
+        type: String,
+        required: true,
     },
     subscribedAt: { type: Date, default: Date.now },
     isActive: { type: Boolean, default: true },
@@ -54,5 +66,7 @@ const NewsletterSchema = new mongoose_1.Schema({
     verifiedAt: { type: Date, default: null },
     verifialiaDiagnostics: { type: String, default: null },
 }, { timestamps: true });
-const Newsletter = mongoose_1.default.model("Newsletter", NewsletterSchema);
-exports.default = Newsletter;
+// Compound unique index: email + itemId (only one notification per email per item)
+NotificationSchema.index({ email: 1, itemId: 1 }, { unique: true });
+const Notification = mongoose_1.default.model("Notification", NotificationSchema);
+exports.default = Notification;

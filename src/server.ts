@@ -38,10 +38,13 @@ import payoutRoutes from "./routes/payoutRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import shippingRoutes from "./routes/shippingRoutes";
 import newsletterRoutes from "./routes/newsletterRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 import authRoutes from "./routes/authRoutes";
 import uploadRoutes from "./routes/uploadRoutes";
 import { authenticate, requireRole } from "./middleware/auth";
 import { UserRole } from "./enums/userEnums";
+import schedule from "node-schedule";
+import { batchVerifyEmails } from "./services/verificationService";
 
 dotenv.config();
 
@@ -337,6 +340,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/enums", enumRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/notify", notificationRoutes);
 app.use("/api/discount-codes", discountCodeRoutes);
 
 // Mixed public/auth routes (auth handled per-route inside the router)
@@ -373,10 +377,22 @@ const startServer = async (): Promise<void> => {
 	// Centralised error handler (must be last)
 	app.use(errorHandler);
 
+	// Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
+	// Only verifies emails from the last 24 hours
+	schedule.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, async () => {
+		try {
+			console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
+			await batchVerifyEmails();
+		} catch (error) {
+			console.error("[Scheduler] Error during batch verification:", error);
+		}
+	});
+
 	// Start server
 	app.listen(PORT, () => {
 		console.log(`🚀 Server running on http://localhost:${PORT}`);
 		console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
+		console.log(`📧 Email verification scheduled daily at 5 PM`);
 	});
 };
 

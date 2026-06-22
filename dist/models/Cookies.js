@@ -1,5 +1,5 @@
 "use strict";
-// src/models/Newsletter.ts
+// src/models/Cookies.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,24 +35,30 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const NewsletterSchema = new mongoose_1.Schema({
+const CookiesSchema = new mongoose_1.Schema({
     email: {
         type: String,
-        required: true,
-        unique: true,
         lowercase: true,
         trim: true,
-        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email address"],
     },
-    subscribedAt: { type: Date, default: Date.now },
-    isActive: { type: Boolean, default: true },
-    verificationStatus: {
+    ipAddress: {
         type: String,
-        enum: ["pending", "valid", "invalid"],
-        default: "pending",
+        required: true,
     },
-    verifiedAt: { type: Date, default: null },
-    verifialiaDiagnostics: { type: String, default: null },
+    userAgent: {
+        type: String,
+    },
+    accepted: {
+        type: Boolean,
+        default: false,
+    },
+    consentedAt: { type: Date, default: Date.now },
+    expiresAt: {
+        type: Date,
+        default: () => new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+    },
 }, { timestamps: true });
-const Newsletter = mongoose_1.default.model("Newsletter", NewsletterSchema);
-exports.default = Newsletter;
+// Index for cleanup of expired records
+CookiesSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const Cookies = mongoose_1.default.model("Cookies", CookiesSchema);
+exports.default = Cookies;

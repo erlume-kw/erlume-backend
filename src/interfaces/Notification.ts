@@ -1,9 +1,12 @@
-// src/interfaces/Newsletter.ts
+// src/interfaces/Notification.ts
 
 import { Document } from "mongoose";
 
-export interface NewsletterInterface extends Document {
+export interface NotificationInterface extends Document {
 	email: string;
+	itemId: string;
+	itemName: string;
+	brandName: string;
 	subscribedAt: Date;
 	isActive: boolean;
 	verificationStatus: "pending" | "valid" | "invalid";
