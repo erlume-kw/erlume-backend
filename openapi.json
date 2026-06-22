@@ -771,6 +771,11 @@
                     },
                     "description": "Image URLs"
                   },
+                  "mainImageUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Cover/main image URL — must be one of the values in imageUrls. Defaults to imageUrls[0] if not set."
+                  },
                   "photoUrls": {
                     "type": "array",
                     "items": {
@@ -929,6 +934,11 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "mainImageUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Cover/main image URL — must be one of the values in imageUrls. Defaults to imageUrls[0] if not set."
                   },
                   "receiptPhotoUrls": {
                     "type": "array",

@@ -15,6 +15,9 @@ const router: Router = express.Router();
  * These routes map to user controller functions but use seller ID (which is the user ID)
  */
 
+// Public: Google Form registration (no auth)
+router.post("/from-form", sellerController.registerFromForm as RequestHandler);
+
 // Get sellers
 router.get("/", sellerController.getSellers as RequestHandler);
 router.get("/:id", validateParams(idParamSchema), sellerController.getSellerById as RequestHandler);

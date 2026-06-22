@@ -9,7 +9,9 @@
       "Bash(cd \"C:\\\\Users\\\\mega\\\\Documents\\\\GitHub\\\\erlume-backoffice\" && npm run build 2>&1)",
       "Bash(node -e ' *)",
       "Bash(npx tsc *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(ls \"C:/Program Files/MongoDB/\" 2>&1)",
+      "Bash(ls \"C:/Program Files/MongoDB/Server/\" 2>&1 && find \"C:/Users/mega\" -name \"mongodump.exe\" 2>/dev/null | head -5)"
     ]
   }
 }

@@ -193,6 +193,7 @@ export const updateItemSchema = z.preprocess(
 			receiptPhotoUrls: itemUpdateImageArray,
 			priceEstimatorUrls: itemUpdateImageArray,
 			quoteUrls: itemUpdateImageArray,
+			mainImageUrl: z.string().url("mainImageUrl must be a valid URL").optional(),
 		}),
 );
 
@@ -236,8 +237,9 @@ export const updateOrderSchema = z.object({
 });
 
 export const updateOrderStatusSchema = z.object({
-	order_status: z.nativeEnum(OrderStatus),
-});
+	order_status: z.nativeEnum(OrderStatus).optional(),
+	status:       z.nativeEnum(OrderStatus).optional(),
+}).refine(d => d.order_status ?? d.status, { message: "order_status or status is required" });
 
 // ==================== ORDER ITEM SCHEMAS ====================
 export const createOrderItemSchema = z.object({

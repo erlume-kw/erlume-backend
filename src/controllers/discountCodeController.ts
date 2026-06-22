@@ -345,6 +345,19 @@ const validateDiscountCode = async (
 			res.status(404).json({
 				success: false,
 				error: "Discount code not found",
+				code:  "DISCOUNT_NOT_FOUND",
+				valid: false,
+			});
+			return;
+		}
+
+		// Check if code has expired first (more specific than inactive)
+		const now = new Date();
+		if (discountCode.expiry_date < now) {
+			res.status(400).json({
+				success: false,
+				error: "Discount code has expired",
+				code:  "DISCOUNT_EXPIRED",
 				valid: false,
 			});
 			return;
@@ -355,17 +368,7 @@ const validateDiscountCode = async (
 			res.status(400).json({
 				success: false,
 				error: "Discount code is not active",
-				valid: false,
-			});
-			return;
-		}
-
-		// Check if code has expired
-		const now = new Date();
-		if (discountCode.expiry_date < now) {
-			res.status(400).json({
-				success: false,
-				error: "Discount code has expired",
+				code:  "DISCOUNT_INACTIVE",
 				valid: false,
 			});
 			return;
