@@ -389,24 +389,23 @@ app.use(errorHandler);
 // Export app for Vercel serverless
 export default app;
 
+// Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
+schedule.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, async () => {
+	try {
+		console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
+		await batchVerifyEmails();
+	} catch (error) {
+		console.error("[Scheduler] Error during batch verification:", error);
+	}
+});
+
 // In serverless (Vercel), DB connects per-request via the middleware above.
-// Locally, connect once on startup, sync indexes, and run scheduled jobs.
+// Locally, connect once on startup and sync indexes.
 if (!process.env.VERCEL) {
 	(async () => {
 		await connectDB();
 		await ensureCollections();
 		await syncIndexes();
-
-		// Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
-		schedule.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, async () => {
-			try {
-				console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
-				await batchVerifyEmails();
-			} catch (error) {
-				console.error("[Scheduler] Error during batch verification:", error);
-			}
-		});
-
 		app.listen(PORT, () => {
 			console.log(`Server running on http://localhost:${PORT}`);
 			console.log(`API docs: http://localhost:${PORT}/api-docs`);
