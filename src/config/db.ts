@@ -4,6 +4,7 @@ dotenv.config();
 import mongoose from "mongoose";
 
 const connectDB = async (): Promise<void> => {
+	if (mongoose.connection.readyState === 1) return; // already connected
 	try {
 		const conn = await mongoose.connect(process.env.MONGODB_URI as string);
 		console.log(`MongoDB connected: ${conn.connection.host}`);

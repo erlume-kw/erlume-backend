@@ -172,6 +172,7 @@ exports.updateItemSchema = zod_1.z.preprocess(preprocessItemUpdateBody, baseItem
     receiptPhotoUrls: itemUpdateImageArray,
     priceEstimatorUrls: itemUpdateImageArray,
     quoteUrls: itemUpdateImageArray,
+    mainImageUrl: zod_1.z.string().url("mainImageUrl must be a valid URL").optional(),
 }));
 // ==================== ORDER SCHEMAS ====================
 const orderItemsSchema = zod_1.z.array(zod_1.z.object({
@@ -207,8 +208,9 @@ exports.updateOrderSchema = zod_1.z.object({
     trackingReference: zod_1.z.string().optional(),
 });
 exports.updateOrderStatusSchema = zod_1.z.object({
-    order_status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus),
-});
+    order_status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus).optional(),
+    status: zod_1.z.nativeEnum(orderEnums_1.OrderStatus).optional(),
+}).refine(d => { var _a; return (_a = d.order_status) !== null && _a !== void 0 ? _a : d.status; }, { message: "order_status or status is required" });
 // ==================== ORDER ITEM SCHEMAS ====================
 exports.createOrderItemSchema = zod_1.z.object({
     order_id: exports.objectIdSchema,

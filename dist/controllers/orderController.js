@@ -240,7 +240,7 @@ const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     const session = yield mongoose_1.default.startSession();
     session.startTransaction();
     try {
@@ -250,6 +250,15 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(400).json({
                 success: false,
                 error: "Either user_id or guestInfo is required",
+            });
+            return;
+        }
+        // Guest must provide at least phone or email
+        if (!user_id && !(guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.phoneNumber) && !(guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.emailAddress)) {
+            yield session.abortTransaction();
+            res.status(400).json({
+                success: false,
+                error: "Guest orders require at least a phone number or email address.",
             });
             return;
         }
@@ -439,15 +448,11 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         yield session.commitTransaction();
         const notifPhone = user ? user.phoneNumber : guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.phoneNumber;
         const notifEmail = user ? user.emailAddress : ((_a = guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.emailAddress) !== null && _a !== void 0 ? _a : "");
-        if (notifPhone) {
-            void (0, notifications_1.sendOrderConfirmation)({
-                emailAddress: notifEmail,
-                phoneNumber: notifPhone,
-                orderId: String(savedOrder._id),
-                items: itemSummaries,
-                totalAmount: totalAmount.toFixed(2),
-            });
-        }
+        const customerName = user
+            ? ((_c = (_b = user.emailAddress) !== null && _b !== void 0 ? _b : notifPhone) !== null && _c !== void 0 ? _c : "Customer")
+            : ((_e = (_d = guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.name) !== null && _d !== void 0 ? _d : guestInfo === null || guestInfo === void 0 ? void 0 : guestInfo.phoneNumber) !== null && _e !== void 0 ? _e : "Guest");
+        // WhatsApp + Zoho invoice are sent from createTransaction
+        // so the customer gets the correct (discounted) total and invoice link in one flow
         res.status(201).json({
             success: true,
             message: "Order created successfully",
@@ -467,7 +472,7 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         // Handle duplicate transaction error (unique constraint violation)
-        if (error.code === 11000 || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes("duplicate"))) {
+        if (error.code === 11000 || ((_f = error.message) === null || _f === void 0 ? void 0 : _f.includes("duplicate"))) {
             res.status(400).json({
                 success: false,
                 error: "Transaction already exists for this order",
@@ -481,10 +486,10 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
     try {
         const orderId = req.params.id;
-        const { status } = req.body;
+        const status = (_a = req.body.status) !== null && _a !== void 0 ? _a : req.body.order_status;
         if (!mongoose_1.default.Types.ObjectId.isValid(orderId)) {
             res.status(400).json({ success: false, error: "Invalid order ID" });
             return;
@@ -492,7 +497,7 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
         if (!status) {
             res.status(400).json({
                 success: false,
-                error: "Missing required field: status",
+                error: "Missing required field: status or order_status",
             });
             return;
         }
@@ -521,11 +526,11 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
             yield Transaction_1.default.findOneAndUpdate({ order_id: orderId }, { status: transactionEnums_1.TransactionStatus.Failed });
         }
         const notifPhone = order.user_id
-            ? (_a = (yield User_1.default.findById(order.user_id))) === null || _a === void 0 ? void 0 : _a.phoneNumber
-            : (_b = order.guestInfo) === null || _b === void 0 ? void 0 : _b.phoneNumber;
+            ? (_b = (yield User_1.default.findById(order.user_id))) === null || _b === void 0 ? void 0 : _b.phoneNumber
+            : (_c = order.guestInfo) === null || _c === void 0 ? void 0 : _c.phoneNumber;
         const notifEmail = order.user_id
-            ? (_d = (_c = (yield User_1.default.findById(order.user_id))) === null || _c === void 0 ? void 0 : _c.emailAddress) !== null && _d !== void 0 ? _d : ""
-            : (_f = (_e = order.guestInfo) === null || _e === void 0 ? void 0 : _e.emailAddress) !== null && _f !== void 0 ? _f : "";
+            ? (_e = (_d = (yield User_1.default.findById(order.user_id))) === null || _d === void 0 ? void 0 : _d.emailAddress) !== null && _e !== void 0 ? _e : ""
+            : (_g = (_f = order.guestInfo) === null || _f === void 0 ? void 0 : _f.emailAddress) !== null && _g !== void 0 ? _g : "";
         if (notifPhone) {
             void (0, notifications_1.sendOrderStatusUpdate)({ emailAddress: notifEmail, phoneNumber: notifPhone, orderId, status });
         }
@@ -755,13 +760,13 @@ const validateCart = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 const getGuestOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { orderId } = req.params;
-        const { phone } = req.query;
+        const { phone, email } = req.query;
         if (!mongoose_1.default.Types.ObjectId.isValid(orderId)) {
             res.status(400).json({ success: false, error: "Invalid order ID" });
             return;
         }
-        if (!phone || typeof phone !== "string") {
-            res.status(400).json({ success: false, error: "Phone number is required" });
+        if (!phone && !email) {
+            res.status(400).json({ success: false, error: "Phone number or email address is required" });
             return;
         }
         const order = yield Order_1.default.findById(orderId).populate({
@@ -775,11 +780,18 @@ const getGuestOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             res.status(404).json({ success: false, error: "Order not found" });
             return;
         }
-        // Verify phone matches — normalise by stripping spaces and dashes
-        const normalise = (p) => p.replace(/[\s\-]/g, "");
-        if (normalise(phone) !== normalise(order.guestInfo.phoneNumber)) {
-            res.status(403).json({ success: false, error: "Phone number does not match this order" });
-            return;
+        const normalise = (s) => s.replace(/[\s\-]/g, "").toLowerCase();
+        if (phone && typeof phone === "string") {
+            if (!order.guestInfo.phoneNumber || normalise(phone) !== normalise(order.guestInfo.phoneNumber)) {
+                res.status(403).json({ success: false, error: "Phone number does not match this order" });
+                return;
+            }
+        }
+        else if (email && typeof email === "string") {
+            if (!order.guestInfo.emailAddress || normalise(email) !== normalise(order.guestInfo.emailAddress)) {
+                res.status(403).json({ success: false, error: "Email address does not match this order" });
+                return;
+            }
         }
         res.status(200).json({ success: true, data: order });
     }

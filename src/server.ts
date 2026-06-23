@@ -107,6 +107,16 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 // Ensure preflight requests always get a CORS response
 app.options(/.*/, cors(corsOptions));
 
+// Ensure DB is connected on every request (idempotent — fast after first call)
+app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+	try {
+		await connectDB();
+		next();
+	} catch (err) {
+		next(err);
+	}
+});
+
 // Debug middleware (after body parsing so req.body is populated)
 const isDebug = process.env.NODE_ENV !== "production";
 if (isDebug) {
@@ -373,31 +383,33 @@ app.use("/api/payouts", ...adminOnly, payoutRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-const startServer = async (): Promise<void> => {
-	await connectDB();
-	await ensureCollections();
-	await syncIndexes();
+// Centralised error handler (must be last middleware)
+app.use(errorHandler);
 
-	// Centralised error handler (must be last)
-	app.use(errorHandler);
+// Export app for Vercel serverless
+export default app;
 
-	// Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
-	// Only verifies emails from the last 24 hours
-	schedule.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, async () => {
-		try {
-			console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
-			await batchVerifyEmails();
-		} catch (error) {
-			console.error("[Scheduler] Error during batch verification:", error);
-		}
-	});
+// In serverless (Vercel), DB connects per-request via the middleware above.
+// Locally, connect once on startup, sync indexes, and run scheduled jobs.
+if (!process.env.VERCEL) {
+	(async () => {
+		await connectDB();
+		await ensureCollections();
+		await syncIndexes();
 
-	// Start server
-	app.listen(PORT, () => {
-		console.log(`🚀 Server running on http://localhost:${PORT}`);
-		console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
-		console.log(`📧 Email verification scheduled daily at 5 PM`);
-	});
-};
+		// Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
+		schedule.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, async () => {
+			try {
+				console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
+				await batchVerifyEmails();
+			} catch (error) {
+				console.error("[Scheduler] Error during batch verification:", error);
+			}
+		});
 
-startServer();
+		app.listen(PORT, () => {
+			console.log(`Server running on http://localhost:${PORT}`);
+			console.log(`API docs: http://localhost:${PORT}/api-docs`);
+		});
+	})();
+}

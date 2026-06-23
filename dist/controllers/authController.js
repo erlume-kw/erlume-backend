@@ -161,8 +161,12 @@ const authController = {
                 return;
             }
             const record = yield OTP_1.default.findOne({ phoneNumber, otp, used: false });
-            if (!record || record.expiresAt < new Date()) {
-                res.status(400).json({ success: false, error: "Invalid or expired OTP", code: "INVALID_OTP" });
+            if (!record) {
+                res.status(400).json({ success: false, error: "Invalid OTP", code: "INVALID_OTP" });
+                return;
+            }
+            if (record.expiresAt < new Date()) {
+                res.status(400).json({ success: false, error: "OTP has expired. Please request a new one.", code: "OTP_EXPIRED" });
                 return;
             }
             const user = yield User_1.default.findOne({ phoneNumber, isDeleted: false });

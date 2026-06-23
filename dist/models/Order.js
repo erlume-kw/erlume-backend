@@ -51,7 +51,7 @@ const flowEnums_1 = require("../enums/flowEnums");
 const OrderItem_1 = __importDefault(require("./OrderItem"));
 const GuestInfoSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    phoneNumber: { type: String, required: true },
+    phoneNumber: { type: String, required: false },
     emailAddress: { type: String, required: false },
     shippingAddress: {
         street: { type: String, required: true },

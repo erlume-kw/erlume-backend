@@ -74,6 +74,7 @@ const discountCodeRoutes_1 = __importDefault(require("./routes/discountCodeRoute
 const dropRoutes_1 = __importDefault(require("./routes/dropRoutes"));
 const enumRoutes_1 = __importDefault(require("./routes/enumRoutes"));
 const sellerRoutes_1 = __importDefault(require("./routes/sellerRoutes"));
+const sellerController_1 = __importDefault(require("./controllers/sellerController"));
 const incomeRoutes_1 = __importDefault(require("./routes/incomeRoutes"));
 const expenseRoutes_1 = __importDefault(require("./routes/expenseRoutes"));
 const employeeRoutes_1 = __importDefault(require("./routes/employeeRoutes"));
@@ -134,6 +135,16 @@ app.use(express_1.default.json({
 app.use(express_1.default.urlencoded({ limit: "10mb", extended: true }));
 // Ensure preflight requests always get a CORS response
 app.options(/.*/, (0, cors_1.default)(corsOptions));
+// Ensure DB is connected on every request (idempotent — fast after first call)
+app.use((_req, _res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield (0, db_1.default)();
+        next();
+    }
+    catch (err) {
+        next(err);
+    }
+}));
 // Debug middleware (after body parsing so req.body is populated)
 const isDebug = process.env.NODE_ENV !== "production";
 if (isDebug) {
@@ -364,6 +375,8 @@ app.use("/api/creditcards", creditCardRoutes_1.default);
 app.use("/api/wishlist", wishlistRoutes_1.default);
 // Upload route (auth + admin checked inside the router)
 app.use("/api/upload", uploadRoutes_1.default);
+// Public: Google Form seller registration (no auth)
+app.post("/api/sellers/from-form", sellerController_1.default.registerFromForm);
 // Admin-only route groups (entire router gated)
 const adminOnly = [auth_1.authenticate, (0, auth_1.requireRole)(userEnums_1.UserRole.ADMIN)];
 app.use("/api/transactions", ...adminOnly, transactionRoutes_1.default);
@@ -379,28 +392,30 @@ app.use("/api/expenses", ...adminOnly, expenseRoutes_1.default);
 app.use("/api/employees", ...adminOnly, employeeRoutes_1.default);
 app.use("/api/payouts", ...adminOnly, payoutRoutes_1.default);
 const PORT = process.env.PORT || 3000;
-const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
-    yield (0, db_1.default)();
-    yield (0, db_1.ensureCollections)();
-    yield (0, db_1.syncIndexes)();
-    // Centralised error handler (must be last)
-    app.use(errorHandler_1.errorHandler);
-    // Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
-    // Only verifies emails from the last 24 hours
-    node_schedule_1.default.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, () => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
-            yield (0, verificationService_1.batchVerifyEmails)();
-        }
-        catch (error) {
-            console.error("[Scheduler] Error during batch verification:", error);
-        }
-    }));
-    // Start server
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running on http://localhost:${PORT}`);
-        console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
-        console.log(`📧 Email verification scheduled daily at 5 PM`);
-    });
-});
-startServer();
+// Centralised error handler (must be last middleware)
+app.use(errorHandler_1.errorHandler);
+// Export app for Vercel serverless
+exports.default = app;
+// In serverless (Vercel), DB connects per-request via the middleware above.
+// Locally, connect once on startup, sync indexes, and run scheduled jobs.
+if (!process.env.VERCEL) {
+    (() => __awaiter(void 0, void 0, void 0, function* () {
+        yield (0, db_1.default)();
+        yield (0, db_1.ensureCollections)();
+        yield (0, db_1.syncIndexes)();
+        // Schedule daily email verification at 5 PM GMT+3 (Asia/Kuwait timezone)
+        node_schedule_1.default.scheduleJob({ rule: "0 17 * * *", tz: "Asia/Kuwait" }, () => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                console.log("[Scheduler] Starting daily Verifalia batch verification at 5 PM GMT+3...");
+                yield (0, verificationService_1.batchVerifyEmails)();
+            }
+            catch (error) {
+                console.error("[Scheduler] Error during batch verification:", error);
+            }
+        }));
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+            console.log(`API docs: http://localhost:${PORT}/api-docs`);
+        });
+    }))();
+}

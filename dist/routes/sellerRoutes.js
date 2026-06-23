@@ -13,6 +13,8 @@ const router = express_1.default.Router();
  * Seller routes - cleaner API for seller operations
  * These routes map to user controller functions but use seller ID (which is the user ID)
  */
+// Public: Google Form registration (no auth)
+router.post("/from-form", sellerController_1.default.registerFromForm);
 // Get sellers
 router.get("/", sellerController_1.default.getSellers);
 router.get("/:id", (0, validation_1.validateParams)(schemas_1.idParamSchema), sellerController_1.default.getSellerById);
